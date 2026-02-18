@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "Loam Logger",
+    "slug": "loam-logger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "entryPoint": "./node_modules/expo-router/entry",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "loamlogger",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.loamlabs.loamlogger",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/splash-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.loamlabs.loamlogger",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      ["expo-router", { "root": "./app" }],
+      "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.814815379952-v358b3l1lcs3mavngplq915b90pgdgjt"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "d507436a-1fae-4bc9-af55-a8057f5c92fd"
+      }
+    }
+  }
+}
