@@ -1,4 +1,4 @@
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { ApolloProvider } from '@apollo/client';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from '../src/hooks/useAuth';
@@ -83,7 +83,15 @@ function RootLayoutNav() {
     return <LoadingScreen />;
   }
 
-  return <Slot />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="closed-beta" />
+      <Stack.Screen name="waitlist" />
+    </Stack>
+  );
 }
 
 const styles = StyleSheet.create({

@@ -30,9 +30,8 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (result.success) {
-      // Set authenticated - this triggers ME query to fetch full user data
+      // Set authenticated - root layout guard handles navigation
       setAuthenticated(true);
-      router.replace('/(tabs)');
     } else {
       Alert.alert('Login Failed', result.error || 'Please try again');
     }
