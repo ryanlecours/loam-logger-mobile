@@ -10,7 +10,7 @@ import { useAcceptTermsMutation } from '../../src/graphql/generated';
 import { useAuth } from '../../src/hooks/useAuth';
 
 // TODO: Import from @loam/shared when available
-const CURRENT_TERMS_VERSION = '1.0';
+const CURRENT_TERMS_VERSION = '1.2.0';
 
 export default function TermsScreen() {
   const { refetchUser } = useAuth();
