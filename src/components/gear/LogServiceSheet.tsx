@@ -19,6 +19,7 @@ interface LogServiceSheetProps {
   onClose: () => void;
   components: ComponentFieldsFragment[];
   onServiceLogged?: () => void;
+  preSelectedId?: string | null;
 }
 
 function formatComponentType(type: string): string {
@@ -41,26 +42,67 @@ export function LogServiceSheet({
   onClose,
   components,
   onServiceLogged,
+  preSelectedId,
 }: LogServiceSheetProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    preSelectedId ? new Set([preSelectedId]) : new Set()
+  );
   const [logService, { loading }] = useLogComponentServiceMutation();
 
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  // Filter to only serviceable components (those with service intervals)
+  const serviceableComponents = components.filter(
+    (c) => c.serviceDueAtHours !== null && c.serviceDueAtHours !== undefined
+  );
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(serviceableComponents.map((c) => c.id)));
+  }, [serviceableComponents]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   const handleLogService = useCallback(async () => {
-    if (!selectedId) return;
+    if (selectedIds.size === 0) return;
+
+    const performedAt = new Date().toISOString();
+    const ids = Array.from(selectedIds);
 
     try {
-      await logService({
-        variables: {
-          id: selectedId,
-          performedAt: new Date().toISOString(),
-        },
-      });
+      // Log service for all selected components
+      await Promise.all(
+        ids.map((id) =>
+          logService({
+            variables: {
+              id,
+              performedAt,
+            },
+          })
+        )
+      );
 
-      Alert.alert('Service Logged', 'Component service has been recorded.', [
+      const message =
+        ids.length === 1
+          ? 'Component service has been recorded.'
+          : `Service has been recorded for ${ids.length} components.`;
+
+      Alert.alert('Service Logged', message, [
         {
           text: 'OK',
           onPress: () => {
-            setSelectedId(null);
+            setSelectedIds(new Set());
             onClose();
             onServiceLogged?.();
           },
@@ -69,17 +111,16 @@ export function LogServiceSheet({
     } catch (error) {
       Alert.alert('Error', (error as Error).message);
     }
-  }, [selectedId, logService, onClose, onServiceLogged]);
+  }, [selectedIds, logService, onClose, onServiceLogged]);
 
   const handleClose = useCallback(() => {
-    setSelectedId(null);
+    setSelectedIds(new Set());
     onClose();
   }, [onClose]);
 
-  // Filter to only serviceable components (those with service intervals)
-  const serviceableComponents = components.filter(
-    (c) => c.serviceDueAtHours !== null && c.serviceDueAtHours !== undefined
-  );
+  const allSelected =
+    serviceableComponents.length > 0 &&
+    selectedIds.size === serviceableComponents.length;
 
   return (
     <Modal
@@ -101,9 +142,21 @@ export function LogServiceSheet({
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.subtitle}>
-                Select a component to record a service
-              </Text>
+              <View style={styles.subheader}>
+                <Text style={styles.subtitle}>
+                  Select components to record service
+                </Text>
+                {serviceableComponents.length > 1 && (
+                  <TouchableOpacity
+                    onPress={allSelected ? deselectAll : selectAll}
+                    style={styles.selectAllButton}
+                  >
+                    <Text style={styles.selectAllText}>
+                      {allSelected ? 'Deselect All' : 'Select All'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
 
               <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
                 {serviceableComponents.length === 0 ? (
@@ -115,7 +168,7 @@ export function LogServiceSheet({
                   </View>
                 ) : (
                   serviceableComponents.map((component) => {
-                    const isSelected = selectedId === component.id;
+                    const isSelected = selectedIds.has(component.id);
                     const typeName = formatComponentType(component.type);
                     const location = formatLocation(component.location);
                     const brandModel = [component.brand, component.model]
@@ -129,9 +182,16 @@ export function LogServiceSheet({
                           styles.componentItem,
                           isSelected && styles.componentItemSelected,
                         ]}
-                        onPress={() => setSelectedId(component.id)}
+                        onPress={() => toggleSelection(component.id)}
                         activeOpacity={0.7}
                       >
+                        <View style={styles.checkbox}>
+                          {isSelected ? (
+                            <Ionicons name="checkbox" size={24} color="#2563eb" />
+                          ) : (
+                            <Ionicons name="square-outline" size={24} color="#9ca3af" />
+                          )}
+                        </View>
                         <StatusDot status={component.status || 'UNKNOWN'} />
                         <View style={styles.componentContent}>
                           <Text style={styles.componentType}>
@@ -146,9 +206,6 @@ export function LogServiceSheet({
                             {component.serviceDueAtHours}h
                           </Text>
                         </View>
-                        {isSelected && (
-                          <Ionicons name="checkmark-circle" size={24} color="#2563eb" />
-                        )}
                       </TouchableOpacity>
                     );
                   })
@@ -159,17 +216,19 @@ export function LogServiceSheet({
                 <TouchableOpacity
                   style={[
                     styles.logButton,
-                    (!selectedId || loading) && styles.logButtonDisabled,
+                    (selectedIds.size === 0 || loading) && styles.logButtonDisabled,
                   ]}
                   onPress={handleLogService}
-                  disabled={!selectedId || loading}
+                  disabled={selectedIds.size === 0 || loading}
                 >
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
                       <Ionicons name="checkmark" size={20} color="#fff" />
-                      <Text style={styles.logButtonText}>Log Service</Text>
+                      <Text style={styles.logButtonText}>
+                        Log Service{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -219,11 +278,25 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
+  subheader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
   subtitle: {
     fontSize: 14,
     color: '#6b7280',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+  },
+  selectAllButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  selectAllText: {
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '500',
   },
   list: {
     maxHeight: 300,
@@ -249,6 +322,9 @@ const styles = StyleSheet.create({
   },
   componentItemSelected: {
     backgroundColor: '#eff6ff',
+  },
+  checkbox: {
+    width: 24,
   },
   componentContent: {
     flex: 1,
