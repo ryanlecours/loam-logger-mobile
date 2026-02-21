@@ -173,3 +173,14 @@ mutation LogComponentService($id: ID!, $performedAt: String) {
     ...ComponentFields
   }
 }
+
+mutation InstallComponent($input: InstallComponentInput!) {
+  installComponent(input: $input) {
+    installedComponent {
+      ...ComponentFields
+    }
+    displacedComponent {
+      ...ComponentFields
+    }
+  }
+}

@@ -3,15 +3,19 @@ import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshCo
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
-import { useGearQuery } from '../../src/graphql/generated';
+import { useGearQuery, ComponentFieldsFragment } from '../../src/graphql/generated';
 import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthBadge';
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
+import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
+import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 
 export default function BikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [showLogService, setShowLogService] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
+  const [showReplaceSheet, setShowReplaceSheet] = useState(false);
   const { data, loading, error, refetch } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
@@ -67,6 +71,30 @@ export default function BikeDetailScreen() {
     const orderB = statusOrder[predB?.status || b.status || 'UNKNOWN'] ?? 4;
     return orderA - orderB;
   });
+
+  const handleComponentPress = (component: ComponentFieldsFragment) => {
+    setSelectedComponent(component);
+  };
+
+  const handleLogServiceFromDetail = () => {
+    // Close detail sheet and open log service with the component pre-selected
+    const componentId = selectedComponent?.id;
+    setSelectedComponent(null);
+    setTimeout(() => {
+      setShowLogService(true);
+    }, 300);
+  };
+
+  const handleReplaceFromDetail = () => {
+    // Keep the selected component and open replace sheet
+    setShowReplaceSheet(true);
+  };
+
+  const handleReplaceComplete = () => {
+    setShowReplaceSheet(false);
+    setSelectedComponent(null);
+    refetch();
+  };
 
   return (
     <ScrollView
@@ -185,6 +213,7 @@ export default function BikeDetailScreen() {
                   component={component}
                   status={prediction?.status || component.status || undefined}
                   hoursRemaining={prediction?.hoursRemaining}
+                  onPress={() => handleComponentPress(component)}
                 />
               );
             })
@@ -215,11 +244,32 @@ export default function BikeDetailScreen() {
 
       <View style={styles.bottomPadding} />
 
+      {/* Log Service Sheet */}
       <LogServiceSheet
         visible={showLogService}
         onClose={() => setShowLogService(false)}
         components={bike.components || []}
         onServiceLogged={refetch}
+      />
+
+      {/* Component Detail Sheet */}
+      <ComponentDetailSheet
+        visible={!!selectedComponent && !showReplaceSheet}
+        component={selectedComponent}
+        prediction={selectedComponent ? predictionMap.get(selectedComponent.id) : null}
+        onClose={() => setSelectedComponent(null)}
+        onLogService={handleLogServiceFromDetail}
+        onReplace={handleReplaceFromDetail}
+      />
+
+      {/* Replace Component Sheet */}
+      <ReplaceComponentSheet
+        visible={showReplaceSheet}
+        component={selectedComponent}
+        bikeId={bike.id}
+        spareComponents={data?.spareComponents || []}
+        onClose={() => setShowReplaceSheet(false)}
+        onReplaced={handleReplaceComplete}
       />
     </ScrollView>
   );

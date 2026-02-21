@@ -1107,6 +1107,13 @@ export type LogComponentServiceMutationVariables = Exact<{
 
 export type LogComponentServiceMutation = { __typename?: 'Mutation', logComponentService: { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus } };
 
+export type InstallComponentMutationVariables = Exact<{
+  input: InstallComponentInput;
+}>;
+
+
+export type InstallComponentMutation = { __typename?: 'Mutation', installComponent: { __typename?: 'InstallComponentResult', installedComponent: { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }, displacedComponent?: { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus } | null } };
+
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -1638,6 +1645,44 @@ export function useLogComponentServiceMutation(baseOptions?: Apollo.MutationHook
 export type LogComponentServiceMutationHookResult = ReturnType<typeof useLogComponentServiceMutation>;
 export type LogComponentServiceMutationResult = Apollo.MutationResult<LogComponentServiceMutation>;
 export type LogComponentServiceMutationOptions = Apollo.BaseMutationOptions<LogComponentServiceMutation, LogComponentServiceMutationVariables>;
+export const InstallComponentDocument = gql`
+    mutation InstallComponent($input: InstallComponentInput!) {
+  installComponent(input: $input) {
+    installedComponent {
+      ...ComponentFields
+    }
+    displacedComponent {
+      ...ComponentFields
+    }
+  }
+}
+    ${ComponentFieldsFragmentDoc}`;
+export type InstallComponentMutationFn = Apollo.MutationFunction<InstallComponentMutation, InstallComponentMutationVariables>;
+
+/**
+ * __useInstallComponentMutation__
+ *
+ * To run a mutation, you first call `useInstallComponentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useInstallComponentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [installComponentMutation, { data, loading, error }] = useInstallComponentMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useInstallComponentMutation(baseOptions?: Apollo.MutationHookOptions<InstallComponentMutation, InstallComponentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<InstallComponentMutation, InstallComponentMutationVariables>(InstallComponentDocument, options);
+      }
+export type InstallComponentMutationHookResult = ReturnType<typeof useInstallComponentMutation>;
+export type InstallComponentMutationResult = Apollo.MutationResult<InstallComponentMutation>;
+export type InstallComponentMutationOptions = Apollo.BaseMutationOptions<InstallComponentMutation, InstallComponentMutationVariables>;
 export const MeDocument = gql`
     query Me {
   me {
