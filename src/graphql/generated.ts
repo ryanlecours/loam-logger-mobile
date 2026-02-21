@@ -1037,6 +1037,20 @@ export type AcceptTermsMutationVariables = Exact<{
 
 export type AcceptTermsMutation = { __typename?: 'Mutation', acceptTerms: { __typename?: 'AcceptTermsResult', success: boolean, acceptedAt: string } };
 
+export type AddRideMutationVariables = Exact<{
+  input: AddRideInput;
+}>;
+
+
+export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+
+export type DeleteRideMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteRideMutation = { __typename?: 'Mutation', deleteRide: { __typename?: 'DeleteRideResult', ok: boolean, id: string } };
+
 export type ComponentFieldsFragment = { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus };
 
 export type PredictionFieldsFragment = { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> };
@@ -1104,6 +1118,23 @@ export type RecentRidesQueryVariables = Exact<{
 
 
 export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null }> };
+
+export type RidesPageQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['ID']['input']>;
+  filter?: InputMaybe<RidesFilterInput>;
+}>;
+
+
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null }> };
+
+export type UpdateRideMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateRideInput;
+}>;
+
+
+export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
 
 export const ComponentFieldsFragmentDoc = gql`
     fragment ComponentFields on Component {
@@ -1271,6 +1302,81 @@ export function useAcceptTermsMutation(baseOptions?: Apollo.MutationHookOptions<
 export type AcceptTermsMutationHookResult = ReturnType<typeof useAcceptTermsMutation>;
 export type AcceptTermsMutationResult = Apollo.MutationResult<AcceptTermsMutation>;
 export type AcceptTermsMutationOptions = Apollo.BaseMutationOptions<AcceptTermsMutation, AcceptTermsMutationVariables>;
+export const AddRideDocument = gql`
+    mutation AddRide($input: AddRideInput!) {
+  addRide(input: $input) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    rideType
+    bikeId
+    location
+    notes
+  }
+}
+    `;
+export type AddRideMutationFn = Apollo.MutationFunction<AddRideMutation, AddRideMutationVariables>;
+
+/**
+ * __useAddRideMutation__
+ *
+ * To run a mutation, you first call `useAddRideMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAddRideMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [addRideMutation, { data, loading, error }] = useAddRideMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useAddRideMutation(baseOptions?: Apollo.MutationHookOptions<AddRideMutation, AddRideMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AddRideMutation, AddRideMutationVariables>(AddRideDocument, options);
+      }
+export type AddRideMutationHookResult = ReturnType<typeof useAddRideMutation>;
+export type AddRideMutationResult = Apollo.MutationResult<AddRideMutation>;
+export type AddRideMutationOptions = Apollo.BaseMutationOptions<AddRideMutation, AddRideMutationVariables>;
+export const DeleteRideDocument = gql`
+    mutation DeleteRide($id: ID!) {
+  deleteRide(id: $id) {
+    ok
+    id
+  }
+}
+    `;
+export type DeleteRideMutationFn = Apollo.MutationFunction<DeleteRideMutation, DeleteRideMutationVariables>;
+
+/**
+ * __useDeleteRideMutation__
+ *
+ * To run a mutation, you first call `useDeleteRideMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteRideMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteRideMutation, { data, loading, error }] = useDeleteRideMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteRideMutation(baseOptions?: Apollo.MutationHookOptions<DeleteRideMutation, DeleteRideMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteRideMutation, DeleteRideMutationVariables>(DeleteRideDocument, options);
+      }
+export type DeleteRideMutationHookResult = ReturnType<typeof useDeleteRideMutation>;
+export type DeleteRideMutationResult = Apollo.MutationResult<DeleteRideMutation>;
+export type DeleteRideMutationOptions = Apollo.BaseMutationOptions<DeleteRideMutation, DeleteRideMutationVariables>;
 export const GearLightDocument = gql`
     query GearLight {
   bikes {
@@ -1638,3 +1744,102 @@ export type RecentRidesQueryHookResult = ReturnType<typeof useRecentRidesQuery>;
 export type RecentRidesLazyQueryHookResult = ReturnType<typeof useRecentRidesLazyQuery>;
 export type RecentRidesSuspenseQueryHookResult = ReturnType<typeof useRecentRidesSuspenseQuery>;
 export type RecentRidesQueryResult = Apollo.QueryResult<RecentRidesQuery, RecentRidesQueryVariables>;
+export const RidesPageDocument = gql`
+    query RidesPage($take: Int, $after: ID, $filter: RidesFilterInput) {
+  rides(take: $take, after: $after, filter: $filter) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    averageHr
+    rideType
+    bikeId
+    location
+    notes
+    garminActivityId
+    stravaActivityId
+    whoopWorkoutId
+  }
+}
+    `;
+
+/**
+ * __useRidesPageQuery__
+ *
+ * To run a query within a React component, call `useRidesPageQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRidesPageQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRidesPageQuery({
+ *   variables: {
+ *      take: // value for 'take'
+ *      after: // value for 'after'
+ *      filter: // value for 'filter'
+ *   },
+ * });
+ */
+export function useRidesPageQuery(baseOptions?: Apollo.QueryHookOptions<RidesPageQuery, RidesPageQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RidesPageQuery, RidesPageQueryVariables>(RidesPageDocument, options);
+      }
+export function useRidesPageLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RidesPageQuery, RidesPageQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RidesPageQuery, RidesPageQueryVariables>(RidesPageDocument, options);
+        }
+// @ts-ignore
+export function useRidesPageSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<RidesPageQuery, RidesPageQueryVariables>): Apollo.UseSuspenseQueryResult<RidesPageQuery, RidesPageQueryVariables>;
+export function useRidesPageSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RidesPageQuery, RidesPageQueryVariables>): Apollo.UseSuspenseQueryResult<RidesPageQuery | undefined, RidesPageQueryVariables>;
+export function useRidesPageSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RidesPageQuery, RidesPageQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RidesPageQuery, RidesPageQueryVariables>(RidesPageDocument, options);
+        }
+export type RidesPageQueryHookResult = ReturnType<typeof useRidesPageQuery>;
+export type RidesPageLazyQueryHookResult = ReturnType<typeof useRidesPageLazyQuery>;
+export type RidesPageSuspenseQueryHookResult = ReturnType<typeof useRidesPageSuspenseQuery>;
+export type RidesPageQueryResult = Apollo.QueryResult<RidesPageQuery, RidesPageQueryVariables>;
+export const UpdateRideDocument = gql`
+    mutation UpdateRide($id: ID!, $input: UpdateRideInput!) {
+  updateRide(id: $id, input: $input) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    rideType
+    bikeId
+    location
+    notes
+  }
+}
+    `;
+export type UpdateRideMutationFn = Apollo.MutationFunction<UpdateRideMutation, UpdateRideMutationVariables>;
+
+/**
+ * __useUpdateRideMutation__
+ *
+ * To run a mutation, you first call `useUpdateRideMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateRideMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateRideMutation, { data, loading, error }] = useUpdateRideMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateRideMutation(baseOptions?: Apollo.MutationHookOptions<UpdateRideMutation, UpdateRideMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateRideMutation, UpdateRideMutationVariables>(UpdateRideDocument, options);
+      }
+export type UpdateRideMutationHookResult = ReturnType<typeof useUpdateRideMutation>;
+export type UpdateRideMutationResult = Apollo.MutationResult<UpdateRideMutation>;
+export type UpdateRideMutationOptions = Apollo.BaseMutationOptions<UpdateRideMutation, UpdateRideMutationVariables>;

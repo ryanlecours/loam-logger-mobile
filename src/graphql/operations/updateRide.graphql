@@ -1,0 +1,13 @@
+mutation UpdateRide($id: ID!, $input: UpdateRideInput!) {
+  updateRide(id: $id, input: $input) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    rideType
+    bikeId
+    location
+    notes
+  }
+}

@@ -13,6 +13,7 @@ import {
   DashboardSkeleton,
   EmptyBikeState,
   RecentRidesList,
+  RideStatsCard,
 } from '../../src/components/dashboard';
 
 export default function DashboardScreen() {
@@ -88,6 +89,8 @@ export default function DashboardScreen() {
       ) : (
         <EmptyBikeState />
       )}
+
+      <RideStatsCard />
 
       <RecentRidesList
         rides={ridesData?.rides || []}
