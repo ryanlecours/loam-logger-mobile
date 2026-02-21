@@ -1,55 +1,109 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { useRouter, Href } from 'expo-router';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import {
+  useRecentRidesQuery,
+  BikeFieldsFragment,
+} from '../../src/graphql/generated';
+import {
+  DashboardGreeting,
+  BikeCarousel,
+  DashboardSkeleton,
+  EmptyBikeState,
+  RecentRidesList,
+} from '../../src/components/dashboard';
 
-export default function RidesScreen() {
+export default function DashboardScreen() {
+  const router = useRouter();
   const { user } = useAuth();
+  const {
+    bikes,
+    loading: bikesLoading,
+    hasPredictions,
+    refetch: refetchBikes,
+  } = useBikesWithPredictions();
+
+  const {
+    data: ridesData,
+    loading: ridesLoading,
+    refetch: refetchRides,
+  } = useRecentRidesQuery({
+    variables: { take: 5 },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([refetchBikes(), refetchRides()]);
+    setRefreshing(false);
+  }, [refetchBikes, refetchRides]);
+
+  // Extract first name from user data
+  const firstName = user?.name?.split(' ')[0] || 'Rider';
+
+  // Cast bikes to BikeFieldsFragment for type safety
+  const typedBikes = bikes as BikeFieldsFragment[];
+
+  // Calculate total due counts across all bikes for greeting
+  // Only available when predictions have loaded
+  const totalDueNow = hasPredictions
+    ? (bikes as BikeFieldsFragment[]).reduce(
+        (sum, bike) => sum + (bike.predictions?.dueNowCount || 0),
+        0
+      )
+    : 0;
+  const totalDueSoon = hasPredictions
+    ? (bikes as BikeFieldsFragment[]).reduce(
+        (sum, bike) => sum + (bike.predictions?.dueSoonCount || 0),
+        0
+      )
+    : 0;
+
+  const handleBikePress = (bikeId: string) => {
+    router.push(`/bike/${bikeId}` as Href);
+  };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.welcome}>Welcome back, {user?.email || 'Rider'}!</Text>
-        <Text style={styles.subtitle}>Your recent rides</Text>
-      </View>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <DashboardGreeting
+        firstName={firstName}
+        dueNowCount={totalDueNow}
+        dueSoonCount={totalDueSoon}
+      />
 
-      <View style={styles.content}>
-        <Text style={styles.placeholder}>
-          No rides yet. Connect your Garmin or Strava account to sync your rides.
-        </Text>
-      </View>
-    </View>
+      {bikesLoading && !bikes.length ? (
+        <DashboardSkeleton />
+      ) : typedBikes.length > 0 ? (
+        <BikeCarousel bikes={typedBikes} onBikePress={handleBikePress} />
+      ) : (
+        <EmptyBikeState />
+      )}
+
+      <RecentRidesList
+        rides={ridesData?.rides || []}
+        bikes={bikes}
+        loading={ridesLoading && !ridesData}
+      />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  welcome: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
+    backgroundColor: '#f9fafb',
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  placeholder: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
+    paddingBottom: 24,
   },
 });
