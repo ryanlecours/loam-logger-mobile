@@ -992,12 +992,14 @@ export type User = {
   createdAt: Scalars['String']['output'];
   email: Scalars['String']['output'];
   hasAcceptedCurrentTerms: Scalars['Boolean']['output'];
+  hasPassword: Scalars['Boolean']['output'];
   hoursDisplayPreference?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isFoundingRider: Scalars['Boolean']['output'];
   location?: Maybe<Scalars['String']['output']>;
   mustChangePassword: Scalars['Boolean']['output'];
   name?: Maybe<Scalars['String']['output']>;
+  needsReauthForSensitiveActions: Scalars['Boolean']['output'];
   onboardingCompleted: Scalars['Boolean']['output'];
   pairedComponentMigrationSeenAt?: Maybe<Scalars['String']['output']>;
   predictionMode?: Maybe<Scalars['String']['output']>;
@@ -1035,12 +1037,199 @@ export type AcceptTermsMutationVariables = Exact<{
 
 export type AcceptTermsMutation = { __typename?: 'Mutation', acceptTerms: { __typename?: 'AcceptTermsResult', success: boolean, acceptedAt: string } };
 
+export type ComponentFieldsFragment = { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus };
+
+export type PredictionFieldsFragment = { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> };
+
+export type BikeFieldsLightFragment = { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }> };
+
+export type BikeFieldsFragment = { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> } | null };
+
+export type GearLightQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GearLightQuery = { __typename?: 'Query', bikes: Array<{ __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }> }>, spareComponents: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }> };
+
+export type GearQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GearQuery = { __typename?: 'Query', bikes: Array<{ __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> } | null }>, spareComponents: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }> };
+
+export type AddBikeMutationVariables = Exact<{
+  input: AddBikeInput;
+}>;
+
+
+export type AddBikeMutation = { __typename?: 'Mutation', addBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> } | null } };
+
+export type UpdateBikeMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateBikeInput;
+}>;
+
+
+export type UpdateBikeMutation = { __typename?: 'Mutation', updateBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> } | null } };
+
+export type DeleteBikeMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteBikeMutation = { __typename?: 'Mutation', deleteBike: { __typename?: 'DeleteResult', ok: boolean, id: string } };
+
+export type UpdateComponentMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateComponentInput;
+}>;
+
+
+export type UpdateComponentMutation = { __typename?: 'Mutation', updateComponent: { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus } };
+
+export type LogComponentServiceMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  performedAt?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type LogComponentServiceMutation = { __typename?: 'Mutation', logComponentService: { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus } };
+
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, pairedComponentMigrationSeenAt?: string | null, createdAt: string } | null };
 
-
+export const ComponentFieldsFragmentDoc = gql`
+    fragment ComponentFields on Component {
+  id
+  type
+  brand
+  model
+  notes
+  isStock
+  bikeId
+  hoursUsed
+  serviceDueAtHours
+  baselineWearPercent
+  baselineMethod
+  baselineConfidence
+  baselineSetAt
+  lastServicedAt
+  location
+  status
+}
+    `;
+export const BikeFieldsLightFragmentDoc = gql`
+    fragment BikeFieldsLight on Bike {
+  id
+  nickname
+  manufacturer
+  model
+  year
+  travelForkMm
+  travelShockMm
+  notes
+  spokesId
+  spokesUrl
+  thumbnailUrl
+  family
+  category
+  subcategory
+  buildKind
+  isFrameset
+  isEbike
+  gender
+  frameMaterial
+  hangerStandard
+  motorMaker
+  motorModel
+  motorPowerW
+  motorTorqueNm
+  batteryWh
+  acquisitionCondition
+  components {
+    ...ComponentFields
+  }
+  createdAt
+  updatedAt
+}
+    ${ComponentFieldsFragmentDoc}`;
+export const PredictionFieldsFragmentDoc = gql`
+    fragment PredictionFields on BikePredictionSummary {
+  bikeId
+  bikeName
+  overallStatus
+  dueNowCount
+  dueSoonCount
+  generatedAt
+  priorityComponent {
+    componentId
+    componentType
+    location
+    brand
+    model
+    status
+    hoursRemaining
+    ridesRemainingEstimate
+    confidence
+    currentHours
+    serviceIntervalHours
+    hoursSinceService
+  }
+  components {
+    componentId
+    componentType
+    location
+    brand
+    model
+    status
+    hoursRemaining
+    ridesRemainingEstimate
+    confidence
+    currentHours
+    serviceIntervalHours
+    hoursSinceService
+  }
+}
+    `;
+export const BikeFieldsFragmentDoc = gql`
+    fragment BikeFields on Bike {
+  id
+  nickname
+  manufacturer
+  model
+  year
+  travelForkMm
+  travelShockMm
+  notes
+  spokesId
+  spokesUrl
+  thumbnailUrl
+  family
+  category
+  subcategory
+  buildKind
+  isFrameset
+  isEbike
+  gender
+  frameMaterial
+  hangerStandard
+  motorMaker
+  motorModel
+  motorPowerW
+  motorTorqueNm
+  batteryWh
+  acquisitionCondition
+  components {
+    ...ComponentFields
+  }
+  predictions {
+    ...PredictionFields
+  }
+  createdAt
+  updatedAt
+}
+    ${ComponentFieldsFragmentDoc}
+${PredictionFieldsFragmentDoc}`;
 export const AcceptTermsDocument = gql`
     mutation AcceptTerms($input: AcceptTermsInput!) {
   acceptTerms(input: $input) {
@@ -1075,6 +1264,267 @@ export function useAcceptTermsMutation(baseOptions?: Apollo.MutationHookOptions<
 export type AcceptTermsMutationHookResult = ReturnType<typeof useAcceptTermsMutation>;
 export type AcceptTermsMutationResult = Apollo.MutationResult<AcceptTermsMutation>;
 export type AcceptTermsMutationOptions = Apollo.BaseMutationOptions<AcceptTermsMutation, AcceptTermsMutationVariables>;
+export const GearLightDocument = gql`
+    query GearLight {
+  bikes {
+    ...BikeFieldsLight
+  }
+  spareComponents: components(filter: {onlySpare: true}) {
+    ...ComponentFields
+  }
+}
+    ${BikeFieldsLightFragmentDoc}
+${ComponentFieldsFragmentDoc}`;
+
+/**
+ * __useGearLightQuery__
+ *
+ * To run a query within a React component, call `useGearLightQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGearLightQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGearLightQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGearLightQuery(baseOptions?: Apollo.QueryHookOptions<GearLightQuery, GearLightQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GearLightQuery, GearLightQueryVariables>(GearLightDocument, options);
+      }
+export function useGearLightLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GearLightQuery, GearLightQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GearLightQuery, GearLightQueryVariables>(GearLightDocument, options);
+        }
+// @ts-ignore
+export function useGearLightSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<GearLightQuery, GearLightQueryVariables>): Apollo.UseSuspenseQueryResult<GearLightQuery, GearLightQueryVariables>;
+export function useGearLightSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GearLightQuery, GearLightQueryVariables>): Apollo.UseSuspenseQueryResult<GearLightQuery | undefined, GearLightQueryVariables>;
+export function useGearLightSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GearLightQuery, GearLightQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GearLightQuery, GearLightQueryVariables>(GearLightDocument, options);
+        }
+export type GearLightQueryHookResult = ReturnType<typeof useGearLightQuery>;
+export type GearLightLazyQueryHookResult = ReturnType<typeof useGearLightLazyQuery>;
+export type GearLightSuspenseQueryHookResult = ReturnType<typeof useGearLightSuspenseQuery>;
+export type GearLightQueryResult = Apollo.QueryResult<GearLightQuery, GearLightQueryVariables>;
+export const GearDocument = gql`
+    query Gear {
+  bikes {
+    ...BikeFields
+  }
+  spareComponents: components(filter: {onlySpare: true}) {
+    ...ComponentFields
+  }
+}
+    ${BikeFieldsFragmentDoc}
+${ComponentFieldsFragmentDoc}`;
+
+/**
+ * __useGearQuery__
+ *
+ * To run a query within a React component, call `useGearQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGearQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGearQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGearQuery(baseOptions?: Apollo.QueryHookOptions<GearQuery, GearQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GearQuery, GearQueryVariables>(GearDocument, options);
+      }
+export function useGearLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GearQuery, GearQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GearQuery, GearQueryVariables>(GearDocument, options);
+        }
+// @ts-ignore
+export function useGearSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<GearQuery, GearQueryVariables>): Apollo.UseSuspenseQueryResult<GearQuery, GearQueryVariables>;
+export function useGearSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GearQuery, GearQueryVariables>): Apollo.UseSuspenseQueryResult<GearQuery | undefined, GearQueryVariables>;
+export function useGearSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GearQuery, GearQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GearQuery, GearQueryVariables>(GearDocument, options);
+        }
+export type GearQueryHookResult = ReturnType<typeof useGearQuery>;
+export type GearLazyQueryHookResult = ReturnType<typeof useGearLazyQuery>;
+export type GearSuspenseQueryHookResult = ReturnType<typeof useGearSuspenseQuery>;
+export type GearQueryResult = Apollo.QueryResult<GearQuery, GearQueryVariables>;
+export const AddBikeDocument = gql`
+    mutation AddBike($input: AddBikeInput!) {
+  addBike(input: $input) {
+    ...BikeFields
+  }
+}
+    ${BikeFieldsFragmentDoc}`;
+export type AddBikeMutationFn = Apollo.MutationFunction<AddBikeMutation, AddBikeMutationVariables>;
+
+/**
+ * __useAddBikeMutation__
+ *
+ * To run a mutation, you first call `useAddBikeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAddBikeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [addBikeMutation, { data, loading, error }] = useAddBikeMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useAddBikeMutation(baseOptions?: Apollo.MutationHookOptions<AddBikeMutation, AddBikeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AddBikeMutation, AddBikeMutationVariables>(AddBikeDocument, options);
+      }
+export type AddBikeMutationHookResult = ReturnType<typeof useAddBikeMutation>;
+export type AddBikeMutationResult = Apollo.MutationResult<AddBikeMutation>;
+export type AddBikeMutationOptions = Apollo.BaseMutationOptions<AddBikeMutation, AddBikeMutationVariables>;
+export const UpdateBikeDocument = gql`
+    mutation UpdateBike($id: ID!, $input: UpdateBikeInput!) {
+  updateBike(id: $id, input: $input) {
+    ...BikeFields
+  }
+}
+    ${BikeFieldsFragmentDoc}`;
+export type UpdateBikeMutationFn = Apollo.MutationFunction<UpdateBikeMutation, UpdateBikeMutationVariables>;
+
+/**
+ * __useUpdateBikeMutation__
+ *
+ * To run a mutation, you first call `useUpdateBikeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateBikeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateBikeMutation, { data, loading, error }] = useUpdateBikeMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateBikeMutation(baseOptions?: Apollo.MutationHookOptions<UpdateBikeMutation, UpdateBikeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateBikeMutation, UpdateBikeMutationVariables>(UpdateBikeDocument, options);
+      }
+export type UpdateBikeMutationHookResult = ReturnType<typeof useUpdateBikeMutation>;
+export type UpdateBikeMutationResult = Apollo.MutationResult<UpdateBikeMutation>;
+export type UpdateBikeMutationOptions = Apollo.BaseMutationOptions<UpdateBikeMutation, UpdateBikeMutationVariables>;
+export const DeleteBikeDocument = gql`
+    mutation DeleteBike($id: ID!) {
+  deleteBike(id: $id) {
+    ok
+    id
+  }
+}
+    `;
+export type DeleteBikeMutationFn = Apollo.MutationFunction<DeleteBikeMutation, DeleteBikeMutationVariables>;
+
+/**
+ * __useDeleteBikeMutation__
+ *
+ * To run a mutation, you first call `useDeleteBikeMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteBikeMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteBikeMutation, { data, loading, error }] = useDeleteBikeMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeleteBikeMutation(baseOptions?: Apollo.MutationHookOptions<DeleteBikeMutation, DeleteBikeMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteBikeMutation, DeleteBikeMutationVariables>(DeleteBikeDocument, options);
+      }
+export type DeleteBikeMutationHookResult = ReturnType<typeof useDeleteBikeMutation>;
+export type DeleteBikeMutationResult = Apollo.MutationResult<DeleteBikeMutation>;
+export type DeleteBikeMutationOptions = Apollo.BaseMutationOptions<DeleteBikeMutation, DeleteBikeMutationVariables>;
+export const UpdateComponentDocument = gql`
+    mutation UpdateComponent($id: ID!, $input: UpdateComponentInput!) {
+  updateComponent(id: $id, input: $input) {
+    ...ComponentFields
+  }
+}
+    ${ComponentFieldsFragmentDoc}`;
+export type UpdateComponentMutationFn = Apollo.MutationFunction<UpdateComponentMutation, UpdateComponentMutationVariables>;
+
+/**
+ * __useUpdateComponentMutation__
+ *
+ * To run a mutation, you first call `useUpdateComponentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateComponentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateComponentMutation, { data, loading, error }] = useUpdateComponentMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateComponentMutation(baseOptions?: Apollo.MutationHookOptions<UpdateComponentMutation, UpdateComponentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateComponentMutation, UpdateComponentMutationVariables>(UpdateComponentDocument, options);
+      }
+export type UpdateComponentMutationHookResult = ReturnType<typeof useUpdateComponentMutation>;
+export type UpdateComponentMutationResult = Apollo.MutationResult<UpdateComponentMutation>;
+export type UpdateComponentMutationOptions = Apollo.BaseMutationOptions<UpdateComponentMutation, UpdateComponentMutationVariables>;
+export const LogComponentServiceDocument = gql`
+    mutation LogComponentService($id: ID!, $performedAt: String) {
+  logComponentService(id: $id, performedAt: $performedAt) {
+    ...ComponentFields
+  }
+}
+    ${ComponentFieldsFragmentDoc}`;
+export type LogComponentServiceMutationFn = Apollo.MutationFunction<LogComponentServiceMutation, LogComponentServiceMutationVariables>;
+
+/**
+ * __useLogComponentServiceMutation__
+ *
+ * To run a mutation, you first call `useLogComponentServiceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useLogComponentServiceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [logComponentServiceMutation, { data, loading, error }] = useLogComponentServiceMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      performedAt: // value for 'performedAt'
+ *   },
+ * });
+ */
+export function useLogComponentServiceMutation(baseOptions?: Apollo.MutationHookOptions<LogComponentServiceMutation, LogComponentServiceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<LogComponentServiceMutation, LogComponentServiceMutationVariables>(LogComponentServiceDocument, options);
+      }
+export type LogComponentServiceMutationHookResult = ReturnType<typeof useLogComponentServiceMutation>;
+export type LogComponentServiceMutationResult = Apollo.MutationResult<LogComponentServiceMutation>;
+export type LogComponentServiceMutationOptions = Apollo.BaseMutationOptions<LogComponentServiceMutation, LogComponentServiceMutationVariables>;
 export const MeDocument = gql`
     query Me {
   me {

@@ -1,8 +1,8 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
-  schema:
-    process.env.GRAPHQL_SCHEMA_URL || "http://localhost:4000/graphql",
+  // Use local schema file from the API package (avoids need for running server with introspection)
+  schema: "../loam-logger/apps/api/src/graphql/schema.ts",
   documents: ["src/graphql/**/*.graphql"],
   generates: {
     "src/graphql/generated.ts": {

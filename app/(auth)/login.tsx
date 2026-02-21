@@ -8,16 +8,20 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { loginWithEmail } from '../../src/lib/auth';
+import { useRouter, Href } from 'expo-router';
+import { loginWithEmail, loginWithGoogle } from '../../src/lib/auth';
 import { useAuth } from '../../src/hooks/useAuth';
+import { GoogleSignInButton } from '../../src/components/GoogleSignInButton';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
   const { setAuthenticated } = useAuth();
+
+  const isLoading = loading || googleLoading;
 
   async function handleLogin() {
     if (!email || !password) {
@@ -30,11 +34,48 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (result.success) {
-      // Set authenticated - root layout guard handles navigation
       setAuthenticated(true);
-    } else {
-      Alert.alert('Login Failed', result.error || 'Please try again');
+      return;
     }
+
+    // Handle special error codes
+    if (result.errorCode === 'CLOSED_BETA') {
+      router.replace('/closed-beta' as Href);
+      return;
+    }
+    if (result.errorCode === 'ALREADY_ON_WAITLIST') {
+      router.replace('/waitlist' as Href);
+      return;
+    }
+
+    Alert.alert('Login Failed', result.error || 'Please try again');
+  }
+
+  async function handleGoogleSuccess(idToken: string) {
+    setGoogleLoading(true);
+    const result = await loginWithGoogle(idToken);
+    setGoogleLoading(false);
+
+    if (result.success) {
+      setAuthenticated(true);
+      return;
+    }
+
+    // Handle special error codes
+    if (result.errorCode === 'CLOSED_BETA') {
+      router.replace('/closed-beta' as Href);
+      return;
+    }
+    if (result.errorCode === 'ALREADY_ON_WAITLIST') {
+      router.replace('/waitlist' as Href);
+      return;
+    }
+
+    Alert.alert('Login Failed', result.error || 'Please try again');
+  }
+
+  function handleGoogleError(error: string) {
+    Alert.alert('Google Sign-In Failed', error);
   }
 
   return (
@@ -44,6 +85,21 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Track your mountain bike rides</Text>
 
         <View style={styles.form}>
+          {/* Google Sign-In */}
+          <GoogleSignInButton
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            disabled={isLoading}
+          />
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Email/Password */}
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -51,7 +107,7 @@ export default function LoginScreen() {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            editable={!loading}
+            editable={!isLoading}
           />
 
           <TextInput
@@ -60,13 +116,13 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            editable={!loading}
+            editable={!isLoading}
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={isLoading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -78,7 +134,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.linkButton}
             onPress={() => router.push('/(auth)/signup')}
-            disabled={loading}
+            disabled={isLoading}
           >
             <Text style={styles.linkText}>
               Don't have an account? Sign up
@@ -111,10 +167,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   form: {
     width: '100%',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: '#999',
+    fontSize: 14,
   },
   input: {
     borderWidth: 1,

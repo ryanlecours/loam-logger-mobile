@@ -108,10 +108,16 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  errorCode?: 'CLOSED_BETA' | 'ALREADY_ON_WAITLIST' | 'INVALID_CREDENTIALS' | 'NETWORK_ERROR';
+}
+
 export async function loginWithEmail(
   email: string,
   password: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<AuthResult> {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
   try {
@@ -125,20 +131,30 @@ export async function loginWithEmail(
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || 'Login failed' };
+      const message = error.message || 'Login failed';
+
+      // Check for specific error codes
+      if (message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
+        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST' };
+      }
+      if (message.includes('CLOSED_BETA') || message.includes('closed beta')) {
+        return { success: false, error: message, errorCode: 'CLOSED_BETA' };
+      }
+
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS' };
     }
 
     const data = await response.json();
     await storeTokens(data.accessToken, data.refreshToken, data.user);
     return { success: true };
   } catch (_error) {
-    return { success: false, error: 'Network error' };
+    return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
 
 export async function loginWithGoogle(
   idToken: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<AuthResult> {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
   try {
@@ -152,21 +168,31 @@ export async function loginWithGoogle(
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || 'Google login failed' };
+      const message = error.message || 'Google login failed';
+
+      // Check for specific error codes
+      if (message.includes('CLOSED_BETA') || message.includes('closed beta')) {
+        return { success: false, error: message, errorCode: 'CLOSED_BETA' };
+      }
+      if (message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
+        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST' };
+      }
+
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS' };
     }
 
     const data = await response.json();
     await storeTokens(data.accessToken, data.refreshToken, data.user);
     return { success: true };
   } catch (_error) {
-    return { success: false, error: 'Network error' };
+    return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
 
 export async function loginWithApple(
   identityToken: string,
   user?: { email?: string; name?: { firstName?: string; lastName?: string } }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<AuthResult> {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
   try {
@@ -180,14 +206,24 @@ export async function loginWithApple(
 
     if (!response.ok) {
       const error = await response.json();
-      return { success: false, error: error.message || 'Apple login failed' };
+      const message = error.message || 'Apple login failed';
+
+      // Check for specific error codes
+      if (message.includes('CLOSED_BETA') || message.includes('closed beta')) {
+        return { success: false, error: message, errorCode: 'CLOSED_BETA' };
+      }
+      if (message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
+        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST' };
+      }
+
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS' };
     }
 
     const data = await response.json();
     await storeTokens(data.accessToken, data.refreshToken, data.user);
     return { success: true };
   } catch (_error) {
-    return { success: false, error: 'Network error' };
+    return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
 

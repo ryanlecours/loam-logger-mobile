@@ -5,11 +5,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   View,
+  Platform,
 } from 'react-native';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 
 interface Props {
   onSuccess: (idToken: string) => void;
@@ -17,17 +14,58 @@ interface Props {
   disabled?: boolean;
 }
 
+// Check if we're in a development client or Expo Go
+// Native modules are only available in development builds
+let GoogleSignin: typeof import('@react-native-google-signin/google-signin').GoogleSignin | null = null;
+let statusCodes: typeof import('@react-native-google-signin/google-signin').statusCodes | null = null;
+let isNativeModuleAvailable = false;
+
+try {
+  const googleSignIn = require('@react-native-google-signin/google-signin');
+  GoogleSignin = googleSignIn.GoogleSignin;
+  statusCodes = googleSignIn.statusCodes;
+  isNativeModuleAvailable = true;
+} catch {
+  // Native module not available (running in Expo Go)
+  isNativeModuleAvailable = false;
+}
+
 export function GoogleSignInButton({ onSuccess, onError, disabled }: Props) {
   const [loading, setLoading] = useState(false);
+  const [configured, setConfigured] = useState(false);
 
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    });
+    if (isNativeModuleAvailable && GoogleSignin) {
+      try {
+        GoogleSignin.configure({
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        });
+        setConfigured(true);
+      } catch (error) {
+        console.warn('Google Sign-In configuration failed:', error);
+      }
+    }
   }, []);
 
+  // Don't render if native module isn't available
+  if (!isNativeModuleAvailable || !GoogleSignin) {
+    // Show a disabled button in Expo Go with explanation
+    if (__DEV__) {
+      return (
+        <View style={[styles.button, styles.buttonDisabled]}>
+          <Text style={styles.devText}>
+            Google Sign-In requires a development build
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }
+
   async function handlePress() {
+    if (!GoogleSignin || !statusCodes) return;
+
     setLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
@@ -57,9 +95,9 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: Props) {
 
   return (
     <TouchableOpacity
-      style={[styles.button, (disabled || loading) && styles.buttonDisabled]}
+      style={[styles.button, (disabled || loading || !configured) && styles.buttonDisabled]}
       onPress={handlePress}
-      disabled={disabled || loading}
+      disabled={disabled || loading || !configured}
     >
       {loading ? (
         <ActivityIndicator color="#333" />
@@ -94,5 +132,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  devText: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
   },
 });
