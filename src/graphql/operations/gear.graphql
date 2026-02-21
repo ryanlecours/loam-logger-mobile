@@ -1,0 +1,175 @@
+fragment ComponentFields on Component {
+  id
+  type
+  brand
+  model
+  notes
+  isStock
+  bikeId
+  hoursUsed
+  serviceDueAtHours
+  baselineWearPercent
+  baselineMethod
+  baselineConfidence
+  baselineSetAt
+  lastServicedAt
+  location
+  status
+}
+
+fragment PredictionFields on BikePredictionSummary {
+  bikeId
+  bikeName
+  overallStatus
+  dueNowCount
+  dueSoonCount
+  generatedAt
+  priorityComponent {
+    componentId
+    componentType
+    location
+    brand
+    model
+    status
+    hoursRemaining
+    ridesRemainingEstimate
+    confidence
+    currentHours
+    serviceIntervalHours
+    hoursSinceService
+  }
+  components {
+    componentId
+    componentType
+    location
+    brand
+    model
+    status
+    hoursRemaining
+    ridesRemainingEstimate
+    confidence
+    currentHours
+    serviceIntervalHours
+    hoursSinceService
+  }
+}
+
+fragment BikeFieldsLight on Bike {
+  id
+  nickname
+  manufacturer
+  model
+  year
+  travelForkMm
+  travelShockMm
+  notes
+  spokesId
+  spokesUrl
+  thumbnailUrl
+  family
+  category
+  subcategory
+  buildKind
+  isFrameset
+  isEbike
+  gender
+  frameMaterial
+  hangerStandard
+  motorMaker
+  motorModel
+  motorPowerW
+  motorTorqueNm
+  batteryWh
+  acquisitionCondition
+  components {
+    ...ComponentFields
+  }
+  createdAt
+  updatedAt
+}
+
+fragment BikeFields on Bike {
+  id
+  nickname
+  manufacturer
+  model
+  year
+  travelForkMm
+  travelShockMm
+  notes
+  spokesId
+  spokesUrl
+  thumbnailUrl
+  family
+  category
+  subcategory
+  buildKind
+  isFrameset
+  isEbike
+  gender
+  frameMaterial
+  hangerStandard
+  motorMaker
+  motorModel
+  motorPowerW
+  motorTorqueNm
+  batteryWh
+  acquisitionCondition
+  components {
+    ...ComponentFields
+  }
+  predictions {
+    ...PredictionFields
+  }
+  createdAt
+  updatedAt
+}
+
+query GearLight {
+  bikes {
+    ...BikeFieldsLight
+  }
+  spareComponents: components(filter: { onlySpare: true }) {
+    ...ComponentFields
+  }
+}
+
+query Gear {
+  bikes {
+    ...BikeFields
+  }
+  spareComponents: components(filter: { onlySpare: true }) {
+    ...ComponentFields
+  }
+}
+
+mutation AddBike($input: AddBikeInput!) {
+  addBike(input: $input) {
+    ...BikeFields
+  }
+}
+
+mutation UpdateBike($id: ID!, $input: UpdateBikeInput!) {
+  updateBike(id: $id, input: $input) {
+    ...BikeFields
+  }
+}
+
+mutation DeleteBike($id: ID!) {
+  deleteBike(id: $id) {
+    ok
+    id
+  }
+}
+
+mutation UpdateComponent($id: ID!, $input: UpdateComponentInput!) {
+  updateComponent(id: $id, input: $input) {
+    ...ComponentFields
+  }
+}
+
+mutation LogComponentService($id: ID!, $performedAt: String) {
+  logComponentService(id: $id, performedAt: $performedAt) {
+    ...ComponentFields
+  }
+}

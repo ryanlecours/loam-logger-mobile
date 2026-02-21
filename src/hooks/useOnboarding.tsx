@@ -12,6 +12,7 @@ export interface SpokesBike {
   category: string;
   subcategory: string | null;
   thumbnailUrl?: string;
+  url?: string;
   spokesUrl?: string;
   buildKind?: string;
   isFrameset?: boolean;
@@ -19,6 +20,13 @@ export interface SpokesBike {
   gender?: string;
   frameMaterial?: string;
   hangerStandard?: string;
+  travelFork?: number;
+  travelRear?: number;
+  batteryWh?: number;
+  motorMaker?: string;
+  motorModel?: string;
+  motorPowerW?: number;
+  motorTorqueNm?: number;
   components?: SpokesComponents;
 }
 

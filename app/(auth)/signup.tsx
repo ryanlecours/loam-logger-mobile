@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,16 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
+import {
+  PasswordRequirements,
+  checkPasswordRequirements,
+} from '../../src/components/PasswordRequirements';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -20,6 +27,20 @@ export default function SignupScreen() {
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const router = useRouter();
   const { setAuthenticated } = useAuth();
+
+  const passwordCheck = useMemo(
+    () => checkPasswordRequirements(password),
+    [password]
+  );
+
+  const canSubmit = useMemo(() => {
+    return (
+      name.trim().length >= 2 &&
+      email.includes('@') &&
+      passwordCheck.isValid &&
+      password === confirmPassword
+    );
+  }, [name, email, password, confirmPassword, passwordCheck.isValid]);
 
   async function handleSignup() {
     if (!name || !email || !password || !confirmPassword) {
@@ -32,13 +53,13 @@ export default function SignupScreen() {
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!passwordCheck.isValid) {
+      Alert.alert('Error', 'Please meet all password requirements');
       return;
     }
 
-    if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters');
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
@@ -90,7 +111,8 @@ export default function SignupScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>You're on the list!</Text>
           <Text style={styles.waitlistMessage}>
-            We've added you to our waitlist. We'll send you an email when your account is ready.
+            We've added you to our waitlist. We'll send you an email when your
+            account is ready.
           </Text>
           <TouchableOpacity
             style={styles.button}
@@ -104,73 +126,90 @@ export default function SignupScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Join the Loam Logger community</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join the Loam Logger community</Text>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Full Name"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-            editable={!loading}
-          />
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              editable={!loading}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            editable={!loading}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!loading}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!loading}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            editable={!loading}
-          />
+            {password.length > 0 && <PasswordRequirements password={password} />}
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSignup}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
+            <TextInput
+              style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+
+            {confirmPassword.length > 0 && password !== confirmPassword && (
+              <Text style={styles.errorText}>Passwords do not match</Text>
             )}
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.back()}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>
-              Already have an account? Sign in
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                (!canSubmit || loading) && styles.buttonDisabled,
+              ]}
+              onPress={handleSignup}
+              disabled={!canSubmit || loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => router.back()}
+              disabled={loading}
+            >
+              <Text style={styles.linkText}>
+                Already have an account? Sign in
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -179,10 +218,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 32,
   },
   title: {
     fontSize: 32,
@@ -195,7 +238,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
-    marginBottom: 48,
+    marginBottom: 32,
   },
   waitlistMessage: {
     fontSize: 16,
@@ -216,6 +259,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
   },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 13,
+    marginTop: -8,
+    marginBottom: 16,
+    marginLeft: 4,
+  },
   button: {
     backgroundColor: '#2d5016',
     borderRadius: 8,
@@ -224,7 +274,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   buttonText: {
     color: '#fff',
