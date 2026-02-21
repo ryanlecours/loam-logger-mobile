@@ -1098,6 +1098,13 @@ export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, pairedComponentMigrationSeenAt?: string | null, createdAt: string } | null };
 
+export type RecentRidesQueryVariables = Exact<{
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null }> };
+
 export const ComponentFieldsFragmentDoc = gql`
     fragment ComponentFields on Component {
   id
@@ -1581,3 +1588,53 @@ export type MeQueryHookResult = ReturnType<typeof useMeQuery>;
 export type MeLazyQueryHookResult = ReturnType<typeof useMeLazyQuery>;
 export type MeSuspenseQueryHookResult = ReturnType<typeof useMeSuspenseQuery>;
 export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
+export const RecentRidesDocument = gql`
+    query RecentRides($take: Int) {
+  rides(take: $take) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    rideType
+    bikeId
+    location
+  }
+}
+    `;
+
+/**
+ * __useRecentRidesQuery__
+ *
+ * To run a query within a React component, call `useRecentRidesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRecentRidesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRecentRidesQuery({
+ *   variables: {
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useRecentRidesQuery(baseOptions?: Apollo.QueryHookOptions<RecentRidesQuery, RecentRidesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RecentRidesQuery, RecentRidesQueryVariables>(RecentRidesDocument, options);
+      }
+export function useRecentRidesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RecentRidesQuery, RecentRidesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RecentRidesQuery, RecentRidesQueryVariables>(RecentRidesDocument, options);
+        }
+// @ts-ignore
+export function useRecentRidesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<RecentRidesQuery, RecentRidesQueryVariables>): Apollo.UseSuspenseQueryResult<RecentRidesQuery, RecentRidesQueryVariables>;
+export function useRecentRidesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RecentRidesQuery, RecentRidesQueryVariables>): Apollo.UseSuspenseQueryResult<RecentRidesQuery | undefined, RecentRidesQueryVariables>;
+export function useRecentRidesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RecentRidesQuery, RecentRidesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RecentRidesQuery, RecentRidesQueryVariables>(RecentRidesDocument, options);
+        }
+export type RecentRidesQueryHookResult = ReturnType<typeof useRecentRidesQuery>;
+export type RecentRidesLazyQueryHookResult = ReturnType<typeof useRecentRidesLazyQuery>;
+export type RecentRidesSuspenseQueryHookResult = ReturnType<typeof useRecentRidesSuspenseQuery>;
+export type RecentRidesQueryResult = Apollo.QueryResult<RecentRidesQuery, RecentRidesQueryVariables>;

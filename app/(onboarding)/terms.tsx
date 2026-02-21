@@ -8,12 +8,13 @@ import {
 } from 'react-native';
 import { useAcceptTermsMutation } from '../../src/graphql/generated';
 import { useAuth } from '../../src/hooks/useAuth';
+import { isUnauthorizedError } from '../../src/utils/errors';
 
 // TODO: Import from @loam/shared when available
 const CURRENT_TERMS_VERSION = '1.2.0';
 
 export default function TermsScreen() {
-  const { refetchUser } = useAuth();
+  const { refetchUser, logout } = useAuth();
   const [acceptTerms, { loading }] = useAcceptTermsMutation();
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,11 @@ export default function TermsScreen() {
       // Root layout will handle navigation based on updated flags
       await refetchUser();
     } catch (err) {
+      // If unauthorized, log out and redirect to login
+      if (isUnauthorizedError(err)) {
+        await logout();
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to accept terms');
     }
   }

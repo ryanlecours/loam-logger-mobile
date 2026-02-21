@@ -16,11 +16,12 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { useOnboarding, type SpokesBike } from '../../src/hooks/useOnboarding';
 import { getAccessToken } from '../../src/lib/auth';
 import { searchBikes, getBikeById, type SpokesSearchResult } from '../../src/api/spokes';
+import { isUnauthorizedError } from '../../src/utils/errors';
 
 type Step = 'search' | 'confirm';
 
 export default function BikeScreen() {
-  const { refetchUser } = useAuth();
+  const { refetchUser, logout } = useAuth();
   const { data: onboardingData, setSelectedBike } = useOnboarding();
 
   const [step, setStep] = useState<Step>('search');
@@ -147,6 +148,11 @@ export default function BikeScreen() {
       // Refetch user to update onboardingCompleted flag
       await refetchUser();
     } catch (err) {
+      // If unauthorized, log out and redirect to login
+      if (isUnauthorizedError(err)) {
+        await logout();
+        return;
+      }
       Alert.alert(
         'Error',
         err instanceof Error ? err.message : 'Failed to complete onboarding'
