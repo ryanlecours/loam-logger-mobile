@@ -1,0 +1,13 @@
+mutation AddRide($input: AddRideInput!) {
+  addRide(input: $input) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    rideType
+    bikeId
+    location
+    notes
+  }
+}

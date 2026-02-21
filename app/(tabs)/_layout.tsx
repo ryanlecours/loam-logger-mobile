@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
@@ -17,8 +18,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: 'Home',
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="rides"
+        options={{
           title: 'Rides',
           tabBarLabel: 'Rides',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bicycle-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -26,6 +40,9 @@ export default function TabLayout() {
         options={{
           title: 'Gear',
           tabBarLabel: 'Gear',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="construct-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -33,6 +50,9 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarLabel: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
