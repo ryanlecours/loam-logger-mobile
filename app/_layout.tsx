@@ -90,6 +90,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="bike" />
       <Stack.Screen name="ride" />
+      <Stack.Screen name="oauth" />
       <Stack.Screen name="closed-beta" />
       <Stack.Screen name="waitlist" />
     </Stack>
