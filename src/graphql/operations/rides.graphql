@@ -1,0 +1,12 @@
+query RecentRides($take: Int) {
+  rides(take: $take) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    rideType
+    bikeId
+    location
+  }
+}
