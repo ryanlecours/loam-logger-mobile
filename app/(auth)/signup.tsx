@@ -145,6 +145,7 @@ export default function SignupScreen() {
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
+              maxLength={100}
               editable={!loading}
             />
 
