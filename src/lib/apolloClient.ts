@@ -65,7 +65,7 @@ const errorLink = onError(
 
 export const client = new ApolloClient({
   link: ApolloLink.from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({ canonizeResults: false }),
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network',
