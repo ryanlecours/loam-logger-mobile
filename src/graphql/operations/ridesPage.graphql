@@ -1,0 +1,17 @@
+query RidesPage($take: Int, $after: ID, $filter: RidesFilterInput) {
+  rides(take: $take, after: $after, filter: $filter) {
+    id
+    startTime
+    durationSeconds
+    distanceMiles
+    elevationGainFeet
+    averageHr
+    rideType
+    bikeId
+    location
+    notes
+    garminActivityId
+    stravaActivityId
+    whoopWorkoutId
+  }
+}

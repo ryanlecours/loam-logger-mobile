@@ -1,6 +1,68 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
+import type { IntegrationProvider } from '../../src/api/integrations';
+
+function IntegrationRow({
+  provider,
+  label,
+  brandColor,
+}: {
+  provider: IntegrationProvider;
+  label: string;
+  brandColor: string;
+}) {
+  const { status, loading, connecting, connect, disconnect } = useIntegrationConnect(provider);
+
+  if (loading) {
+    return (
+      <View style={styles.integrationRow}>
+        <Text style={styles.integrationLabel}>{label}</Text>
+        <ActivityIndicator size="small" color={brandColor} />
+      </View>
+    );
+  }
+
+  if (status?.connected) {
+    const connectedDate = status.connectedAt
+      ? new Date(status.connectedAt).toLocaleDateString()
+      : null;
+
+    return (
+      <View style={styles.integrationRow}>
+        <View style={styles.integrationInfo}>
+          <Text style={[styles.integrationLabel, { color: brandColor }]}>
+            {label} Connected
+          </Text>
+          {connectedDate && (
+            <Text style={styles.integrationDate}>Since {connectedDate}</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.disconnectButton}
+          onPress={disconnect}
+        >
+          <Text style={styles.disconnectText}>Disconnect</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.connectButton, { backgroundColor: brandColor }]}
+      onPress={connect}
+      disabled={connecting}
+    >
+      {connecting ? (
+        <ActivityIndicator size="small" color="#fff" />
+      ) : (
+        <Text style={styles.connectButtonText}>Connect {label}</Text>
+      )}
+    </TouchableOpacity>
+  );
+}
 
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
@@ -36,12 +98,16 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Connected Services</Text>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Connect Garmin</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Connect Strava</Text>
-        </TouchableOpacity>
+        <IntegrationRow
+          provider="garmin"
+          label="Garmin"
+          brandColor="#007dc3"
+        />
+        <IntegrationRow
+          provider="strava"
+          label="Strava"
+          brandColor="#fc4c02"
+        />
       </View>
 
       <View style={styles.section}>
@@ -105,5 +171,49 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#fff',
+  },
+  integrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  integrationInfo: {
+    flex: 1,
+  },
+  integrationLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  integrationDate: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 2,
+  },
+  connectButton: {
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  connectButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  disconnectButton: {
+    borderWidth: 1,
+    borderColor: '#dc3545',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  disconnectText: {
+    color: '#dc3545',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
