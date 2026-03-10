@@ -11,11 +11,11 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAddRideMutation } from '../../src/graphql/generated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import { PickerSelect } from '../../src/components/common/PickerSelect';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -237,38 +237,26 @@ export default function AddRideScreen() {
       {/* Ride Type */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ride Type</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={rideType}
-            onValueChange={setRideType}
-            style={styles.picker}
-          >
-            {RIDE_TYPES.map((type) => (
-              <Picker.Item key={type.value} label={type.label} value={type.value} />
-            ))}
-          </Picker>
-        </View>
+        <PickerSelect
+          selectedValue={rideType}
+          onValueChange={setRideType}
+          options={RIDE_TYPES}
+        />
       </View>
 
       {/* Bike */}
       {bikes.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Bike</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={bikeId}
-              onValueChange={setBikeId}
-              style={styles.picker}
-            >
-              {bikes.map((bike) => (
-                <Picker.Item
-                  key={bike.id}
-                  label={bike.nickname || `${bike.manufacturer} ${bike.model}`}
-                  value={bike.id}
-                />
-              ))}
-            </Picker>
-          </View>
+          <PickerSelect
+            selectedValue={bikeId}
+            onValueChange={setBikeId}
+            options={bikes.map((bike) => ({
+              label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
+              value: bike.id,
+            }))}
+            placeholder="Select a bike"
+          />
         </View>
       )}
 
@@ -326,6 +314,10 @@ export default function AddRideScreen() {
         ) : (
           <Text style={styles.submitButtonText}>Add Ride</Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+        <Text style={styles.cancelButtonText}>Cancel</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -421,16 +413,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  pickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-  },
   notesInput: {
     height: 100,
     paddingTop: 12,
@@ -453,6 +435,17 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center' as const,
+    marginTop: 12,
+  },
+  cancelButtonText: {
+    color: '#6b7280',
     fontSize: 16,
     fontWeight: '600',
   },

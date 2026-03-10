@@ -15,5 +15,10 @@ query Me {
     predictionMode
     pairedComponentMigrationSeenAt
     createdAt
+    activeDataSource
+    accounts {
+      provider
+      connectedAt
+    }
   }
 }
