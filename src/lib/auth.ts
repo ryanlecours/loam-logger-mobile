@@ -227,6 +227,26 @@ export async function loginWithApple(
   }
 }
 
+export async function deleteAccount(): Promise<void> {
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+  const token = await getAccessToken();
+
+  const response = await fetch(`${apiUrl}/auth/delete-account`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete account');
+  }
+
+  await clearTokens();
+}
+
 export async function logout(): Promise<void> {
   await clearTokens();
 }

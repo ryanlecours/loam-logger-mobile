@@ -1,19 +1,37 @@
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
+import { useMeQuery } from '../../src/graphql/generated';
+import { setDataSourcePreference } from '../../src/api/backfill';
+import { deleteAccount } from '../../src/lib/auth';
+import { DataSourceSelector } from '../../src/components/settings/DataSourceSelector';
+import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
 
 function IntegrationRow({
   provider,
   label,
   brandColor,
+  onImportPress,
+  onConnectionChange,
 }: {
   provider: IntegrationProvider;
   label: string;
   brandColor: string;
+  onImportPress?: () => void;
+  onConnectionChange?: (provider: IntegrationProvider, connected: boolean) => void;
 }) {
   const { status, loading, connecting, connect, disconnect } = useIntegrationConnect(provider);
+
+  // Notify parent when connection status changes
+  useEffect(() => {
+    if (!loading && status) {
+      onConnectionChange?.(provider, status.connected);
+    }
+  }, [loading, status?.connected]);
 
   if (loading) {
     return (
@@ -39,12 +57,21 @@ function IntegrationRow({
             <Text style={styles.integrationDate}>Since {connectedDate}</Text>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.disconnectButton}
-          onPress={disconnect}
-        >
-          <Text style={styles.disconnectText}>Disconnect</Text>
-        </TouchableOpacity>
+        <View style={styles.integrationActions}>
+          <TouchableOpacity
+            style={[styles.importButton, { borderColor: brandColor }]}
+            onPress={onImportPress}
+          >
+            <Ionicons name="download-outline" size={16} color={brandColor} />
+            <Text style={[styles.importButtonText, { color: brandColor }]}>Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.disconnectButton}
+            onPress={disconnect}
+          >
+            <Text style={styles.disconnectText}>Disconnect</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -67,6 +94,82 @@ function IntegrationRow({
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { data: meData, refetch: refetchMe } = useMeQuery();
+
+  const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
+  const [dataSourceLoading, setDataSourceLoading] = useState(false);
+  const [connectedProviders, setConnectedProviders] = useState<Set<IntegrationProvider>>(new Set());
+
+  const activeDataSource = meData?.me?.activeDataSource ?? null;
+
+  const handleConnectionChange = useCallback((provider: IntegrationProvider, connected: boolean) => {
+    setConnectedProviders((prev) => {
+      const next = new Set(prev);
+      if (connected) {
+        next.add(provider);
+      } else {
+        next.delete(provider);
+      }
+      return next;
+    });
+  }, []);
+
+  // Build accounts-like array from integration connection status
+  const connectedDataProviders = Array.from(connectedProviders).map((p) => ({
+    provider: p,
+    connectedAt: '',
+  }));
+
+  const handleImportPress = useCallback((provider: IntegrationProvider) => {
+    setImportProvider(provider);
+  }, []);
+
+  const handleImportClose = useCallback(() => {
+    setImportProvider(null);
+  }, []);
+
+  const handleImportSuccess = useCallback(() => {
+    refetchMe();
+  }, [refetchMe]);
+
+  const handleDataSourceSelect = useCallback(async (provider: string) => {
+    setDataSourceLoading(true);
+    try {
+      await setDataSourcePreference(provider);
+      await refetchMe();
+    } catch (err) {
+      Alert.alert('Error', (err as Error).message);
+    } finally {
+      setDataSourceLoading(false);
+    }
+  }, [refetchMe]);
+
+  const [deleting, setDeleting] = useState(false);
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account?',
+      'This will permanently delete all your data including rides, bikes, gear, and account credentials. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteAccount();
+              await logout();
+              router.replace('/(auth)/login');
+            } catch (err) {
+              setDeleting(false);
+              Alert.alert('Error', (err as Error).message || 'Failed to delete account');
+            }
+          },
+        },
+      ]
+    );
+  }
 
   async function handleLogout() {
     Alert.alert(
@@ -87,7 +190,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.item}>
@@ -102,13 +205,28 @@ export default function SettingsScreen() {
           provider="garmin"
           label="Garmin"
           brandColor="#007dc3"
+          onImportPress={() => handleImportPress('garmin')}
+          onConnectionChange={handleConnectionChange}
         />
         <IntegrationRow
           provider="strava"
           label="Strava"
           brandColor="#fc4c02"
+          onImportPress={() => handleImportPress('strava')}
+          onConnectionChange={handleConnectionChange}
         />
       </View>
+
+      {connectedProviders.size >= 2 && (
+        <View style={styles.section}>
+          <DataSourceSelector
+            accounts={connectedDataProviders}
+            activeDataSource={activeDataSource}
+            onSelect={handleDataSourceSelect}
+            loading={dataSourceLoading}
+          />
+        </View>
+      )}
 
       <View style={styles.section}>
         <TouchableOpacity
@@ -118,7 +236,31 @@ export default function SettingsScreen() {
           <Text style={[styles.buttonText, styles.logoutText]}>Logout</Text>
         </TouchableOpacity>
       </View>
-    </View>
+
+      <View style={styles.dangerSection}>
+        <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.logoutButton]}
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={[styles.buttonText, styles.logoutText]}>Delete Account</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {importProvider && (
+        <ImportRidesSheet
+          visible={!!importProvider}
+          onClose={handleImportClose}
+          provider={importProvider}
+          onSuccess={handleImportSuccess}
+        />
+      )}
+    </ScrollView>
   );
 }
 
@@ -193,6 +335,24 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 2,
   },
+  integrationActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  importButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   connectButton: {
     borderRadius: 8,
     padding: 16,
@@ -208,12 +368,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dc3545',
     borderRadius: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
   },
   disconnectText: {
     color: '#dc3545',
     fontSize: 14,
     fontWeight: '600',
+  },
+  dangerSection: {
+    backgroundColor: '#fff',
+    marginTop: 32,
+    marginBottom: 32,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#dc3545',
+  },
+  dangerSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#dc3545',
+    marginBottom: 12,
+    textTransform: 'uppercase',
   },
 });
