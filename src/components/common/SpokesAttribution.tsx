@@ -1,32 +1,38 @@
-import { TouchableOpacity, Text, StyleSheet, Linking } from 'react-native';
+import { TouchableOpacity, Image, Text, View, StyleSheet, Linking } from 'react-native';
 import { colors } from '../../constants/theme';
 
 const SPOKES_URL = 'https://99spokes.com';
 
 export function SpokesAttribution() {
   return (
-    <TouchableOpacity
-      onPress={() => Linking.openURL(SPOKES_URL)}
-      style={styles.container}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.text}>
-        Powered by <Text style={styles.link}>99 Spokes</Text>
-      </Text>
-    </TouchableOpacity>
+    <View style={styles.container}>
+      <Text style={styles.label}>Bike data provided by:</Text>
+      <TouchableOpacity
+        onPress={() => Linking.openURL(SPOKES_URL)}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={require('../../../assets/powered-by-99-spokes-for-dark-bg.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+    </View>
   );
 }
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    marginTop: 16,
     paddingVertical: 12,
+    gap: 6,
   },
-  text: {
+  label: {
     fontSize: 13,
     color: colors.textMuted,
   },
-  link: {
-    color: colors.primary,
-    fontWeight: '600',
+  logo: {
+    width: 115,
+    height: 25,
   },
 });

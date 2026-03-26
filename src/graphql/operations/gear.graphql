@@ -133,13 +133,16 @@ query GearLight {
   bikes {
     ...BikeFieldsLight
   }
+  allBikes: bikes(includeInactive: true) {
+    ...BikeFieldsLight
+  }
   spareComponents: components(filter: { onlySpare: true }) {
     ...ComponentFields
   }
 }
 
 query Gear {
-  bikes {
+  bikes(includeInactive: true) {
     ...BikeFields
   }
   spareComponents: components(filter: { onlySpare: true }) {

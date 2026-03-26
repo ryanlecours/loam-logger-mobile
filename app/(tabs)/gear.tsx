@@ -1,14 +1,16 @@
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
-import { useGearLightQuery } from '../../src/graphql/generated';
+import { useGearLightQuery, BikeFieldsLightFragment } from '../../src/graphql/generated';
 import { BikeCard } from '../../src/components/gear/BikeCard';
 import { EmptyGearState } from '../../src/components/gear/EmptyGearState';
 import { colors } from '../../src/constants/theme';
 
 export default function GearScreen() {
   const router = useRouter();
+  const [showInactive, setShowInactive] = useState(false);
   const { data, loading, error, refetch } = useGearLightQuery({
     fetchPolicy: 'cache-and-network',
   });
@@ -20,6 +22,14 @@ export default function GearScreen() {
   const handleBikePress = (bikeId: string) => {
     router.push(`/bike/${bikeId}` as Href);
   };
+
+  const activeBikes = data?.bikes || [];
+  const allBikes = data?.allBikes || [];
+  const inactiveBikes = useMemo(
+    () => allBikes.filter((b) => b.status === 'RETIRED' || b.status === 'SOLD'),
+    [allBikes],
+  );
+  const spareComponents = data?.spareComponents || [];
 
   if (loading && !data) {
     return (
@@ -43,10 +53,7 @@ export default function GearScreen() {
     );
   }
 
-  const bikes = data?.bikes || [];
-  const spareComponents = data?.spareComponents || [];
-
-  if (bikes.length === 0) {
+  if (activeBikes.length === 0 && inactiveBikes.length === 0) {
     return (
       <View style={styles.container}>
         <EmptyGearState onAddBike={handleAddBike} />
@@ -54,10 +61,23 @@ export default function GearScreen() {
     );
   }
 
+  const formatStatusDate = (bike: BikeFieldsLightFragment) => {
+    const label = bike.status === 'SOLD' ? 'Sold' : 'Retired';
+    if (bike.retiredAt) {
+      const date = new Date(bike.retiredAt).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return `${label} ${date}`;
+    }
+    return label;
+  };
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={bikes}
+        data={activeBikes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <BikeCard
@@ -78,14 +98,45 @@ export default function GearScreen() {
           </View>
         }
         ListFooterComponent={
-          spareComponents.length > 0 ? (
-            <View style={styles.spareSection}>
-              <Text style={styles.spareSectionTitle}>Spare Components</Text>
-              <Text style={styles.spareCount}>
-                {spareComponents.length} component{spareComponents.length !== 1 ? 's' : ''} not installed
-              </Text>
-            </View>
-          ) : null
+          <>
+            {inactiveBikes.length > 0 && (
+              <View style={styles.inactiveSection}>
+                <TouchableOpacity
+                  style={styles.inactiveHeader}
+                  onPress={() => setShowInactive((prev) => !prev)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.inactiveHeaderLeft}>
+                    <Ionicons
+                      name={showInactive ? 'chevron-down' : 'chevron-forward'}
+                      size={18}
+                      color={colors.textMuted}
+                    />
+                    <Text style={styles.inactiveTitle}>Retired / Sold</Text>
+                  </View>
+                  <Text style={styles.inactiveCount}>{inactiveBikes.length}</Text>
+                </TouchableOpacity>
+                {showInactive &&
+                  inactiveBikes.map((bike) => (
+                    <View key={bike.id} style={styles.inactiveBikeWrapper}>
+                      <BikeCard
+                        bike={bike}
+                        onPress={() => handleBikePress(bike.id)}
+                      />
+                      <Text style={styles.statusLabel}>{formatStatusDate(bike)}</Text>
+                    </View>
+                  ))}
+              </View>
+            )}
+            {spareComponents.length > 0 && (
+              <View style={styles.spareSection}>
+                <Text style={styles.spareSectionTitle}>Spare Components</Text>
+                <Text style={styles.spareCount}>
+                  {spareComponents.length} component{spareComponents.length !== 1 ? 's' : ''} not installed
+                </Text>
+              </View>
+            )}
+          </>
         }
       />
     </View>
@@ -156,6 +207,46 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  inactiveSection: {
+    marginTop: 20,
+    marginHorizontal: 16,
+  },
+  inactiveHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  inactiveHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  inactiveTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  inactiveCount: {
+    fontSize: 13,
+    color: colors.textMuted,
+    backgroundColor: colors.card,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  inactiveBikeWrapper: {
+    opacity: 0.7,
+  },
+  statusLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'right',
+    marginRight: 16,
+    marginTop: -2,
+    marginBottom: 4,
   },
   spareSection: {
     marginTop: 16,
