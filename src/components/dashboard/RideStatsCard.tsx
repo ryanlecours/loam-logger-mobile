@@ -10,6 +10,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
+import { useDistanceUnit } from '../../hooks/useDistanceUnit';
+import { colors } from '../../constants/theme';
 
 const TIMEFRAME_OPTIONS: { value: TimeframeOption; label: string }[] = [
   { value: '7d', label: 'Last 7 days' },
@@ -21,6 +23,7 @@ const TIMEFRAME_OPTIONS: { value: TimeframeOption; label: string }[] = [
 type SectionKey = 'summary' | 'trends' | 'heartRate' | 'locations' | 'bikes';
 
 export function RideStatsCard() {
+  const { formatDistance, distanceUnit } = useDistanceUnit();
   const [timeframe, setTimeframe] = useState<TimeframeOption>('30d');
   const [showPicker, setShowPicker] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(
@@ -52,9 +55,9 @@ export function RideStatsCard() {
   };
 
   const formatTrend = (value: number | null): { text: string; color: string } => {
-    if (value === null) return { text: '--', color: '#9ca3af' };
+    if (value === null) return { text: '--', color: colors.textMuted };
     const sign = value >= 0 ? '+' : '';
-    const color = value > 0 ? '#16a34a' : value < 0 ? '#dc2626' : '#9ca3af';
+    const color = value > 0 ? colors.good : value < 0 ? colors.danger : colors.textMuted;
     return { text: `${sign}${value}%`, color };
   };
 
@@ -88,7 +91,7 @@ export function RideStatsCard() {
           onPress={() => setShowPicker(true)}
         >
           <Text style={styles.dropdownText}>{currentLabel}</Text>
-          <Ionicons name="chevron-down" size={16} color="#6b7280" />
+          <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -98,13 +101,13 @@ export function RideStatsCard() {
         onPress={() => toggleSection('summary')}
       >
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="stats-chart-outline" size={18} color="#2563eb" />
+          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
           <Text style={styles.sectionTitle}>Summary</Text>
         </View>
         <Ionicons
           name={expandedSections.has('summary') ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color="#9ca3af"
+          color={colors.textMuted}
         />
       </TouchableOpacity>
       {expandedSections.has('summary') && (
@@ -119,17 +122,17 @@ export function RideStatsCard() {
               <Text style={styles.statLabel}>Time</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalDistance.toFixed(1)} mi</Text>
+              <Text style={styles.statValue}>{formatDistance(stats.totalDistance)}</Text>
               <Text style={styles.statLabel}>Distance</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{formatElevation(stats.totalElevation)}</Text>
+              <Text style={styles.statValue}>{formatElevation(stats.totalElevation, distanceUnit)}</Text>
               <Text style={styles.statLabel}>Elevation</Text>
             </View>
           </View>
           <View style={styles.averagesRow}>
             <Text style={styles.avgText}>
-              Avg: {stats.avgDistancePerRide} mi / {stats.avgDurationMinutes} min / {stats.avgElevationPerRide} ft per ride
+              Avg: {formatDistance(stats.avgDistancePerRide)} / {stats.avgDurationMinutes} min / {distanceUnit === 'km' ? `${Math.round(stats.avgElevationPerRide)} m` : `${Math.round(stats.avgElevationPerRide * 3.28084)} ft`} per ride
             </Text>
           </View>
         </View>
@@ -141,13 +144,13 @@ export function RideStatsCard() {
         onPress={() => toggleSection('trends')}
       >
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="trending-up-outline" size={18} color="#2563eb" />
+          <Ionicons name="trending-up-outline" size={18} color={colors.primary} />
           <Text style={styles.sectionTitle}>Trends & Streaks</Text>
         </View>
         <Ionicons
           name={expandedSections.has('trends') ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color="#9ca3af"
+          color={colors.textMuted}
         />
       </TouchableOpacity>
       {expandedSections.has('trends') && (
@@ -190,9 +193,9 @@ export function RideStatsCard() {
                   </Text>
                   <Text style={styles.recordValue}>
                     {record.type === 'longest_ride'
-                      ? `${record.value.toFixed(1)} mi`
+                      ? formatDistance(record.value)
                       : record.type === 'most_elevation'
-                      ? formatElevation(record.value)
+                      ? formatElevation(record.value, distanceUnit)
                       : formatDuration(record.value)}
                   </Text>
                 </View>
@@ -210,13 +213,13 @@ export function RideStatsCard() {
             onPress={() => toggleSection('heartRate')}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="heart-outline" size={18} color="#dc2626" />
+              <Ionicons name="heart-outline" size={18} color={colors.danger} />
               <Text style={styles.sectionTitle}>Heart Rate</Text>
             </View>
             <Ionicons
               name={expandedSections.has('heartRate') ? 'chevron-up' : 'chevron-down'}
               size={18}
-              color="#9ca3af"
+              color={colors.textMuted}
             />
           </TouchableOpacity>
           {expandedSections.has('heartRate') && (
@@ -247,13 +250,13 @@ export function RideStatsCard() {
             onPress={() => toggleSection('locations')}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="location-outline" size={18} color="#2563eb" />
+              <Ionicons name="location-outline" size={18} color={colors.primary} />
               <Text style={styles.sectionTitle}>Top Locations</Text>
             </View>
             <Ionicons
               name={expandedSections.has('locations') ? 'chevron-up' : 'chevron-down'}
               size={18}
-              color="#9ca3af"
+              color={colors.textMuted}
             />
           </TouchableOpacity>
           {expandedSections.has('locations') && (
@@ -285,13 +288,13 @@ export function RideStatsCard() {
             onPress={() => toggleSection('bikes')}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="bicycle-outline" size={18} color="#2563eb" />
+              <Ionicons name="bicycle-outline" size={18} color={colors.primary} />
               <Text style={styles.sectionTitle}>Bike Usage</Text>
             </View>
             <Ionicons
               name={expandedSections.has('bikes') ? 'chevron-up' : 'chevron-down'}
               size={18}
-              color="#9ca3af"
+              color={colors.textMuted}
             />
           </TouchableOpacity>
           {expandedSections.has('bikes') && (
@@ -350,7 +353,7 @@ export function RideStatsCard() {
                   {option.label}
                 </Text>
                 {timeframe === option.value && (
-                  <Ionicons name="checkmark" size={20} color="#2563eb" />
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -363,7 +366,7 @@ export function RideStatsCard() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     marginHorizontal: 16,
     marginTop: 16,
@@ -380,12 +383,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
   },
   title: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   dropdownButton: {
     flexDirection: 'row',
@@ -393,12 +396,12 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
     borderRadius: 6,
   },
   dropdownText: {
     fontSize: 13,
-    color: '#374151',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   loadingContainer: {
@@ -407,7 +410,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -416,7 +419,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -426,12 +429,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   sectionContent: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -444,22 +447,22 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   averagesRow: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.cardBorder,
   },
   avgText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   trendRow: {
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
   },
   trendLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   trendValue: {
     fontSize: 14,
@@ -486,30 +489,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     padding: 10,
     borderRadius: 8,
   },
   streakValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   streakLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.textSecondary,
     flex: 1,
   },
   recordsContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.cardBorder,
   },
   recordsTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: colors.textMuted,
     marginBottom: 8,
     textTransform: 'uppercase',
   },
@@ -520,12 +523,12 @@ const styles = StyleSheet.create({
   },
   recordLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   recordValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   hrRow: {
     flexDirection: 'row',
@@ -534,23 +537,23 @@ const styles = StyleSheet.create({
   hrItem: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: colors.dangerBg,
     padding: 12,
     borderRadius: 8,
   },
   hrValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#dc2626',
+    color: colors.danger,
   },
   hrLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   hrNote: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -563,7 +566,7 @@ const styles = StyleSheet.create({
     width: 20,
     fontSize: 12,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   locationInfo: {
     flex: 1,
@@ -572,17 +575,17 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   locationStats: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: colors.textMuted,
     marginTop: 1,
   },
   locationPercent: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   bikeRow: {
     flexDirection: 'row',
@@ -596,18 +599,18 @@ const styles = StyleSheet.create({
   bikeName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   bikeBarContainer: {
     height: 6,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.cardBorder,
     borderRadius: 3,
     overflow: 'hidden',
   },
   bikeBar: {
     height: '100%',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     borderRadius: 3,
   },
   bikeStats: {
@@ -616,11 +619,11 @@ const styles = StyleSheet.create({
   bikeHours: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   bikePercent: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   modalOverlay: {
     flex: 1,
@@ -629,7 +632,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 8,
     width: '80%',
@@ -638,11 +641,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     textAlign: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
     marginBottom: 4,
   },
   modalOption: {
@@ -654,14 +657,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalOptionSelected: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryMuted,
   },
   modalOptionText: {
     fontSize: 15,
-    color: '#374151',
+    color: colors.textSecondary,
   },
   modalOptionTextSelected: {
-    color: '#2563eb',
+    color: colors.primary,
     fontWeight: '600',
   },
 });

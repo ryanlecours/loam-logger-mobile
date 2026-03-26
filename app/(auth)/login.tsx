@@ -12,6 +12,7 @@ import { useRouter, Href } from 'expo-router';
 import { loginWithEmail, loginWithGoogle } from '../../src/lib/auth';
 import { useAuth } from '../../src/hooks/useAuth';
 import { GoogleSignInButton } from '../../src/components/GoogleSignInButton';
+import { colors } from '../../src/constants/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -103,6 +104,7 @@ export default function LoginScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email"
+            placeholderTextColor={colors.textMuted}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -113,6 +115,7 @@ export default function LoginScreen() {
           <TextInput
             style={styles.input}
             placeholder="Password"
+            placeholderTextColor={colors.textMuted}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -125,7 +128,7 @@ export default function LoginScreen() {
             disabled={isLoading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <Text style={styles.buttonText}>Sign In</Text>
             )}
@@ -149,7 +152,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -161,12 +164,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#2d5016',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 32,
   },
   form: {
@@ -180,23 +183,25 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#ddd',
+    backgroundColor: colors.cardBorder,
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.cardBorder,
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
     fontSize: 16,
+    backgroundColor: colors.card,
+    color: colors.textPrimary,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -206,7 +211,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -215,7 +220,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#2d5016',
+    color: colors.primary,
     fontSize: 14,
   },
 });

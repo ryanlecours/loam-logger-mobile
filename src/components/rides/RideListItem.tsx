@@ -3,10 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { RideItem } from '../../hooks/useRidesPaginated';
 import {
   formatDuration,
-  formatDistance,
   formatRideDate,
   formatElevation,
 } from '../../utils/greetingMessages';
+import { useDistanceUnit } from '../../hooks/useDistanceUnit';
+import { colors } from '../../constants/theme';
 
 interface RideListItemProps {
   ride: RideItem;
@@ -41,28 +42,29 @@ function getRideTypeIcon(rideType: string): IconName {
 
 function getSourceBadge(ride: RideItem): { label: string; color: string } | null {
   if (ride.stravaActivityId) {
-    return { label: 'Strava', color: '#fc4c02' };
+    return { label: 'Strava', color: colors.strava };
   }
   if (ride.garminActivityId) {
-    return { label: 'Garmin', color: '#007dc3' };
+    return { label: 'Garmin', color: colors.garmin };
   }
   if (ride.whoopWorkoutId) {
-    return { label: 'WHOOP', color: '#00a651' };
+    return { label: 'WHOOP', color: colors.whoop };
   }
   return null;
 }
 
 export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
+  const { formatDistance, distanceUnit } = useDistanceUnit();
   const dateStr = formatRideDate(ride.startTime);
   const durationStr = formatDuration(ride.durationSeconds);
-  const distanceStr = formatDistance(ride.distanceMiles);
-  const elevationStr = formatElevation(ride.elevationGainFeet);
+  const distanceStr = formatDistance(ride.distanceMeters);
+  const elevationStr = formatElevation(ride.elevationGainMeters, distanceUnit);
   const sourceBadge = getSourceBadge(ride);
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.iconContainer}>
-        <Ionicons name={getRideTypeIcon(ride.rideType)} size={22} color="#6b7280" />
+        <Ionicons name={getRideTypeIcon(ride.rideType)} size={22} color={colors.textSecondary} />
       </View>
 
       <View style={styles.content}>
@@ -77,15 +79,15 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
 
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Ionicons name="time-outline" size={14} color="#9ca3af" />
+            <Ionicons name="time-outline" size={14} color={colors.textMuted} />
             <Text style={styles.statText}>{durationStr}</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="navigate-outline" size={14} color="#9ca3af" />
+            <Ionicons name="navigate-outline" size={14} color={colors.textMuted} />
             <Text style={styles.statText}>{distanceStr}</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="trending-up-outline" size={14} color="#9ca3af" />
+            <Ionicons name="trending-up-outline" size={14} color={colors.textMuted} />
             <Text style={styles.statText}>{elevationStr}</Text>
           </View>
         </View>
@@ -106,7 +108,7 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
         )}
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
+      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -115,17 +117,17 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   sourceBadge: {
     marginLeft: 8,
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -176,11 +178,11 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textMuted,
     flex: 1,
   },
   bikeName: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
 });

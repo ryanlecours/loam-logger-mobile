@@ -1,14 +1,15 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { ApolloProvider } from '@apollo/client';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 import { client } from '../src/lib/apolloClient';
 import { useEffect } from 'react';
+import { colors } from '../src/constants/theme';
 
 function LoadingScreen() {
   return (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#2d5016" />
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }
@@ -84,16 +85,36 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="bike" />
-      <Stack.Screen name="ride" />
-      <Stack.Screen name="oauth" />
-      <Stack.Screen name="closed-beta" />
-      <Stack.Screen name="waitlist" />
-    </Stack>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.textPrimary,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="bike"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ride"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen name="oauth" />
+        <Stack.Screen name="closed-beta" />
+        <Stack.Screen name="waitlist" />
+      </Stack>
+    </>
   );
 }
 
@@ -102,7 +123,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
 });
 

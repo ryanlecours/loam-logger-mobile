@@ -1,0 +1,8 @@
+mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
+  updateUserPreferences(input: $input) {
+    id
+    hoursDisplayPreference
+    predictionMode
+    distanceUnit
+  }
+}

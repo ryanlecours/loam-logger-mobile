@@ -5,6 +5,7 @@ import { TouchableOpacity } from 'react-native';
 import { useGearLightQuery } from '../../src/graphql/generated';
 import { BikeCard } from '../../src/components/gear/BikeCard';
 import { EmptyGearState } from '../../src/components/gear/EmptyGearState';
+import { colors } from '../../src/constants/theme';
 
 export default function GearScreen() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function GearScreen() {
   if (loading && !data) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading your bikes...</Text>
       </View>
     );
@@ -32,7 +33,7 @@ export default function GearScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
         <Text style={styles.errorTitle}>Failed to load bikes</Text>
         <Text style={styles.errorText}>{error.message}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
@@ -66,13 +67,13 @@ export default function GearScreen() {
         )}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refetch} tintColor="#2563eb" />
+          <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.primary} />
         }
         ListHeaderComponent={
           <View style={styles.header}>
             <Text style={styles.headerTitle}>My Bikes</Text>
             <TouchableOpacity style={styles.addButton} onPress={handleAddBike}>
-              <Ionicons name="add" size={24} color="#2563eb" />
+              <Ionicons name="add" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
         }
@@ -94,41 +95,41 @@ export default function GearScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   errorTitle: {
     marginTop: 12,
     fontSize: 17,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   errorText: {
     marginTop: 4,
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     borderRadius: 8,
   },
   retryText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -146,13 +147,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -160,17 +161,19 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginHorizontal: 16,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   spareSectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   spareCount: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
 });

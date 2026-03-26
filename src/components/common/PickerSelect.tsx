@@ -9,6 +9,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../constants/theme';
 
 interface Option {
   label: string;
@@ -49,7 +50,7 @@ export function PickerSelect({
         >
           {displayLabel}
         </Text>
-        <Ionicons name="chevron-down" size={18} color="#6b7280" />
+        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal visible={visible} animationType="slide" transparent>
@@ -77,7 +78,7 @@ export function PickerSelect({
                     {item.label}
                   </Text>
                   {item.value === selectedValue && (
-                    <Ionicons name="checkmark" size={20} color="#2d5016" />
+                    <Ionicons name="checkmark" size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               )}
@@ -94,18 +95,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   triggerText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   placeholderText: {
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   overlay: {
     flex: 1,
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '60%',
@@ -123,12 +124,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   doneText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2d5016',
+    color: colors.primary,
   },
   option: {
     flexDirection: 'row',
@@ -136,14 +137,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   optionText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   selectedOptionText: {
     fontWeight: '600',
-    color: '#2d5016',
+    color: colors.primary,
   },
 });

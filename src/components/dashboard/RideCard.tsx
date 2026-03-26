@@ -3,9 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { RecentRidesQuery } from '../../graphql/generated';
 import {
   formatDuration,
-  formatDistance,
   formatRideDate,
 } from '../../utils/greetingMessages';
+import { useDistanceUnit } from '../../hooks/useDistanceUnit';
+import { colors } from '../../constants/theme';
 
 type Ride = RecentRidesQuery['rides'][0];
 
@@ -15,33 +16,30 @@ interface RideCardProps {
   onPress?: () => void;
 }
 
-export function RideCard({ ride, bikeName, onPress }: RideCardProps) {
-  const dateStr = formatRideDate(ride.startTime);
-  const durationStr = ride.durationSeconds
-    ? formatDuration(ride.durationSeconds)
-    : null;
-  const distanceStr = ride.distanceMiles
-    ? formatDistance(ride.distanceMiles)
-    : null;
+const RIDE_TYPE_EMOJI: Record<string, string> = {
+  TRAIL: '\uD83C\uDF4A',      // orange circle
+  ENDURO: '\uD83D\uDD35',     // blue circle
+  DOWNHILL: '\u26A1',          // lightning
+  XC: '\uD83D\uDFE2',         // green circle
+  GRAVEL: '\uD83D\uDFE4',     // brown circle
+  ROAD: '\u26AA',              // white circle
+  COMMUTE: '\uD83D\uDE8C',    // bus
+  TRAINER: '\uD83C\uDFE0',    // house
+};
 
-  const getRideTypeIcon = (): keyof typeof Ionicons.glyphMap => {
-    switch (ride.rideType) {
-      case 'TRAIL':
-        return 'leaf-outline';
-      case 'ENDURO':
-        return 'flash-outline';
-      case 'DOWNHILL':
-        return 'arrow-down-outline';
-      case 'XC':
-        return 'fitness-outline';
-      case 'GRAVEL':
-        return 'analytics-outline';
-      case 'ROAD':
-        return 'speedometer-outline';
-      default:
-        return 'bicycle-outline';
-    }
-  };
+export function RideCard({ ride, bikeName, onPress }: RideCardProps) {
+  const { formatDistance } = useDistanceUnit();
+  const dateStr = formatRideDate(ride.startTime);
+  const durationHours = ride.durationSeconds ? (ride.durationSeconds / 3600).toFixed(1) : null;
+  const distanceDisplay = ride.distanceMeters ? formatDistance(ride.distanceMeters) : null;
+
+  const emoji = RIDE_TYPE_EMOJI[ride.rideType] || '\uD83D\uDEB2'; // default bicycle
+
+  // Generate a ride name from location or ride type
+  const rideName = ride.location || formatRideType(ride.rideType);
+
+  // Format date as YYYY-MM-DD
+  const formattedDate = new Date(ride.startTime).toISOString().split('T')[0];
 
   return (
     <TouchableOpacity
@@ -50,95 +48,74 @@ export function RideCard({ ride, bikeName, onPress }: RideCardProps) {
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress}
     >
-      <View style={styles.iconContainer}>
-        <Ionicons name={getRideTypeIcon()} size={20} color="#6b7280" />
+      <View style={styles.emojiContainer}>
+        <Text style={styles.emoji}>{emoji}</Text>
       </View>
 
       <View style={styles.content}>
-        <View style={styles.topRow}>
-          <Text style={styles.date}>{dateStr}</Text>
-          {ride.location && (
-            <Text style={styles.location} numberOfLines={1}>
-              {ride.location}
-            </Text>
+        <Text style={styles.rideName} numberOfLines={1}>{rideName}</Text>
+        <View style={styles.statsRow}>
+          {durationHours && (
+            <View style={styles.stat}>
+              <Ionicons name="time-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.statText}>{durationHours}h</Text>
+            </View>
           )}
-        </View>
-
-        <View style={styles.bottomRow}>
-          <View style={styles.stats}>
-            {durationStr && (
-              <View style={styles.stat}>
-                <Ionicons name="time-outline" size={14} color="#9ca3af" />
-                <Text style={styles.statText}>{durationStr}</Text>
-              </View>
-            )}
-            {distanceStr && (
-              <View style={styles.stat}>
-                <Ionicons name="navigate-outline" size={14} color="#9ca3af" />
-                <Text style={styles.statText}>{distanceStr}</Text>
-              </View>
-            )}
-          </View>
-          {bikeName && (
-            <Text style={styles.bikeName} numberOfLines={1}>
-              {bikeName}
-            </Text>
+          {distanceDisplay && (
+            <View style={styles.stat}>
+              <Ionicons name="navigate-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.statText}>{distanceDisplay}</Text>
+            </View>
           )}
         </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
+      <Text style={styles.dateText}>{formattedDate}</Text>
     </TouchableOpacity>
   );
+}
+
+function formatRideType(type: string): string {
+  return type
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
   },
-  iconContainer: {
+  emojiContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
+  emoji: {
+    fontSize: 18,
+  },
   content: {
     flex: 1,
   },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  date: {
+  rideName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
-  location: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginLeft: 8,
-    flex: 1,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  stats: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginTop: 4,
   },
   stat: {
     flexDirection: 'row',
@@ -147,11 +124,11 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
-  bikeName: {
-    fontSize: 12,
-    color: '#9ca3af',
-    maxWidth: 100,
+  dateText: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginLeft: 8,
   },
 });

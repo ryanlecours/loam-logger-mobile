@@ -1,37 +1,41 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../src/constants/theme';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2d5016',
-        headerStyle: {
-          backgroundColor: '#2d5016',
+        tabBarActiveTintColor: colors.tabActive,
+        tabBarInactiveTintColor: colors.tabInactive,
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.cardBorder,
         },
-        headerTintColor: '#fff',
+        tabBarLabelStyle: {
+          textTransform: 'uppercase',
+          fontSize: 10,
+          fontWeight: '600',
+          letterSpacing: 1,
+        },
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarLabel: 'Home',
+          title: 'Dashboard',
+          tabBarLabel: 'DASHBOARD',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="rides"
-        options={{
-          title: 'Rides',
-          tabBarLabel: 'Rides',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bicycle-outline" size={size} color={color} />
+            <Ionicons name="grid-outline" size={size} color={color} />
           ),
         }}
       />
@@ -39,9 +43,19 @@ export default function TabLayout() {
         name="gear"
         options={{
           title: 'Gear',
-          tabBarLabel: 'Gear',
+          tabBarLabel: 'GEAR',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="construct-outline" size={size} color={color} />
+            <Ionicons name="build-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="rides"
+        options={{
+          title: 'Rides',
+          tabBarLabel: 'RIDES',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="pulse-outline" size={size} color={color} />
           ),
         }}
       />
@@ -49,7 +63,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarLabel: 'Settings',
+          tabBarLabel: 'SETTINGS',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           ),

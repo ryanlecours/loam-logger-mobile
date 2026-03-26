@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { searchBikes, getBikeById, SpokesSearchResult } from '../../src/api/spokes';
 import { useAddBikeMutation, useGearLightQuery, AcquisitionCondition } from '../../src/graphql/generated';
 import { SpokesBike } from '../../src/hooks/useOnboarding';
+import { colors } from '../../src/constants/theme';
 
 type Step = 'search' | 'confirm';
 
@@ -127,9 +128,9 @@ export default function AddBikeScreen() {
         </Text>
       </View>
       {loadingBike ? (
-        <ActivityIndicator size="small" color="#2563eb" />
+        <ActivityIndicator size="small" color={colors.primary} />
       ) : (
-        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       )}
     </TouchableOpacity>
   );
@@ -142,7 +143,7 @@ export default function AddBikeScreen() {
             title: 'Confirm Bike',
             headerLeft: () => (
               <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
-                <Ionicons name="arrow-back" size={24} color="#2563eb" />
+                <Ionicons name="arrow-back" size={24} color={colors.primary} />
               </TouchableOpacity>
             ),
           }}
@@ -157,7 +158,7 @@ export default function AddBikeScreen() {
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="bicycle" size={80} color="#9ca3af" />
+              <Ionicons name="bicycle" size={80} color={colors.textMuted} />
             </View>
           )}
 
@@ -207,10 +208,10 @@ export default function AddBikeScreen() {
             disabled={adding}
           >
             {adding ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.textPrimary} />
             ) : (
               <>
-                <Ionicons name="add" size={20} color="#fff" />
+                <Ionicons name="add" size={20} color={colors.textPrimary} />
                 <Text style={styles.confirmButtonText}>Add This Bike</Text>
               </>
             )}
@@ -230,7 +231,7 @@ export default function AddBikeScreen() {
           title: 'Add Bike',
           headerLeft: () => (
             <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
-              <Ionicons name="close" size={24} color="#2563eb" />
+              <Ionicons name="close" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
@@ -238,10 +239,11 @@ export default function AddBikeScreen() {
 
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search bikes (e.g., Santa Cruz Bronson)"
+            placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
@@ -251,7 +253,7 @@ export default function AddBikeScreen() {
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#9ca3af" />
+              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -261,7 +263,7 @@ export default function AddBikeScreen() {
           disabled={!query.trim() || searching}
         >
           {searching ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={colors.textPrimary} size="small" />
           ) : (
             <Text style={styles.searchButtonText}>Search</Text>
           )}
@@ -279,10 +281,10 @@ export default function AddBikeScreen() {
       ) : (
         <View style={styles.emptyState}>
           {searching ? (
-            <ActivityIndicator size="large" color="#2563eb" />
+            <ActivityIndicator size="large" color={colors.primary} />
           ) : (
             <>
-              <Ionicons name="bicycle-outline" size={64} color="#d1d5db" />
+              <Ionicons name="bicycle-outline" size={64} color={colors.textMuted} />
               <Text style={styles.emptyTitle}>Search for your bike</Text>
               <Text style={styles.emptySubtitle}>
                 Enter your bike's make and model to find it in our database
@@ -298,7 +300,7 @@ export default function AddBikeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   headerButton: {
     padding: 8,
@@ -307,15 +309,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     gap: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     paddingHorizontal: 12,
   },
@@ -326,13 +328,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   clearButton: {
     padding: 4,
   },
   searchButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     borderRadius: 8,
     justifyContent: 'center',
@@ -340,7 +342,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   searchButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -354,7 +356,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
   },
   resultContent: {
     flex: 1,
@@ -362,16 +364,16 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   resultSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.cardBorder,
     marginLeft: 16,
   },
   emptyState: {
@@ -383,12 +385,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#4b5563',
+    color: colors.textSecondary,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
@@ -402,32 +404,32 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface,
   },
   imagePlaceholder: {
     width: '100%',
     height: 200,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
   bikeName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginTop: 20,
     textAlign: 'center',
   },
   bikeYear: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   specsList: {
     width: '100%',
     marginTop: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -436,34 +438,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   specLabel: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   specValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   footer: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
   },
   confirmButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 8,
     gap: 8,
   },
   confirmButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

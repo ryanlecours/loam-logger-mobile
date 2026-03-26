@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../src/constants/theme';
 
 export default function RideLayout() {
   const router = useRouter();
@@ -9,12 +10,14 @@ export default function RideLayout() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#2d5016',
+          backgroundColor: colors.background,
         },
-        headerTintColor: '#fff',
+        headerTintColor: colors.textPrimary,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerBackTitle: '',
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen
@@ -23,11 +26,11 @@ export default function RideLayout() {
           title: 'Ride Details',
           headerLeft: () => (
             <TouchableOpacity
-                onPress={() => router.back()}
-                style={{ marginRight: 8, justifyContent: 'center', alignItems: 'center', width: 32, height: 32 }}
-              >
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
+              onPress={() => router.back()}
+              style={{ marginRight: 8, justifyContent: 'center', alignItems: 'center', width: 32, height: 32 }}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
           ),
         }}
       />

@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 
@@ -105,7 +106,7 @@ export function ComponentDetailSheet({
                   )}
                 </View>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#6b7280" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -128,7 +129,7 @@ export function ComponentDetailSheet({
                       <Ionicons
                         name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
                         size={20}
-                        color={hoursRemaining <= 0 ? '#ef4444' : '#2563eb'}
+                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
                       />
                       <Text style={styles.statValue}>
                         {hoursRemaining <= 0
@@ -143,7 +144,7 @@ export function ComponentDetailSheet({
 
                   {serviceInterval && (
                     <View style={styles.statItem}>
-                      <Ionicons name="refresh-outline" size={20} color="#6b7280" />
+                      <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
                       <Text style={styles.statValue}>{serviceInterval}h</Text>
                       <Text style={styles.statLabel}>Interval</Text>
                     </View>
@@ -151,7 +152,7 @@ export function ComponentDetailSheet({
 
                   {hoursSinceService !== null && hoursSinceService !== undefined && (
                     <View style={styles.statItem}>
-                      <Ionicons name="speedometer-outline" size={20} color="#6b7280" />
+                      <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
                       <Text style={styles.statValue}>{hoursSinceService.toFixed(0)}h</Text>
                       <Text style={styles.statLabel}>Since Service</Text>
                     </View>
@@ -159,7 +160,7 @@ export function ComponentDetailSheet({
 
                   {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
                     <View style={styles.statItem}>
-                      <Ionicons name="bicycle-outline" size={20} color="#6b7280" />
+                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
                       <Text style={styles.statValue}>{ridesRemaining}</Text>
                       <Text style={styles.statLabel}>Rides Left</Text>
                     </View>
@@ -192,14 +193,14 @@ export function ComponentDetailSheet({
               {/* Actions */}
               <View style={styles.actions}>
                 <TouchableOpacity style={styles.actionButton} onPress={onLogService}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#2563eb" />
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
                   <Text style={styles.actionButtonText}>Log Service</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionButton, styles.actionButtonSecondary]}
                   onPress={onReplace}
                 >
-                  <Ionicons name="swap-horizontal-outline" size={20} color="#6b7280" />
+                  <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.actionButtonTextSecondary}>Replace</Text>
                 </TouchableOpacity>
               </View>
@@ -214,11 +215,11 @@ export function ComponentDetailSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.cardBorder,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 8,
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   headerContent: {
     flex: 1,
@@ -248,11 +249,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   brandModel: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
   closeButton: {
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     width: '47%',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
@@ -295,11 +296,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   infoRow: {
     flexDirection: 'row',
@@ -307,33 +308,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   notesSection: {
     marginTop: 16,
     padding: 14,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     borderRadius: 10,
   },
   notesLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 6,
     textTransform: 'uppercase',
   },
   notesText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   actions: {
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
     marginTop: 8,
   },
   actionButton: {
@@ -350,21 +351,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryMuted,
     paddingVertical: 14,
     borderRadius: 10,
     gap: 8,
   },
   actionButtonSecondary: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.cardBorder,
   },
   actionButtonText: {
-    color: '#2563eb',
+    color: colors.primary,
     fontSize: 15,
     fontWeight: '600',
   },
   actionButtonTextSecondary: {
-    color: '#6b7280',
+    color: colors.textSecondary,
     fontSize: 15,
     fontWeight: '600',
   },

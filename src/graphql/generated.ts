@@ -92,9 +92,9 @@ export type AddComponentInput = {
 export type AddRideInput = {
   averageHr?: InputMaybe<Scalars['Int']['input']>;
   bikeId?: InputMaybe<Scalars['ID']['input']>;
-  distanceMiles: Scalars['Float']['input'];
+  distanceMeters: Scalars['Float']['input'];
   durationSeconds: Scalars['Int']['input'];
-  elevationGainFeet: Scalars['Float']['input'];
+  elevationGainMeters: Scalars['Float']['input'];
   location?: InputMaybe<Scalars['String']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   rideType: Scalars['String']['input'];
@@ -733,9 +733,9 @@ export type Ride = {
   averageHr?: Maybe<Scalars['Int']['output']>;
   bikeId?: Maybe<Scalars['ID']['output']>;
   createdAt: Scalars['String']['output'];
-  distanceMiles: Scalars['Float']['output'];
+  distanceMeters: Scalars['Float']['output'];
   durationSeconds: Scalars['Int']['output'];
-  elevationGainFeet: Scalars['Float']['output'];
+  elevationGainMeters: Scalars['Float']['output'];
   garminActivityId?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   location?: Maybe<Scalars['String']['output']>;
@@ -897,9 +897,9 @@ export enum TriggerSyncStatus {
 
 export type UnassignedRide = {
   __typename?: 'UnassignedRide';
-  distanceMiles: Scalars['Float']['output'];
+  distanceMeters: Scalars['Float']['output'];
   durationSeconds: Scalars['Int']['output'];
-  elevationGainFeet: Scalars['Float']['output'];
+  elevationGainMeters: Scalars['Float']['output'];
   id: Scalars['ID']['output'];
   location?: Maybe<Scalars['String']['output']>;
   rideType: Scalars['String']['output'];
@@ -964,9 +964,9 @@ export type UpdateComponentInput = {
 export type UpdateRideInput = {
   averageHr?: InputMaybe<Scalars['Int']['input']>;
   bikeId?: InputMaybe<Scalars['ID']['input']>;
-  distanceMiles?: InputMaybe<Scalars['Float']['input']>;
+  distanceMeters?: InputMaybe<Scalars['Float']['input']>;
   durationSeconds?: InputMaybe<Scalars['Int']['input']>;
-  elevationGainFeet?: InputMaybe<Scalars['Float']['input']>;
+  elevationGainMeters?: InputMaybe<Scalars['Float']['input']>;
   location?: InputMaybe<Scalars['String']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   rideType?: InputMaybe<Scalars['String']['input']>;
@@ -979,6 +979,7 @@ export type UpdateServicePreferencesInput = {
 };
 
 export type UpdateUserPreferencesInput = {
+  distanceUnit?: InputMaybe<Scalars['String']['input']>;
   hoursDisplayPreference?: InputMaybe<Scalars['String']['input']>;
   predictionMode?: InputMaybe<Scalars['String']['input']>;
 };
@@ -990,6 +991,7 @@ export type User = {
   age?: Maybe<Scalars['Int']['output']>;
   avatarUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
+  distanceUnit?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
   hasAcceptedCurrentTerms: Scalars['Boolean']['output'];
   hasPassword: Scalars['Boolean']['output'];
@@ -1042,7 +1044,7 @@ export type AddRideMutationVariables = Exact<{
 }>;
 
 
-export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
 
 export type DeleteRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1117,14 +1119,14 @@ export type InstallComponentMutation = { __typename?: 'Mutation', installCompone
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RecentRidesQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null }> };
+export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null }> };
 
 export type RidesPageQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -1133,7 +1135,7 @@ export type RidesPageQueryVariables = Exact<{
 }>;
 
 
-export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null }> };
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null }> };
 
 export type UpdateRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1141,7 +1143,14 @@ export type UpdateRideMutationVariables = Exact<{
 }>;
 
 
-export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMiles: number, elevationGainFeet: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+
+export type UpdateUserPreferencesMutationVariables = Exact<{
+  input: UpdateUserPreferencesInput;
+}>;
+
+
+export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null } };
 
 export const ComponentFieldsFragmentDoc = gql`
     fragment ComponentFields on Component {
@@ -1315,8 +1324,8 @@ export const AddRideDocument = gql`
     id
     startTime
     durationSeconds
-    distanceMiles
-    elevationGainFeet
+    distanceMeters
+    elevationGainMeters
     rideType
     bikeId
     location
@@ -1699,6 +1708,7 @@ export const MeDocument = gql`
     isFoundingRider
     hoursDisplayPreference
     predictionMode
+    distanceUnit
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource
@@ -1750,8 +1760,8 @@ export const RecentRidesDocument = gql`
     id
     startTime
     durationSeconds
-    distanceMiles
-    elevationGainFeet
+    distanceMeters
+    elevationGainMeters
     rideType
     bikeId
     location
@@ -1800,8 +1810,8 @@ export const RidesPageDocument = gql`
     id
     startTime
     durationSeconds
-    distanceMiles
-    elevationGainFeet
+    distanceMeters
+    elevationGainMeters
     averageHr
     rideType
     bikeId
@@ -1857,8 +1867,8 @@ export const UpdateRideDocument = gql`
     id
     startTime
     durationSeconds
-    distanceMiles
-    elevationGainFeet
+    distanceMeters
+    elevationGainMeters
     rideType
     bikeId
     location
@@ -1893,3 +1903,39 @@ export function useUpdateRideMutation(baseOptions?: Apollo.MutationHookOptions<U
 export type UpdateRideMutationHookResult = ReturnType<typeof useUpdateRideMutation>;
 export type UpdateRideMutationResult = Apollo.MutationResult<UpdateRideMutation>;
 export type UpdateRideMutationOptions = Apollo.BaseMutationOptions<UpdateRideMutation, UpdateRideMutationVariables>;
+export const UpdateUserPreferencesDocument = gql`
+    mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
+  updateUserPreferences(input: $input) {
+    id
+    hoursDisplayPreference
+    predictionMode
+    distanceUnit
+  }
+}
+    `;
+export type UpdateUserPreferencesMutationFn = Apollo.MutationFunction<UpdateUserPreferencesMutation, UpdateUserPreferencesMutationVariables>;
+
+/**
+ * __useUpdateUserPreferencesMutation__
+ *
+ * To run a mutation, you first call `useUpdateUserPreferencesMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateUserPreferencesMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateUserPreferencesMutation, { data, loading, error }] = useUpdateUserPreferencesMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateUserPreferencesMutation(baseOptions?: Apollo.MutationHookOptions<UpdateUserPreferencesMutation, UpdateUserPreferencesMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateUserPreferencesMutation, UpdateUserPreferencesMutationVariables>(UpdateUserPreferencesDocument, options);
+      }
+export type UpdateUserPreferencesMutationHookResult = ReturnType<typeof useUpdateUserPreferencesMutation>;
+export type UpdateUserPreferencesMutationResult = Apollo.MutationResult<UpdateUserPreferencesMutation>;
+export type UpdateUserPreferencesMutationOptions = Apollo.BaseMutationOptions<UpdateUserPreferencesMutation, UpdateUserPreferencesMutationVariables>;

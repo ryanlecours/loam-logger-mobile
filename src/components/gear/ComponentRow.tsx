@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusDot } from './StatusDot';
 import { ComponentFieldsFragment } from '../../graphql/generated';
+import { colors } from '../../constants/theme';
 
 interface ComponentRowProps {
   component: ComponentFieldsFragment;
@@ -38,7 +39,6 @@ export function ComponentRow({ component, status, hoursRemaining, onPress }: Com
       return `${hoursRemaining.toFixed(0)}h remaining`;
     }
     if (component.hoursUsed !== null && component.serviceDueAtHours) {
-      const remaining = component.serviceDueAtHours - (component.hoursUsed || 0);
       return `${component.hoursUsed?.toFixed(0) || 0} / ${component.serviceDueAtHours}h`;
     }
     if (component.hoursUsed !== null) {
@@ -91,9 +91,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
     gap: 12,
   },
   content: {
@@ -107,25 +107,25 @@ const styles = StyleSheet.create({
   type: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
     flex: 1,
   },
   hours: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginLeft: 8,
   },
   hoursOverdue: {
-    color: '#ef4444',
+    color: colors.danger,
     fontWeight: '600',
   },
   hoursDueNow: {
-    color: '#f97316',
+    color: colors.warning,
     fontWeight: '500',
   },
   brandModel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
 });

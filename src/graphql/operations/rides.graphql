@@ -3,8 +3,8 @@ query RecentRides($take: Int) {
     id
     startTime
     durationSeconds
-    distanceMiles
-    elevationGainFeet
+    distanceMeters
+    elevationGainMeters
     rideType
     bikeId
     location

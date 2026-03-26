@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isFoundingRider: viewer.isFoundingRider,
         hoursDisplayPreference: viewer.hoursDisplayPreference,
         predictionMode: viewer.predictionMode,
+        distanceUnit: viewer.distanceUnit,
         createdAt: viewer.createdAt,
       };
       setUser(mappedUser);

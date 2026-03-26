@@ -27,8 +27,8 @@ export interface BikeTimeData {
 export interface RideStats {
   // Primary metrics
   totalRides: number;
-  totalDistance: number; // miles
-  totalElevation: number; // feet
+  totalDistance: number; // meters
+  totalElevation: number; // meters
   totalHours: number;
 
   // Averages
@@ -149,8 +149,8 @@ type RideData = {
   id: string;
   startTime: string;
   durationSeconds: number;
-  distanceMiles: number;
-  elevationGainFeet: number;
+  distanceMeters: number;
+  elevationGainMeters: number;
   averageHr?: number | null;
   bikeId?: string | null;
   location?: string | null;
@@ -226,8 +226,8 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
     let longestDurationRide: RideData | null = null;
 
     for (const ride of filteredRides) {
-      const distance = Math.max(ride.distanceMiles ?? 0, 0);
-      const elevation = Math.max(ride.elevationGainFeet ?? 0, 0);
+      const distance = Math.max(ride.distanceMeters ?? 0, 0);
+      const elevation = Math.max(ride.elevationGainMeters ?? 0, 0);
       const seconds = Math.max(ride.durationSeconds ?? 0, 0);
       const hours = seconds / 3600;
 
@@ -252,10 +252,10 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       }
 
       // Personal records
-      if (!longestDistanceRide || distance > longestDistanceRide.distanceMiles) {
+      if (!longestDistanceRide || distance > longestDistanceRide.distanceMeters) {
         longestDistanceRide = ride;
       }
-      if (!mostElevationRide || elevation > mostElevationRide.elevationGainFeet) {
+      if (!mostElevationRide || elevation > mostElevationRide.elevationGainMeters) {
         mostElevationRide = ride;
       }
       if (!longestDurationRide || seconds > longestDurationRide.durationSeconds) {
@@ -280,8 +280,8 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       return ts !== null && ts >= twoWeeksAgo && ts < oneWeekAgo;
     });
 
-    const thisWeekDistance = thisWeekRides.reduce((sum, r) => sum + (r.distanceMiles ?? 0), 0);
-    const lastWeekDistance = lastWeekRides.reduce((sum, r) => sum + (r.distanceMiles ?? 0), 0);
+    const thisWeekDistance = thisWeekRides.reduce((sum, r) => sum + (r.distanceMeters ?? 0), 0);
+    const lastWeekDistance = lastWeekRides.reduce((sum, r) => sum + (r.distanceMeters ?? 0), 0);
 
     const weekOverWeekDistance =
       lastWeekDistance > 0
@@ -298,18 +298,18 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
 
     // Personal records
     const personalRecords: PersonalRecord[] = [];
-    if (longestDistanceRide && longestDistanceRide.distanceMiles > 0) {
+    if (longestDistanceRide && longestDistanceRide.distanceMeters > 0) {
       personalRecords.push({
         type: 'longest_ride',
-        value: longestDistanceRide.distanceMiles,
+        value: longestDistanceRide.distanceMeters,
         date: longestDistanceRide.startTime,
         rideId: longestDistanceRide.id,
       });
     }
-    if (mostElevationRide && mostElevationRide.elevationGainFeet > 0) {
+    if (mostElevationRide && mostElevationRide.elevationGainMeters > 0) {
       personalRecords.push({
         type: 'most_elevation',
-        value: mostElevationRide.elevationGainFeet,
+        value: mostElevationRide.elevationGainMeters,
         date: mostElevationRide.startTime,
         rideId: mostElevationRide.id,
       });

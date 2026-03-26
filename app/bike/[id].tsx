@@ -9,6 +9,7 @@ import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
+import { colors } from '../../src/constants/theme';
 
 export default function BikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,7 +28,7 @@ export default function BikeDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Loading...' }} />
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -36,7 +37,7 @@ export default function BikeDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Error' }} />
-        <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
         <Text style={styles.errorTitle}>
           {error ? 'Failed to load bike' : 'Bike not found'}
         </Text>
@@ -50,13 +51,11 @@ export default function BikeDetailScreen() {
   const displayName = bike.nickname || `${bike.manufacturer} ${bike.model}`;
   const subtitle = bike.nickname ? `${bike.manufacturer} ${bike.model}` : null;
 
-  // Build component list with prediction data
   const componentPredictions = predictions?.components || [];
   const predictionMap = new Map(
     componentPredictions.map((p) => [p.componentId, p])
   );
 
-  // Sort components by urgency (due now/overdue first)
   const sortedComponents = [...(bike.components || [])].sort((a, b) => {
     const predA = predictionMap.get(a.id);
     const predB = predictionMap.get(b.id);
@@ -77,7 +76,6 @@ export default function BikeDetailScreen() {
   };
 
   const handleLogServiceFromDetail = () => {
-    // Close detail sheet and open log service with the component pre-selected
     const componentId = selectedComponent?.id;
     setSelectedComponent(null);
     setTimeout(() => {
@@ -86,7 +84,6 @@ export default function BikeDetailScreen() {
   };
 
   const handleReplaceFromDetail = () => {
-    // Keep the selected component and open replace sheet
     setShowReplaceSheet(true);
   };
 
@@ -100,13 +97,13 @@ export default function BikeDetailScreen() {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={refetch} tintColor="#2563eb" />
+        <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.primary} />
       }
     >
       <Stack.Screen
         options={{
           title: displayName,
-          headerBackTitle: 'Gear',
+          headerBackTitle: '',
         }}
       />
 
@@ -116,7 +113,7 @@ export default function BikeDetailScreen() {
           <Image source={{ uri: bike.thumbnailUrl }} style={styles.heroImage} resizeMode="cover" />
         ) : (
           <View style={styles.heroPlaceholder}>
-            <Ionicons name="bicycle" size={80} color="#9ca3af" />
+            <Ionicons name="bicycle" size={80} color={colors.textMuted} />
           </View>
         )}
         <View style={styles.heroOverlay}>
@@ -237,14 +234,13 @@ export default function BikeDetailScreen() {
           style={styles.actionButton}
           onPress={() => setShowLogService(true)}
         >
-          <Ionicons name="construct" size={20} color="#2563eb" />
+          <Ionicons name="construct" size={20} color={colors.primary} />
           <Text style={styles.actionButtonText}>Log Service</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.bottomPadding} />
 
-      {/* Log Service Sheet */}
       <LogServiceSheet
         visible={showLogService}
         onClose={() => setShowLogService(false)}
@@ -252,7 +248,6 @@ export default function BikeDetailScreen() {
         onServiceLogged={refetch}
       />
 
-      {/* Component Detail Sheet */}
       <ComponentDetailSheet
         visible={!!selectedComponent && !showReplaceSheet}
         component={selectedComponent}
@@ -262,7 +257,6 @@ export default function BikeDetailScreen() {
         onReplace={handleReplaceFromDetail}
       />
 
-      {/* Replace Component Sheet */}
       <ReplaceComponentSheet
         visible={showReplaceSheet}
         component={selectedComponent}
@@ -278,30 +272,30 @@ export default function BikeDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   errorTitle: {
     marginTop: 12,
     fontSize: 17,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   retryButton: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     borderRadius: 8,
   },
   retryText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -317,7 +311,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.card,
   },
   heroOverlay: {
     position: 'absolute',
@@ -328,18 +322,18 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   heroContent: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     padding: 12,
     borderRadius: 8,
   },
   heroTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.textPrimary,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
   heroStatusRow: {
@@ -348,9 +342,11 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
   sectionHeader: {
@@ -363,13 +359,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     padding: 16,
     paddingBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#f97316',
+    color: colors.warning,
     fontWeight: '500',
   },
   specsGrid: {
@@ -384,17 +380,17 @@ const styles = StyleSheet.create({
   },
   specLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   specValue: {
     fontSize: 15,
-    color: '#1f2937',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   componentsList: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
   },
   emptyComponents: {
     padding: 24,
@@ -402,7 +398,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   notesBox: {
     padding: 16,
@@ -410,7 +406,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   bottomPadding: {
@@ -424,7 +420,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -432,6 +430,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2563eb',
+    color: colors.primary,
   },
 });

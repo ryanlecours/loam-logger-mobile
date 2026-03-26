@@ -17,6 +17,7 @@ import {
   PasswordRequirements,
   checkPasswordRequirements,
 } from '../../src/components/PasswordRequirements';
+import { colors } from '../../src/constants/theme';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -142,6 +143,7 @@ export default function SignupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Full Name"
+              placeholderTextColor={colors.textMuted}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -152,6 +154,7 @@ export default function SignupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -162,6 +165,7 @@ export default function SignupScreen() {
             <TextInput
               style={styles.input}
               placeholder="Password"
+              placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -173,6 +177,7 @@ export default function SignupScreen() {
             <TextInput
               style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
               placeholder="Confirm Password"
+              placeholderTextColor={colors.textMuted}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -192,7 +197,7 @@ export default function SignupScreen() {
               disabled={!canSubmit || loading}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.textPrimary} />
               ) : (
                 <Text style={styles.buttonText}>Sign Up</Text>
               )}
@@ -217,7 +222,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -233,18 +238,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#2d5016',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 32,
   },
   waitlistMessage: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 32,
     lineHeight: 24,
     paddingHorizontal: 16,
@@ -254,21 +259,23 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.cardBorder,
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
     fontSize: 16,
+    backgroundColor: colors.card,
+    color: colors.textPrimary,
   },
   errorText: {
-    color: '#ef4444',
+    color: colors.danger,
     fontSize: 13,
     marginTop: -8,
     marginBottom: 16,
     marginLeft: 4,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -278,7 +285,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -287,7 +294,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#2d5016',
+    color: colors.primary,
     fontSize: 14,
   },
 });

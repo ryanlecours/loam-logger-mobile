@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsFragment } from '../../graphql/generated';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
+import { colors } from '../../constants/theme';
 
 interface BikeHealthCardProps {
   bike: BikeFieldsFragment;
@@ -47,7 +48,7 @@ export function BikeHealthCard({ bike, onPress, compact }: BikeHealthCardProps) 
           />
         ) : (
           <View style={styles.placeholder}>
-            <Ionicons name="bicycle" size={48} color="#9ca3af" />
+            <Ionicons name="bicycle" size={48} color={colors.textMuted} />
           </View>
         )}
       </View>
@@ -71,7 +72,7 @@ export function BikeHealthCard({ bike, onPress, compact }: BikeHealthCardProps) 
 
         <View style={styles.footer}>
           <Text style={styles.viewDetails}>View Details</Text>
-          <Ionicons name="chevron-forward" size={16} color="#2563eb" />
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
         </View>
       </View>
     </TouchableOpacity>
@@ -80,7 +81,7 @@ export function BikeHealthCard({ bike, onPress, compact }: BikeHealthCardProps) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     height: 140,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
   },
   image: {
     width: '100%',
@@ -124,16 +125,16 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statusText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   footer: {
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
   viewDetails: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2563eb',
+    color: colors.primary,
     marginRight: 4,
   },
 });

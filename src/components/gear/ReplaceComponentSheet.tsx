@@ -16,6 +16,7 @@ import {
   ComponentFieldsFragment,
   useInstallComponentMutation,
 } from '../../graphql/generated';
+import { colors } from '../../constants/theme';
 
 interface ReplaceComponentSheetProps {
   visible: boolean;
@@ -160,7 +161,7 @@ export function ReplaceComponentSheet({
               <View style={styles.header}>
                 <Text style={styles.title}>Replace {typeName}</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#6b7280" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -192,7 +193,7 @@ export function ReplaceComponentSheet({
                 {activeTab === 'spare' ? (
                   matchingSpares.length === 0 ? (
                     <View style={styles.emptyState}>
-                      <Ionicons name="cube-outline" size={48} color="#d1d5db" />
+                      <Ionicons name="cube-outline" size={48} color={colors.textMuted} />
                       <Text style={styles.emptyText}>
                         No spare {typeName.toLowerCase()} components available
                       </Text>
@@ -222,7 +223,7 @@ export function ReplaceComponentSheet({
                             </Text>
                           </View>
                           {isSelected && (
-                            <Ionicons name="checkmark-circle" size={24} color="#2563eb" />
+                            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
                           )}
                         </TouchableOpacity>
                       );
@@ -237,7 +238,7 @@ export function ReplaceComponentSheet({
                         value={brand}
                         onChangeText={setBrand}
                         placeholder="e.g., Fox"
-                        placeholderTextColor="#9ca3af"
+                        placeholderTextColor={colors.textMuted}
                       />
                     </View>
                     <View style={styles.inputGroup}>
@@ -247,7 +248,7 @@ export function ReplaceComponentSheet({
                         value={model}
                         onChangeText={setModel}
                         placeholder="e.g., 36 Factory"
-                        placeholderTextColor="#9ca3af"
+                        placeholderTextColor={colors.textMuted}
                       />
                     </View>
                   </View>
@@ -261,7 +262,7 @@ export function ReplaceComponentSheet({
                     value={note}
                     onChangeText={setNote}
                     placeholder="Why are you making this change?"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.textMuted}
                     multiline
                     numberOfLines={3}
                     maxLength={500}
@@ -281,10 +282,10 @@ export function ReplaceComponentSheet({
                   disabled={!canSubmit || loading}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={colors.card} />
                   ) : (
                     <>
-                      <Ionicons name="swap-horizontal" size={20} color="#fff" />
+                      <Ionicons name="swap-horizontal" size={20} color={colors.card} />
                       <Text style={styles.submitButtonText}>Replace Component</Text>
                     </>
                   )}
@@ -301,11 +302,11 @@ export function ReplaceComponentSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.cardBorder,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 8,
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   closeButton: {
     padding: 4,
@@ -344,20 +345,20 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.cardBorder,
     borderRadius: 8,
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   tabTextActive: {
-    color: '#fff',
+    color: colors.card,
   },
   content: {
     paddingHorizontal: 20,
@@ -370,7 +371,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#9ca3af',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   spareItem: {
@@ -378,14 +379,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     borderRadius: 10,
     marginBottom: 8,
   },
   spareItemSelected: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: '#2563eb',
+    borderColor: colors.primary,
   },
   spareContent: {
     flex: 1,
@@ -393,11 +394,11 @@ const styles = StyleSheet.create({
   spareBrand: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   spareHours: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   form: {
@@ -409,16 +410,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     borderRadius: 10,
     padding: 14,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    color: '#1f2937',
+    borderColor: colors.cardBorder,
+    color: colors.textPrimary,
   },
   noteSection: {
     marginTop: 20,
@@ -432,14 +433,14 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
     marginTop: 8,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 10,
     gap: 8,
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.card,
     fontSize: 16,
     fontWeight: '600',
   },

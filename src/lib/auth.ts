@@ -21,6 +21,7 @@ export interface User {
   isFoundingRider: boolean;
   hoursDisplayPreference?: string | null;
   predictionMode?: string | null;
+  distanceUnit?: string | null;
   createdAt: string;
 }
 

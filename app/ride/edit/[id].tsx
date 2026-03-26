@@ -17,6 +17,8 @@ import {
   useRidesPageQuery,
   useUpdateRideMutation,
 } from '../../../src/graphql/generated';
+import { colors } from '../../../src/constants/theme';
+import { useDistanceUnit } from '../../../src/hooks/useDistanceUnit';
 import { useBikesWithPredictions } from '../../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../../src/components/common/PickerSelect';
 
@@ -36,6 +38,7 @@ export default function EditRideScreen() {
   const router = useRouter();
   const { bikes } = useBikesWithPredictions();
   const [updateRide, { loading: updating }] = useUpdateRideMutation();
+  const { distanceUnit, toMeters, fromMeters } = useDistanceUnit();
 
   // Fetch ride from cache
   const { data, loading } = useRidesPageQuery({
@@ -70,8 +73,8 @@ export default function EditRideScreen() {
       setHours(String(Math.floor(totalMinutes / 60)));
       setMinutes(String(totalMinutes % 60));
 
-      setDistance(String(ride.distanceMiles));
-      setElevation(String(ride.elevationGainFeet));
+      setDistance(String(parseFloat(fromMeters(ride.distanceMeters).toFixed(1))));
+      setElevation(String(distanceUnit === 'km' ? Math.round(ride.elevationGainMeters) : parseFloat((ride.elevationGainMeters * 3.28084).toFixed(0))));
       setRideType(ride.rideType);
       setBikeId(ride.bikeId || '');
       setAverageHr(ride.averageHr ? String(ride.averageHr) : '');
@@ -139,8 +142,8 @@ export default function EditRideScreen() {
           input: {
             startTime: date.toISOString(),
             durationSeconds,
-            distanceMiles: parseFloat(distance),
-            elevationGainFeet: parseFloat(elevation),
+            distanceMeters: toMeters(parseFloat(distance)),
+            elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
             rideType,
             bikeId: bikeId || null,
             averageHr: averageHr ? parseInt(averageHr, 10) : null,
@@ -159,7 +162,7 @@ export default function EditRideScreen() {
   if (loading || !initialized) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2d5016" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -167,7 +170,7 @@ export default function EditRideScreen() {
   if (!ride) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#9ca3af" />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
         <Text style={styles.errorText}>Ride not found</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>
@@ -198,14 +201,14 @@ export default function EditRideScreen() {
             style={styles.dateButton}
             onPress={() => setShowDatePicker(true)}
           >
-            <Ionicons name="calendar-outline" size={18} color="#6b7280" />
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formattedDate}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.timeButton}
             onPress={() => setShowTimePicker(true)}
           >
-            <Ionicons name="time-outline" size={18} color="#6b7280" />
+            <Ionicons name="time-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formattedTime}</Text>
           </TouchableOpacity>
         </View>
@@ -269,7 +272,7 @@ export default function EditRideScreen() {
               placeholder="0.0"
               keyboardType="decimal-pad"
             />
-            <Text style={styles.inputSuffix}>miles</Text>
+            <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'km' : 'mi'}</Text>
           </View>
           <View style={styles.halfInput}>
             <TextInput
@@ -279,7 +282,7 @@ export default function EditRideScreen() {
               placeholder="0"
               keyboardType="number-pad"
             />
-            <Text style={styles.inputSuffix}>feet</Text>
+            <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
           </View>
         </View>
       </View>
@@ -363,7 +366,7 @@ export default function EditRideScreen() {
         disabled={updating}
       >
         {updating ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.textPrimary} />
         ) : (
           <Text style={styles.submitButtonText}>Save Changes</Text>
         )}
@@ -379,7 +382,7 @@ export default function EditRideScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -398,18 +401,18 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textMuted,
     marginTop: 12,
     marginBottom: 24,
   },
   backButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
   },
   backButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   dateTimeRow: {
@@ -431,26 +434,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   timeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   dateButtonText: {
     fontSize: 15,
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   durationRow: {
     flexDirection: 'row',
@@ -464,7 +467,7 @@ const styles = StyleSheet.create({
   },
   durationLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textMuted,
   },
   row: {
     flexDirection: 'row',
@@ -478,12 +481,13 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   inputWithSuffix: {
     flexDirection: 'row',
@@ -492,7 +496,7 @@ const styles = StyleSheet.create({
   },
   inputSuffix: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textMuted,
   },
   notesInput: {
     height: 100,
@@ -500,12 +504,12 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textMuted,
     textAlign: 'right',
     marginTop: 4,
   },
   submitButton: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -515,7 +519,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -526,7 +530,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   cancelButtonText: {
-    color: '#6b7280',
+    color: colors.textMuted,
     fontSize: 16,
     fontWeight: '600',
   },

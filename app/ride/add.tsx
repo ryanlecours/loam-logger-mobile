@@ -13,9 +13,11 @@ import {
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useAddRideMutation } from '../../src/graphql/generated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../src/components/common/PickerSelect';
+import { colors } from '../../src/constants/theme';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -32,6 +34,7 @@ export default function AddRideScreen() {
   const router = useRouter();
   const { bikes } = useBikesWithPredictions();
   const [addRide, { loading }] = useAddRideMutation();
+  const { distanceUnit, toMeters } = useDistanceUnit();
 
   // Form state
   const [date, setDate] = useState(new Date());
@@ -109,8 +112,8 @@ export default function AddRideScreen() {
           input: {
             startTime: date.toISOString(),
             durationSeconds,
-            distanceMiles: parseFloat(distance),
-            elevationGainFeet: parseFloat(elevation),
+            distanceMeters: toMeters(parseFloat(distance)),
+            elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
             rideType,
             bikeId: bikeId || null,
             averageHr: averageHr ? parseInt(averageHr, 10) : null,
@@ -148,14 +151,14 @@ export default function AddRideScreen() {
             style={styles.dateButton}
             onPress={() => setShowDatePicker(true)}
           >
-            <Ionicons name="calendar-outline" size={18} color="#6b7280" />
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formattedDate}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.timeButton}
             onPress={() => setShowTimePicker(true)}
           >
-            <Ionicons name="time-outline" size={18} color="#6b7280" />
+            <Ionicons name="time-outline" size={18} color={colors.textMuted} />
             <Text style={styles.dateButtonText}>{formattedTime}</Text>
           </TouchableOpacity>
         </View>
@@ -219,7 +222,7 @@ export default function AddRideScreen() {
               placeholder="0.0"
               keyboardType="decimal-pad"
             />
-            <Text style={styles.inputSuffix}>miles</Text>
+            <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'km' : 'mi'}</Text>
           </View>
           <View style={styles.halfInput}>
             <TextInput
@@ -229,7 +232,7 @@ export default function AddRideScreen() {
               placeholder="0"
               keyboardType="number-pad"
             />
-            <Text style={styles.inputSuffix}>feet</Text>
+            <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
           </View>
         </View>
       </View>
@@ -310,7 +313,7 @@ export default function AddRideScreen() {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.textPrimary} />
         ) : (
           <Text style={styles.submitButtonText}>Add Ride</Text>
         )}
@@ -326,7 +329,7 @@ export default function AddRideScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -338,7 +341,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   dateTimeRow: {
@@ -350,26 +353,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   timeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   dateButtonText: {
     fontSize: 15,
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   durationRow: {
     flexDirection: 'row',
@@ -383,7 +386,7 @@ const styles = StyleSheet.create({
   },
   durationLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   row: {
     flexDirection: 'row',
@@ -397,12 +400,13 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   inputWithSuffix: {
     flexDirection: 'row',
@@ -411,7 +415,7 @@ const styles = StyleSheet.create({
   },
   inputSuffix: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   notesInput: {
     height: 100,
@@ -419,12 +423,12 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textMuted,
     textAlign: 'right',
     marginTop: 4,
   },
   submitButton: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -434,7 +438,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -445,7 +449,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   cancelButtonText: {
-    color: '#6b7280',
+    color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '600',
   },
