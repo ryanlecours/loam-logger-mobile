@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
+export interface SpokesImage {
+  url: string;
+  colorKey?: string;
+}
+
 /**
  * Bike data from 99Spokes search
  */
@@ -28,6 +33,7 @@ export interface SpokesBike {
   motorPowerW?: number;
   motorTorqueNm?: number;
   components?: SpokesComponents;
+  images?: SpokesImage[];
 }
 
 export interface SpokesComponent {
@@ -58,6 +64,8 @@ export interface SpokesComponents {
   crank?: SpokesComponent;
   cassette?: SpokesComponent;
   chain?: SpokesComponent;
+  headset?: SpokesComponent;
+  bottomBracket?: SpokesComponent;
   pedals?: SpokesComponent;
   motor?: SpokesComponent & { powerW?: number; torqueNm?: number };
   battery?: SpokesComponent & { capacityWh?: number };
@@ -76,6 +84,11 @@ interface OnboardingData {
     model: string;
     year: number | null;
   } | null;
+  // Additional bike details
+  nickname: string;
+  notes: string;
+  selectedImageUrl: string | null;
+  acquisitionCondition: 'NEW' | 'USED';
 }
 
 interface OnboardingContextType {
@@ -84,6 +97,10 @@ interface OnboardingContextType {
   setLocation: (location: string) => void;
   setSelectedBike: (bike: SpokesBike | null) => void;
   setManualBike: (bike: { make: string; model: string; year: number | null } | null) => void;
+  setNickname: (nickname: string) => void;
+  setNotes: (notes: string) => void;
+  setSelectedImageUrl: (url: string | null) => void;
+  setAcquisitionCondition: (condition: 'NEW' | 'USED') => void;
   reset: () => void;
 }
 
@@ -92,6 +109,10 @@ const initialData: OnboardingData = {
   location: null,
   selectedBike: null,
   manualBike: null,
+  nickname: '',
+  notes: '',
+  selectedImageUrl: null,
+  acquisitionCondition: 'NEW',
 };
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -118,6 +139,22 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     []
   );
 
+  const setNickname = useCallback((nickname: string) => {
+    setData((prev) => ({ ...prev, nickname }));
+  }, []);
+
+  const setNotes = useCallback((notes: string) => {
+    setData((prev) => ({ ...prev, notes }));
+  }, []);
+
+  const setSelectedImageUrl = useCallback((selectedImageUrl: string | null) => {
+    setData((prev) => ({ ...prev, selectedImageUrl }));
+  }, []);
+
+  const setAcquisitionCondition = useCallback((acquisitionCondition: 'NEW' | 'USED') => {
+    setData((prev) => ({ ...prev, acquisitionCondition }));
+  }, []);
+
   const reset = useCallback(() => {
     setData(initialData);
   }, []);
@@ -130,6 +167,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         setLocation,
         setSelectedBike,
         setManualBike,
+        setNickname,
+        setNotes,
+        setSelectedImageUrl,
+        setAcquisitionCondition,
         reset,
       }}
     >

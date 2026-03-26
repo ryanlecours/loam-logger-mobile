@@ -13,12 +13,22 @@ import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors } from '../../constants/theme';
 
-const TIMEFRAME_OPTIONS: { value: TimeframeOption; label: string }[] = [
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: 'YTD', label: 'Year to date' },
-];
+function buildTimeframeOptions(): { value: TimeframeOption; label: string }[] {
+  const currentYear = new Date().getFullYear();
+  const options: { value: TimeframeOption; label: string }[] = [
+    { value: '7d', label: 'Last 7 days' },
+    { value: '30d', label: 'Last 30 days' },
+    { value: '90d', label: 'Last 90 days' },
+    { value: 'YTD', label: 'Year to date' },
+  ];
+  for (let i = 1; i <= 5; i++) {
+    const year = currentYear - i;
+    options.push({ value: `year:${year}`, label: `${year}` });
+  }
+  return options;
+}
+
+const TIMEFRAME_OPTIONS = buildTimeframeOptions();
 
 type SectionKey = 'summary' | 'trends' | 'heartRate' | 'locations' | 'bikes';
 

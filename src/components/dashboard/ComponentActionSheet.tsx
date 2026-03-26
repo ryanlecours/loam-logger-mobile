@@ -11,17 +11,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
+import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { colors } from '../../constants/theme';
-import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
-import { ComponentHealthBadge } from './ComponentHealthBadge';
 
-interface ComponentDetailSheetProps {
+interface ComponentActionSheetProps {
   visible: boolean;
-  component: ComponentFieldsFragment | null;
-  prediction?: ComponentPrediction | null;
+  prediction: ComponentPrediction | null;
   onClose: () => void;
   onLogService: () => void;
   onReplace: () => void;
+  onActionComplete: () => void;
 }
 
 function formatComponentType(type: string): string {
@@ -32,44 +32,21 @@ function formatComponentType(type: string): string {
 }
 
 function formatLocation(location: string | null | undefined): string {
-  if (!location) return '';
+  if (!location || location === 'NONE') return '';
   return location
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return 'Never';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatConfidence(confidence: string | null | undefined): { label: string; color: string } {
-  switch (confidence) {
-    case 'HIGH':
-      return { label: 'High', color: '#16a34a' };
-    case 'MEDIUM':
-      return { label: 'Medium', color: '#ca8a04' };
-    case 'LOW':
-      return { label: 'Low', color: '#dc2626' };
-    default:
-      return { label: 'Unknown', color: '#9ca3af' };
-  }
-}
-
-export function ComponentDetailSheet({
+export function ComponentActionSheet({
   visible,
-  component,
   prediction,
   onClose,
   onLogService,
   onReplace,
-}: ComponentDetailSheetProps) {
+  onActionComplete,
+}: ComponentActionSheetProps) {
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
@@ -88,34 +65,27 @@ export function ComponentDetailSheet({
   }, [onClose]);
 
   const handleSnooze = useCallback(async (hours: number) => {
-    if (!component) return;
+    if (!prediction) return;
     try {
       await snoozeComponent({
-        variables: { id: component.id, hours },
+        variables: { id: prediction.componentId, hours },
       });
       setSnoozeSuccess(true);
       setTimeout(() => {
         handleClose();
+        onActionComplete();
       }, 1000);
     } catch (err) {
       console.error('Failed to snooze component:', err);
     }
-  }, [component, snoozeComponent, handleClose]);
+  }, [prediction, snoozeComponent, handleClose, onActionComplete]);
 
-  if (!component) return null;
+  if (!prediction) return null;
 
-  const typeName = formatComponentType(component.type);
-  const location = formatLocation(component.location);
-  const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
-  const status = prediction?.status || component.status || 'UNKNOWN';
-  const confidence = formatConfidence(prediction?.confidence);
-
-  const hoursRemaining = prediction?.hoursRemaining;
-  const serviceInterval = prediction?.serviceIntervalHours || component.serviceDueAtHours;
-  const hoursSinceService = prediction?.hoursSinceService;
-  const ridesRemaining = prediction?.ridesRemainingEstimate;
-  const lastServiced = component.lastServicedAt;
-  const recommendedHours = serviceInterval ?? 50;
+  const typeName = formatComponentType(prediction.componentType);
+  const location = formatLocation(prediction.location);
+  const brandModel = [prediction.brand, prediction.model].filter(Boolean).join(' ');
+  const recommendedHours = prediction.serviceIntervalHours ?? 50;
 
   return (
     <Modal
@@ -149,81 +119,47 @@ export function ComponentDetailSheet({
               <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Status Badge */}
                 <View style={styles.statusRow}>
-                  <ComponentHealthBadge status={status} />
-                  <View style={styles.confidenceRow}>
-                    <Ionicons name="analytics-outline" size={14} color={confidence.color} />
-                    <Text style={[styles.confidenceText, { color: confidence.color }]}>
-                      {confidence.label} confidence
-                    </Text>
-                  </View>
+                  <ComponentHealthBadge status={prediction.status} />
                 </View>
 
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
-                  {hoursRemaining !== null && hoursRemaining !== undefined && (
-                    <View style={styles.statItem}>
-                      <Ionicons
-                        name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
-                        size={20}
-                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
-                      />
-                      <Text style={styles.statValue}>
-                        {hoursRemaining <= 0
-                          ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
-                          : `${hoursRemaining.toFixed(0)}h`}
-                      </Text>
-                      <Text style={styles.statLabel}>
-                        {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={styles.statItem}>
+                    <Ionicons
+                      name={prediction.hoursRemaining <= 0 ? 'warning' : 'time-outline'}
+                      size={20}
+                      color={prediction.hoursRemaining <= 0 ? colors.danger : colors.primary}
+                    />
+                    <Text style={styles.statValue}>
+                      {prediction.hoursRemaining <= 0
+                        ? `${Math.abs(prediction.hoursRemaining).toFixed(0)}h overdue`
+                        : `${prediction.hoursRemaining.toFixed(0)}h`}
+                    </Text>
+                    <Text style={styles.statLabel}>
+                      {prediction.hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
+                    </Text>
+                  </View>
 
-                  {serviceInterval && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{serviceInterval}h</Text>
-                      <Text style={styles.statLabel}>Interval</Text>
-                    </View>
-                  )}
+                  <View style={styles.statItem}>
+                    <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
+                    <Text style={styles.statValue}>{prediction.serviceIntervalHours}h</Text>
+                    <Text style={styles.statLabel}>Interval</Text>
+                  </View>
 
-                  {hoursSinceService !== null && hoursSinceService !== undefined && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{hoursSinceService.toFixed(0)}h</Text>
-                      <Text style={styles.statLabel}>Since Service</Text>
-                    </View>
-                  )}
+                  <View style={styles.statItem}>
+                    <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
+                    <Text style={styles.statValue}>{prediction.hoursSinceService.toFixed(0)}h</Text>
+                    <Text style={styles.statLabel}>Since Service</Text>
+                  </View>
 
-                  {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
+                  {prediction.ridesRemainingEstimate > 0 && (
                     <View style={styles.statItem}>
                       <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{ridesRemaining}</Text>
+                      <Text style={styles.statValue}>{prediction.ridesRemainingEstimate}</Text>
                       <Text style={styles.statLabel}>Rides Left</Text>
                     </View>
                   )}
                 </View>
-
-                {/* Last Serviced */}
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Last Serviced</Text>
-                  <Text style={styles.infoValue}>{formatDate(lastServiced)}</Text>
-                </View>
-
-                {/* Component Type */}
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Type</Text>
-                  <Text style={styles.infoValue}>
-                    {component.isStock ? 'Stock' : 'Aftermarket'}
-                  </Text>
-                </View>
-
-                {/* Notes */}
-                {component.notes && (
-                  <View style={styles.notesSection}>
-                    <Text style={styles.notesLabel}>Notes</Text>
-                    <Text style={styles.notesText}>{component.notes}</Text>
-                  </View>
-                )}
 
                 {/* Snooze Options (shown after tapping Looks Good) */}
                 {showSnoozeOptions && !snoozeSuccess && (
@@ -297,32 +233,34 @@ export function ComponentDetailSheet({
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
-                    styles.actionButtonLooksGood,
+                    styles.actionButtonPrimary,
                     showSnoozeOptions && styles.actionButtonActive,
                   ]}
                   onPress={() => setShowSnoozeOptions(true)}
                   disabled={snoozing || snoozeSuccess}
                 >
                   <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>
+                  <Text style={styles.actionButtonTextPrimary}>
                     {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
                   </Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={onLogService}
                   disabled={snoozing || snoozeSuccess}
                 >
-                  <Ionicons name="build-outline" size={20} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>Service</Text>
+                  <Ionicons name="build-outline" size={20} color={colors.textSecondary} />
+                  <Text style={styles.actionButtonText}>Log Service</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonSecondary]}
+                  style={styles.actionButton}
                   onPress={onReplace}
                   disabled={snoozing || snoozeSuccess}
                 >
                   <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
-                  <Text style={styles.actionButtonTextSecondary}>Replace</Text>
+                  <Text style={styles.actionButtonText}>Replace</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -388,17 +326,7 @@ const styles = StyleSheet.create({
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: 20,
-  },
-  confidenceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  confidenceText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -423,46 +351,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.cardBorder,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
-  notesSection: {
-    marginTop: 16,
-    padding: 14,
-    backgroundColor: colors.background,
-    borderRadius: 10,
-  },
-  notesLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
   snoozeSection: {
     backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
-    marginTop: 16,
+    marginBottom: 16,
   },
   snoozeTitle: {
     fontSize: 14,
@@ -552,28 +445,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primaryMuted,
+    backgroundColor: colors.cardBorder,
     paddingVertical: 12,
     borderRadius: 10,
     gap: 4,
   },
-  actionButtonLooksGood: {
+  actionButtonPrimary: {
     backgroundColor: colors.primaryMuted,
   },
   actionButtonActive: {
     borderWidth: 1,
     borderColor: colors.primary,
   },
-  actionButtonSecondary: {
-    backgroundColor: colors.cardBorder,
-  },
   actionButtonText: {
-    color: colors.primary,
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
-  actionButtonTextSecondary: {
-    color: colors.textSecondary,
+  actionButtonTextPrimary: {
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '600',
   },

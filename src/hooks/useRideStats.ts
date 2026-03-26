@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useRidesPageQuery } from '../graphql/generated';
 import { useBikesWithPredictions } from './useBikesWithPredictions';
 
-export type TimeframeOption = '7d' | '30d' | '90d' | 'YTD';
+export type TimeframeOption = '7d' | '30d' | '90d' | 'YTD' | `year:${number}`;
 
 export interface PersonalRecord {
   type: 'longest_ride' | 'most_elevation' | 'longest_duration';
@@ -69,8 +69,11 @@ function getStartDateForTimeframe(timeframe: TimeframeOption): Date {
       return new Date(now.getTime() - 90 * DAYS_MS);
     case 'YTD':
       return new Date(now.getFullYear(), 0, 1);
-    default:
+    default: {
+      const yearMatch = timeframe.match(/^year:(\d{4})$/);
+      if (yearMatch) return new Date(Number(yearMatch[1]), 0, 1);
       return new Date(now.getTime() - 30 * DAYS_MS);
+    }
   }
 }
 
@@ -200,11 +203,15 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
     const allRides = data.rides as RideData[];
     const startDate = getStartDateForTimeframe(timeframe);
     const startTs = startDate.getTime();
+    const yearMatch = timeframe.match(/^year:(\d{4})$/);
+    const endTs = yearMatch
+      ? new Date(Number(yearMatch[1]) + 1, 0, 1).getTime()
+      : Infinity;
 
     // Filter rides by timeframe
     const filteredRides = allRides.filter((ride) => {
       const ts = parseStartTime(ride.startTime);
-      return ts !== null && ts >= startTs;
+      return ts !== null && ts >= startTs && ts < endTs;
     });
 
     const totalRides = filteredRides.length;

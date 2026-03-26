@@ -9,13 +9,18 @@ import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
 import {
   BikeFieldsFragment,
+  ComponentPrediction,
 } from '../../src/graphql/generated';
 import {
   DashboardSkeleton,
   EmptyBikeState,
   BikeSelectorSheet,
   DashboardComponentCard,
+  ComponentActionSheet,
+  RideStatsCard,
 } from '../../src/components/dashboard';
+import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
+import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { colors } from '../../src/constants/theme';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -38,6 +43,7 @@ export default function DashboardScreen() {
   const { distanceUnit } = useDistanceUnit();
   const {
     bikes,
+    spareComponents,
     loading: bikesLoading,
     hasPredictions,
     refetch: refetchBikes,
@@ -47,6 +53,9 @@ export default function DashboardScreen() {
   const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
   const [showBikeSelector, setShowBikeSelector] = useState(false);
   const [timeframe, setTimeframe] = useState<TimeframeOption>('YTD');
+  const [selectedPrediction, setSelectedPrediction] = useState<ComponentPrediction | null>(null);
+  const [showLogService, setShowLogService] = useState(false);
+  const [showReplace, setShowReplace] = useState(false);
 
   const { stats: rideStats, refetch: refetchStats } = useRideStats(timeframe);
 
@@ -198,15 +207,17 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Log Ride Button */}
-        <TouchableOpacity
-          style={styles.logRideButton}
-          onPress={() => router.push('/ride/add' as Href)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={22} color={colors.textPrimary} />
-          <Text style={styles.logRideText}>Log Ride</Text>
-        </TouchableOpacity>
+        {/* Inspect Bike Button */}
+        {activeBikeId && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push(`/bike/${activeBikeId}` as Href)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search-outline" size={22} color={colors.textPrimary} />
+            <Text style={styles.actionButtonText}>Inspect Bike</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Needs Attention Section */}
         {attentionComponents.length > 0 && (
@@ -223,11 +234,14 @@ export default function DashboardScreen() {
                 currentHours={comp.currentHours}
                 serviceIntervalHours={comp.serviceIntervalHours}
                 status={comp.status}
-                onReset={() => {}}
+                onPress={() => setSelectedPrediction(comp)}
               />
             ))}
           </View>
         )}
+
+        {/* Ride Stats */}
+        <RideStatsCard />
 
       </ScrollView>
 
@@ -243,6 +257,53 @@ export default function DashboardScreen() {
         }}
         onClose={() => setShowBikeSelector(false)}
       />
+
+      {/* Component Action Sheet */}
+      <ComponentActionSheet
+        visible={!!selectedPrediction && !showLogService && !showReplace}
+        prediction={selectedPrediction}
+        onClose={() => setSelectedPrediction(null)}
+        onLogService={() => setShowLogService(true)}
+        onReplace={() => setShowReplace(true)}
+        onActionComplete={() => refetchBikes()}
+      />
+
+      {/* Log Service Sheet */}
+      <LogServiceSheet
+        visible={showLogService}
+        onClose={() => {
+          setShowLogService(false);
+          setSelectedPrediction(null);
+        }}
+        components={selectedBike?.components ?? []}
+        preSelectedId={selectedPrediction?.componentId}
+        onServiceLogged={() => refetchBikes()}
+      />
+
+      {/* Replace Component Sheet */}
+      {selectedBike && (
+        <ReplaceComponentSheet
+          visible={showReplace}
+          component={
+            selectedPrediction
+              ? selectedBike.components.find(
+                  (c) => c.id === selectedPrediction.componentId
+                ) ?? null
+              : null
+          }
+          bikeId={selectedBike.id}
+          spareComponents={spareComponents}
+          onClose={() => {
+            setShowReplace(false);
+            setSelectedPrediction(null);
+          }}
+          onReplaced={() => {
+            setShowReplace(false);
+            setSelectedPrediction(null);
+            refetchBikes();
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -341,7 +402,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     letterSpacing: 1,
   },
-  logRideButton: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -352,7 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  logRideText: {
+  actionButtonText: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.textPrimary,

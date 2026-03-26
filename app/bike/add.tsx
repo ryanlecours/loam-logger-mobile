@@ -11,15 +11,36 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { searchBikes, getBikeById, SpokesSearchResult } from '../../src/api/spokes';
 import { useAddBikeMutation, useGearLightQuery, AcquisitionCondition } from '../../src/graphql/generated';
-import { SpokesBike } from '../../src/hooks/useOnboarding';
+import { SpokesBike, SpokesImage } from '../../src/hooks/useOnboarding';
 import { colors } from '../../src/constants/theme';
+import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
+import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
+import { WearStartStep } from '../../src/components/bike/WearStartStep';
+import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 
-type Step = 'search' | 'confirm';
+type Step = 'search' | 'details' | 'wearStart' | 'confirm';
+
+interface ManualForm {
+  manufacturer: string;
+  model: string;
+  year: string;
+  travelForkMm: string;
+  travelShockMm: string;
+}
+
+const INITIAL_MANUAL_FORM: ManualForm = {
+  manufacturer: '',
+  model: '',
+  year: '',
+  travelForkMm: '',
+  travelShockMm: '',
+};
 
 export default function AddBikeScreen() {
   const router = useRouter();
@@ -29,13 +50,27 @@ export default function AddBikeScreen() {
   const [searching, setSearching] = useState(false);
   const [selectedBike, setSelectedBike] = useState<SpokesBike | null>(null);
   const [loadingBike, setLoadingBike] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+
+  // Manual entry form
+  const [manualForm, setManualForm] = useState<ManualForm>(INITIAL_MANUAL_FORM);
+
+  // Details step state
+  const [bikeImages, setBikeImages] = useState<SpokesImage[]>([]);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [nickname, setNickname] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Wear start step state
+  const [acquisitionCondition, setAcquisitionCondition] = useState<'NEW' | 'USED'>('NEW');
 
   const [addBike, { loading: adding }] = useAddBikeMutation();
   const { refetch: refetchGear } = useGearLightQuery();
 
+  // --- Search ---
+
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
-
     setSearching(true);
     try {
       const bikes = await searchBikes({ query: query.trim() });
@@ -53,7 +88,22 @@ export default function AddBikeScreen() {
       const fullBike = await getBikeById(result.id);
       if (fullBike) {
         setSelectedBike(fullBike);
-        setStep('confirm');
+
+        // Collect images for colorway selection
+        const images: SpokesImage[] = [];
+        if (fullBike.images && fullBike.images.length > 0) {
+          // Deduplicate by URL
+          const seen = new Set<string>();
+          for (const img of fullBike.images) {
+            if (img.url && !seen.has(img.url)) {
+              seen.add(img.url);
+              images.push(img);
+            }
+          }
+        }
+        setBikeImages(images);
+        setSelectedImageUrl(fullBike.thumbnailUrl || images[0]?.url || null);
+        setStep('details');
       } else {
         Alert.alert('Error', 'Could not load bike details');
       }
@@ -64,8 +114,70 @@ export default function AddBikeScreen() {
     }
   }, []);
 
+  // --- Manual Entry ---
+
+  const handleManualContinue = useCallback(() => {
+    const { manufacturer, model, year } = manualForm;
+    if (!manufacturer.trim() || !model.trim() || !year.trim()) {
+      Alert.alert('Required Fields', 'Please fill in manufacturer, model, and year.');
+      return;
+    }
+    const yearNum = parseInt(year, 10);
+    if (isNaN(yearNum) || yearNum < 1990 || yearNum > new Date().getFullYear() + 1) {
+      Alert.alert('Invalid Year', 'Please enter a valid year.');
+      return;
+    }
+
+    const manualBike: SpokesBike = {
+      id: `manual-${Date.now()}`,
+      maker: manufacturer.trim(),
+      model: model.trim(),
+      year: yearNum,
+      family: '',
+      category: '',
+      subcategory: null,
+      travelFork: manualForm.travelForkMm ? parseInt(manualForm.travelForkMm, 10) || undefined : undefined,
+      travelRear: manualForm.travelShockMm ? parseInt(manualForm.travelShockMm, 10) || undefined : undefined,
+    };
+
+    setSelectedBike(manualBike);
+    setBikeImages([]);
+    setSelectedImageUrl(null);
+    setAcquisitionCondition('USED'); // Manual bikes default to USED
+    setStep('details');
+  }, [manualForm]);
+
+  // --- Navigation ---
+
+  const handleBack = useCallback(() => {
+    switch (step) {
+      case 'confirm':
+      case 'wearStart':
+        setStep('details');
+        break;
+      case 'details':
+        setStep('search');
+        setSelectedBike(null);
+        setBikeImages([]);
+        setSelectedImageUrl(null);
+        setNickname('');
+        setNotes('');
+        break;
+      default:
+        router.back();
+    }
+  }, [step, router]);
+
+  const handleDetailsContinue = useCallback(() => {
+    setStep('wearStart');
+  }, []);
+
+  // --- Submit ---
+
   const handleConfirm = useCallback(async () => {
     if (!selectedBike) return;
+
+    const isManual = selectedBike.id.startsWith('manual-');
 
     try {
       await addBike({
@@ -74,9 +186,9 @@ export default function AddBikeScreen() {
             manufacturer: selectedBike.maker,
             model: selectedBike.model,
             year: selectedBike.year,
-            spokesId: selectedBike.id,
+            spokesId: isManual ? undefined : selectedBike.id,
             spokesUrl: selectedBike.url || undefined,
-            thumbnailUrl: selectedBike.thumbnailUrl || undefined,
+            thumbnailUrl: selectedImageUrl || selectedBike.thumbnailUrl || undefined,
             family: selectedBike.family || undefined,
             category: selectedBike.category || undefined,
             subcategory: selectedBike.subcategory || undefined,
@@ -89,58 +201,29 @@ export default function AddBikeScreen() {
             motorModel: selectedBike.motorModel || undefined,
             motorPowerW: selectedBike.motorPowerW || undefined,
             motorTorqueNm: selectedBike.motorTorqueNm || undefined,
-            acquisitionCondition: AcquisitionCondition.New,
+            nickname: nickname.trim() || undefined,
+            notes: notes.trim() || undefined,
+            acquisitionCondition: acquisitionCondition as AcquisitionCondition,
+            spokesComponents: isManual ? undefined : buildSpokesComponentsInput(selectedBike.components),
           },
         },
       });
 
-      // Refetch the gear list
       await refetchGear();
-
-      // Navigate back to gear tab
       router.back();
     } catch (error) {
       Alert.alert('Failed to Add Bike', (error as Error).message);
     }
-  }, [selectedBike, addBike, refetchGear, router]);
+  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router]);
 
-  const handleBack = useCallback(() => {
-    if (step === 'confirm') {
-      setStep('search');
-      setSelectedBike(null);
-    } else {
-      router.back();
-    }
-  }, [step, router]);
+  // --- Step: Wear Start ---
 
-  const renderSearchResult = ({ item }: { item: SpokesSearchResult }) => (
-    <TouchableOpacity
-      style={styles.resultItem}
-      onPress={() => handleSelectBike(item)}
-      disabled={loadingBike}
-    >
-      <View style={styles.resultContent}>
-        <Text style={styles.resultTitle}>
-          {item.maker} {item.model}
-        </Text>
-        <Text style={styles.resultSubtitle}>
-          {item.year} · {item.category}
-        </Text>
-      </View>
-      {loadingBike ? (
-        <ActivityIndicator size="small" color={colors.primary} />
-      ) : (
-        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-      )}
-    </TouchableOpacity>
-  );
-
-  if (step === 'confirm' && selectedBike) {
+  if (step === 'wearStart') {
     return (
       <View style={styles.container}>
         <Stack.Screen
           options={{
-            title: 'Confirm Bike',
+            title: 'Component Status',
             headerLeft: () => (
               <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
                 <Ionicons name="arrow-back" size={24} color={colors.primary} />
@@ -149,57 +232,12 @@ export default function AddBikeScreen() {
           }}
         />
 
-        <View style={styles.confirmContent}>
-          {selectedBike.thumbnailUrl ? (
-            <Image
-              source={{ uri: selectedBike.thumbnailUrl }}
-              style={styles.bikeImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons name="bicycle" size={80} color={colors.textMuted} />
-            </View>
-          )}
-
-          <Text style={styles.bikeName}>
-            {selectedBike.maker} {selectedBike.model}
-          </Text>
-          <Text style={styles.bikeYear}>{selectedBike.year}</Text>
-
-          <View style={styles.specsList}>
-            {selectedBike.category && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Category</Text>
-                <Text style={styles.specValue}>{selectedBike.category}</Text>
-              </View>
-            )}
-            {selectedBike.travelFork && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Fork Travel</Text>
-                <Text style={styles.specValue}>{selectedBike.travelFork}mm</Text>
-              </View>
-            )}
-            {selectedBike.travelRear && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Rear Travel</Text>
-                <Text style={styles.specValue}>{selectedBike.travelRear}mm</Text>
-              </View>
-            )}
-            {selectedBike.frameMaterial && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Frame</Text>
-                <Text style={styles.specValue}>{selectedBike.frameMaterial}</Text>
-              </View>
-            )}
-            {selectedBike.isEbike && (
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>E-Bike</Text>
-                <Text style={styles.specValue}>Yes</Text>
-              </View>
-            )}
-          </View>
-        </View>
+        <ScrollView style={styles.flex}>
+          <WearStartStep
+            selected={acquisitionCondition}
+            onSelect={setAcquisitionCondition}
+          />
+        </ScrollView>
 
         <View style={styles.footer}>
           <TouchableOpacity
@@ -212,7 +250,7 @@ export default function AddBikeScreen() {
             ) : (
               <>
                 <Ionicons name="add" size={20} color={colors.textPrimary} />
-                <Text style={styles.confirmButtonText}>Add This Bike</Text>
+                <Text style={styles.confirmButtonText}>Add Bike</Text>
               </>
             )}
           </TouchableOpacity>
@@ -220,6 +258,48 @@ export default function AddBikeScreen() {
       </View>
     );
   }
+
+  // --- Step: Details (nickname, notes, colorway) ---
+
+  if (step === 'details' && selectedBike) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: 'Bike Details',
+            headerLeft: () => (
+              <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
+                <Ionicons name="arrow-back" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            ),
+          }}
+        />
+
+        <BikeDetailsStep
+          bike={selectedBike}
+          images={bikeImages}
+          selectedImageUrl={selectedImageUrl}
+          onSelectImage={setSelectedImageUrl}
+          nickname={nickname}
+          onNicknameChange={setNickname}
+          notes={notes}
+          onNotesChange={setNotes}
+        />
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleDetailsContinue}
+          >
+            <Text style={styles.confirmButtonText}>Continue</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // --- Step: Search ---
 
   return (
     <KeyboardAvoidingView
@@ -230,68 +310,199 @@ export default function AddBikeScreen() {
         options={{
           title: 'Add Bike',
           headerLeft: () => (
-            <TouchableOpacity onPress={handleBack} style={styles.headerButton}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
               <Ionicons name="close" size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
         }}
       />
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search bikes (e.g., Santa Cruz Bronson)"
-            placeholderTextColor={colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+      {!isManualEntry ? (
+        <>
+          {/* Search bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search bikes (e.g., Santa Cruz Bronson)"
+                placeholderTextColor={colors.textMuted}
+                value={query}
+                onChangeText={setQuery}
+                onSubmitEditing={handleSearch}
+                returnKeyType="search"
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+              {query.length > 0 && (
+                <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
+                  <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.searchButton, !query.trim() && styles.buttonDisabled]}
+              onPress={handleSearch}
+              disabled={!query.trim() || searching}
+            >
+              {searching ? (
+                <ActivityIndicator color={colors.textPrimary} size="small" />
+              ) : (
+                <Text style={styles.searchButtonText}>Search</Text>
+              )}
             </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity
-          style={[styles.searchButton, !query.trim() && styles.buttonDisabled]}
-          onPress={handleSearch}
-          disabled={!query.trim() || searching}
-        >
-          {searching ? (
-            <ActivityIndicator color={colors.textPrimary} size="small" />
-          ) : (
-            <Text style={styles.searchButtonText}>Search</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          </View>
 
-      {results.length > 0 ? (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          renderItem={renderSearchResult}
-          contentContainerStyle={styles.resultsList}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
-      ) : (
-        <View style={styles.emptyState}>
-          {searching ? (
-            <ActivityIndicator size="large" color={colors.primary} />
+          <SpokesAttribution />
+
+          {/* Results */}
+          {results.length > 0 ? (
+            <FlatList
+              data={results}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.resultItem}
+                  onPress={() => handleSelectBike(item)}
+                  disabled={loadingBike}
+                >
+                  <View style={styles.resultContent}>
+                    <Text style={styles.resultTitle}>
+                      {item.maker} {item.model}
+                    </Text>
+                    <Text style={styles.resultSubtitle}>
+                      {item.year} · {item.category}
+                    </Text>
+                  </View>
+                  {loadingBike ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.resultsList}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              ListFooterComponent={
+                <TouchableOpacity
+                  style={styles.manualEntryButton}
+                  onPress={() => setIsManualEntry(true)}
+                >
+                  <Text style={styles.manualEntryText}>
+                    Can't find your bike? Enter details manually
+                  </Text>
+                </TouchableOpacity>
+              }
+            />
           ) : (
-            <>
-              <Ionicons name="bicycle-outline" size={64} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>Search for your bike</Text>
-              <Text style={styles.emptySubtitle}>
-                Enter your bike's make and model to find it in our database
-              </Text>
-            </>
+            <View style={styles.emptyState}>
+              {searching ? (
+                <ActivityIndicator size="large" color={colors.primary} />
+              ) : (
+                <>
+                  <Ionicons name="bicycle-outline" size={64} color={colors.textMuted} />
+                  <Text style={styles.emptyTitle}>Search for your bike</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Enter your bike's make and model to find it in our database
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.manualEntryButton}
+                    onPress={() => setIsManualEntry(true)}
+                  >
+                    <Text style={styles.manualEntryText}>
+                      Can't find your bike? Enter details manually
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           )}
-        </View>
+        </>
+      ) : (
+        /* Manual Entry Form */
+        <ScrollView style={styles.flex} contentContainerStyle={styles.manualFormContainer}>
+          <Text style={styles.manualFormTitle}>Enter Bike Details</Text>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Manufacturer *</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={manualForm.manufacturer}
+              onChangeText={(text) => setManualForm((f) => ({ ...f, manufacturer: text }))}
+              placeholder="e.g., Santa Cruz"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Model *</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={manualForm.model}
+              onChangeText={(text) => setManualForm((f) => ({ ...f, model: text }))}
+              placeholder="e.g., Bronson"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="words"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Year *</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={manualForm.year}
+              onChangeText={(text) => setManualForm((f) => ({ ...f, year: text }))}
+              placeholder="e.g., 2024"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
+          </View>
+
+          <View style={styles.fieldRow}>
+            <View style={[styles.field, styles.fieldHalf]}>
+              <Text style={styles.fieldLabel}>Fork Travel (mm)</Text>
+              <TextInput
+                style={styles.fieldInput}
+                value={manualForm.travelForkMm}
+                onChangeText={(text) => setManualForm((f) => ({ ...f, travelForkMm: text }))}
+                placeholder="e.g., 160"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={[styles.field, styles.fieldHalf]}>
+              <Text style={styles.fieldLabel}>Rear Travel (mm)</Text>
+              <TextInput
+                style={styles.fieldInput}
+                value={manualForm.travelShockMm}
+                onChangeText={(text) => setManualForm((f) => ({ ...f, travelShockMm: text }))}
+                placeholder="e.g., 150"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleManualContinue}
+          >
+            <Text style={styles.confirmButtonText}>Continue</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.manualEntryButton}
+            onPress={() => {
+              setIsManualEntry(false);
+              setManualForm(INITIAL_MANUAL_FORM);
+            }}
+          >
+            <Text style={styles.manualEntryText}>Back to search</Text>
+          </TouchableOpacity>
+        </ScrollView>
       )}
     </KeyboardAvoidingView>
   );
@@ -301,6 +512,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   headerButton: {
     padding: 8,
@@ -395,60 +609,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
   },
-  confirmContent: {
-    flex: 1,
-    padding: 24,
-    alignItems: 'center',
-  },
-  bikeImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bikeName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  bikeYear: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  specsList: {
-    width: '100%',
-    marginTop: 24,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  specRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.cardBorder,
-  },
-  specLabel: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  specValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
   footer: {
     padding: 16,
     backgroundColor: colors.card,
@@ -468,5 +628,52 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
+  },
+
+  // Manual entry
+  manualEntryButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  manualEntryText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textDecorationLine: 'underline',
+  },
+  manualFormContainer: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  manualFormTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 24,
+  },
+  field: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  fieldInput: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fieldHalf: {
+    flex: 1,
   },
 });

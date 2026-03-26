@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
-import { useGearQuery, ComponentFieldsFragment } from '../../src/graphql/generated';
+import { useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
 import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthBadge';
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
@@ -20,6 +20,10 @@ export default function BikeDetailScreen() {
   const { data, loading, error, refetch } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
+
+  const [deleteBike] = useDeleteBikeMutation();
+  const [retireBike] = useRetireBikeMutation();
+  const [reactivateBike] = useReactivateBikeMutation();
 
   const bike = data?.bikes?.find((b) => b.id === id);
   const predictions = bike?.predictions;
@@ -91,6 +95,95 @@ export default function BikeDetailScreen() {
     setShowReplaceSheet(false);
     setSelectedComponent(null);
     refetch();
+  };
+
+  const handleRetireSell = () => {
+    const options = ['Mark as Retired', 'Mark as Sold', 'Cancel'];
+    const cancelButtonIndex = 2;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          title: 'Retire or Sell Bike',
+          message: 'This bike will be moved to your retired bikes list. You can still view its history.',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) confirmRetire('RETIRED');
+          else if (buttonIndex === 1) confirmRetire('SOLD');
+        }
+      );
+    } else {
+      Alert.alert(
+        'Retire or Sell Bike',
+        'This bike will be moved to your retired bikes list.',
+        [
+          { text: 'Mark as Retired', onPress: () => confirmRetire('RETIRED') },
+          { text: 'Mark as Sold', onPress: () => confirmRetire('SOLD') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  const confirmRetire = async (status: 'RETIRED' | 'SOLD') => {
+    try {
+      await retireBike({
+        variables: { id: bike.id, status: status as BikeStatus },
+      });
+      await refetch();
+      router.back();
+    } catch (err) {
+      Alert.alert('Error', (err as Error).message);
+    }
+  };
+
+  const handleReactivate = () => {
+    Alert.alert(
+      'Reactivate Bike?',
+      'This will move the bike back to your active bikes list.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reactivate',
+          onPress: async () => {
+            try {
+              await reactivateBike({ variables: { id: bike.id } });
+              await refetch();
+              router.back();
+            } catch (err) {
+              Alert.alert('Error', (err as Error).message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const isInactive = bike.status === BikeStatus.Retired || bike.status === BikeStatus.Sold;
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Bike?',
+      'This will permanently delete this bike, all its components, and service history. Rides will be preserved but no longer associated with this bike. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBike({ variables: { id: bike.id } });
+              await refetch();
+              router.back();
+            } catch (err) {
+              Alert.alert('Error', (err as Error).message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -236,6 +329,32 @@ export default function BikeDetailScreen() {
         >
           <Ionicons name="construct" size={20} color={colors.primary} />
           <Text style={styles.actionButtonText}>Log Service</Text>
+        </TouchableOpacity>
+
+        {isInactive ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleReactivate}
+          >
+            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            <Text style={styles.actionButtonText}>Reactivate Bike</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleRetireSell}
+          >
+            <Ionicons name="archive-outline" size={20} color={colors.warning} />
+            <Text style={[styles.actionButtonText, { color: colors.warning }]}>Retire / Sell</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={styles.dangerButton}
+          onPress={handleDelete}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <Text style={styles.dangerButtonText}>Delete Bike</Text>
         </TouchableOpacity>
       </View>
 
@@ -415,6 +534,7 @@ const styles = StyleSheet.create({
   actionsSection: {
     marginTop: 16,
     marginHorizontal: 16,
+    gap: 10,
   },
   actionButton: {
     flexDirection: 'row',
@@ -431,5 +551,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.primary,
+  },
+  dangerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.dangerBg,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  dangerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.danger,
   },
 });
