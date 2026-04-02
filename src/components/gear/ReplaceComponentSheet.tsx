@@ -17,6 +17,8 @@ import {
   useInstallComponentMutation,
 } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
+import { isTierError, getTierErrorMessage } from '../../utils/tierErrors';
+import type { ApolloError } from '@apollo/client';
 
 interface ReplaceComponentSheetProps {
   visible: boolean;
@@ -121,7 +123,12 @@ export function ReplaceComponentSheet({
         },
       ]);
     } catch (error) {
-      Alert.alert('Error', (error as Error).message);
+      const err = error as ApolloError;
+      if (isTierError(err)) {
+        Alert.alert('Upgrade Required', getTierErrorMessage(err));
+      } else {
+        Alert.alert('Error', err.message);
+      }
     }
   }, [
     component,

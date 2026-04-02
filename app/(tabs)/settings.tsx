@@ -3,12 +3,16 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Scr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useUserTier } from '../../src/hooks/useUserTier';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
-import { useMeQuery } from '../../src/graphql/generated';
+import { useMeQuery, useUpdateUserPreferencesMutation } from '../../src/graphql/generated';
 import { setDataSourcePreference } from '../../src/api/backfill';
 import { deleteAccount } from '../../src/lib/auth';
 import { DataSourceSelector } from '../../src/components/settings/DataSourceSelector';
+import { NotificationPreferences } from '../../src/components/settings/NotificationPreferences';
+import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
+import { ReferralSection } from '../../src/components/settings/ReferralSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
 import { colors } from '../../src/constants/theme';
@@ -96,8 +100,32 @@ function IntegrationRow({
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { isPro } = useUserTier();
   const { data: meData, refetch: refetchMe } = useMeQuery();
   const { distanceUnit, setDistanceUnit } = useDistanceUnit();
+  const [updatePreferences] = useUpdateUserPreferencesMutation();
+
+  const predictionMode = meData?.me?.predictionMode ?? 'simple';
+
+  const handlePredictionModeChange = useCallback(async (mode: string) => {
+    if (mode === 'predictive' && !isPro) {
+      Alert.alert(
+        'Pro Feature',
+        'Advanced wear predictions require a Pro plan.',
+        [
+          { text: 'OK', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => router.push('/settings-detail/pricing' as any) },
+        ]
+      );
+      return;
+    }
+    try {
+      await updatePreferences({ variables: { input: { predictionMode: mode } } });
+      await refetchMe();
+    } catch {
+      Alert.alert('Error', 'Failed to update prediction mode.');
+    }
+  }, [isPro, updatePreferences, refetchMe, router]);
 
   const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
   const [dataSourceLoading, setDataSourceLoading] = useState(false);
@@ -202,6 +230,10 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      <SubscriptionSection />
+
+      <ReferralSection />
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Connected Services</Text>
         <IntegrationRow
@@ -270,7 +302,57 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        <View style={styles.prefRow}>
+          <View style={styles.prefLabelRow}>
+            <Text style={styles.prefLabel}>Wear Predictions</Text>
+            {!isPro && (
+              <View style={styles.proBadge}>
+                <Ionicons name="lock-closed" size={10} color={colors.monitor} />
+                <Text style={styles.proBadgeText}>Pro</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.segmentedControl}>
+            <TouchableOpacity
+              style={[
+                styles.segment,
+                predictionMode === 'simple' && styles.segmentActive,
+              ]}
+              onPress={() => handlePredictionModeChange('simple')}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  predictionMode === 'simple' && styles.segmentTextActive,
+                ]}
+              >
+                Simple
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segment,
+                predictionMode === 'predictive' && styles.segmentActive,
+                !isPro && predictionMode !== 'predictive' && styles.segmentLocked,
+              ]}
+              onPress={() => handlePredictionModeChange('predictive')}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  predictionMode === 'predictive' && styles.segmentTextActive,
+                  !isPro && predictionMode !== 'predictive' && styles.segmentTextLocked,
+                ]}
+              >
+                Predictive
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
+
+      <NotificationPreferences />
 
       <View style={styles.section}>
         <TouchableOpacity
@@ -433,6 +515,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
     fontWeight: '500',
+  },
+  prefLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.monitorBg,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  proBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.monitor,
+  },
+  segmentLocked: {
+    opacity: 0.5,
+  },
+  segmentTextLocked: {
+    color: colors.textMuted,
   },
   segmentedControl: {
     flexDirection: 'row',

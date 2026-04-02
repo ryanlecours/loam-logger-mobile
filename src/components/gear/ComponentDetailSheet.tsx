@@ -15,6 +15,11 @@ import { colors } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 
+/** User-facing hints for what "service" means for specific component types */
+const SERVICE_HINTS: Record<string, string> = {
+  DRIVETRAIN: 'Clean and lube your chain, and inspect the drivetrain for wear.',
+};
+
 interface ComponentDetailSheetProps {
   visible: boolean;
   component: ComponentFieldsFragment | null;
@@ -157,6 +162,14 @@ export function ComponentDetailSheet({
                     </Text>
                   </View>
                 </View>
+
+                {/* Service hint */}
+                {SERVICE_HINTS[component.type] && status !== 'ALL_GOOD' && (
+                  <View style={styles.serviceHint}>
+                    <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                    <Text style={styles.serviceHintText}>{SERVICE_HINTS[component.type]}</Text>
+                  </View>
+                )}
 
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
@@ -390,6 +403,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  serviceHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  serviceHintText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   confidenceRow: {
     flexDirection: 'row',

@@ -23,6 +23,8 @@ import { SpokesAttribution } from '../../src/components/common/SpokesAttribution
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
 import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
+import { isTierError, getTierErrorMessage } from '../../src/utils/tierErrors';
+import type { ApolloError } from '@apollo/client';
 
 type Step = 'search' | 'details' | 'wearStart' | 'confirm';
 
@@ -212,7 +214,15 @@ export default function AddBikeScreen() {
       await refetchGear();
       router.back();
     } catch (error) {
-      Alert.alert('Failed to Add Bike', (error as Error).message);
+      const err = error as ApolloError;
+      if (isTierError(err)) {
+        Alert.alert('Upgrade Required', getTierErrorMessage(err), [
+          { text: 'OK', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => router.replace('/settings-detail/pricing') },
+        ]);
+      } else {
+        Alert.alert('Failed to Add Bike', err.message);
+      }
     }
   }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router]);
 

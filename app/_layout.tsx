@@ -5,6 +5,13 @@ import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 import { client } from '../src/lib/apolloClient';
 import { useEffect } from 'react';
 import { colors } from '../src/constants/theme';
+import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
+import { useNotifications } from '../src/hooks/useNotifications';
+import { useUserTier } from '../src/hooks/useUserTier';
+import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
+
+// Configure foreground notification display at module level
+configureNotificationHandler();
 
 function LoadingScreen() {
   return (
@@ -21,6 +28,7 @@ function RootLayoutNav() {
     hasAcceptedCurrentTerms,
     onboardingCompleted,
   } = useAuth();
+  const { needsDowngradeSelection } = useUserTier();
   const segments = useSegments() as string[];
   const router = useRouter();
 
@@ -79,6 +87,20 @@ function RootLayoutNav() {
     }
   }, [loading, isAuthenticated, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
 
+  // Register push token and set up notification tap handler when fully authenticated
+  const { registerTokenIfGranted } = useNotifications();
+
+  useEffect(() => {
+    if (!isAuthenticated || !onboardingCompleted) return;
+
+    // Register/refresh push token
+    registerTokenIfGranted();
+
+    // Handle notification taps (navigate to relevant screen)
+    const subscription = setupNotificationResponseListener(router);
+    return () => subscription.remove();
+  }, [isAuthenticated, onboardingCompleted]);
+
   // Show loading while auth initializes
   if (loading) {
     return <LoadingScreen />;
@@ -110,10 +132,20 @@ function RootLayoutNav() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="settings-detail"
+          options={{
+            headerShown: true,
+          }}
+        />
         <Stack.Screen name="oauth" />
+        <Stack.Screen name="billing-success" options={{ headerShown: false }} />
+        <Stack.Screen name="billing-cancelled" options={{ headerShown: false }} />
+        <Stack.Screen name="billing-return" options={{ headerShown: false }} />
         <Stack.Screen name="closed-beta" />
         <Stack.Screen name="waitlist" />
       </Stack>
+      {isAuthenticated && needsDowngradeSelection && <DowngradeSelectionModal />}
     </>
   );
 }

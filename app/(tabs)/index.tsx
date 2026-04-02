@@ -21,6 +21,9 @@ import {
 } from '../../src/components/dashboard';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
+import { useUserTier } from '../../src/hooks/useUserTier';
+import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
+import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -40,6 +43,7 @@ function formatComponentType(type: string): string {
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { tier, isPro, isFreeLight, isFoundingRider } = useUserTier();
   const { distanceUnit } = useDistanceUnit();
   const {
     bikes,
@@ -84,6 +88,13 @@ export default function DashboardScreen() {
       (p) => p.status === 'DUE_NOW' || p.status === 'DUE_SOON' || p.status === 'OVERDUE'
     );
   }, [selectedBike]);
+
+  const hasRestrictedComponents = useMemo(() => {
+    if (!isFreeLight || !selectedBike?.predictions?.components) return false;
+    return selectedBike.predictions.components.some(
+      (p) => !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(p.componentType)
+    );
+  }, [isFreeLight, selectedBike]);
 
   const displayName = selectedBike
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
@@ -132,11 +143,18 @@ export default function DashboardScreen() {
             <Text style={styles.bikeName}>{displayName}</Text>
             <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.subtitle}>
-            {typedBikes.length > 1
-              ? `${typedBikes.length} bikes  ·  Component Wear Tracker`
-              : 'Component Wear Tracker'}
-          </Text>
+          <View style={styles.subtitleRow}>
+            <Text style={styles.subtitle}>
+              {typedBikes.length > 1
+                ? `${typedBikes.length} bikes  ·  Component Wear Tracker`
+                : 'Component Wear Tracker'}
+            </Text>
+            <View style={[styles.tierBadge, isPro ? styles.tierBadgePro : styles.tierBadgeFree]}>
+              <Text style={[styles.tierBadgeText, isPro ? styles.tierBadgeTextPro : styles.tierBadgeTextFree]}>
+                {isFoundingRider ? 'Founding Rider' : isPro ? 'Pro' : 'Free'}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Bike Image */}
@@ -240,6 +258,15 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Upgrade banner for free users with restricted components */}
+        {hasRestrictedComponents && (
+          <View style={styles.upgradeBanner}>
+            <UpgradePrompt
+              message="You're only tracking 4 component types. Upgrade to Pro or refer a friend to unlock all 23+ components."
+            />
+          </View>
+        )}
+
         {/* Ride Stats */}
         <RideStatsCard />
 
@@ -334,10 +361,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 8,
+  },
   subtitle: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 4,
+  },
+  tierBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  tierBadgePro: {
+    backgroundColor: colors.primaryMuted,
+  },
+  tierBadgeFree: {
+    backgroundColor: colors.surface,
+  },
+  tierBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  tierBadgeTextPro: {
+    color: colors.primary,
+  },
+  tierBadgeTextFree: {
+    color: colors.textMuted,
+  },
+  upgradeBanner: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   bikeImageContainer: {
     alignItems: 'center',

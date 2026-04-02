@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
@@ -9,14 +9,19 @@ import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
+import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
+import { useUserTier } from '../../src/hooks/useUserTier';
+import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
 export default function BikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { isFreeLight } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
   const [showReplaceSheet, setShowReplaceSheet] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const { data, loading, error, refetch } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
@@ -75,7 +80,14 @@ export default function BikeDetailScreen() {
     return orderA - orderB;
   });
 
+  const isComponentRestricted = (type: string) =>
+    isFreeLight && !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(type);
+
   const handleComponentPress = (component: ComponentFieldsFragment) => {
+    if (isComponentRestricted(component.type)) {
+      setShowUpgradePrompt(true);
+      return;
+    }
     setSelectedComponent(component);
   };
 
@@ -303,6 +315,7 @@ export default function BikeDetailScreen() {
                   component={component}
                   status={prediction?.status || component.status || undefined}
                   hoursRemaining={prediction?.hoursRemaining}
+                  restricted={isComponentRestricted(component.type)}
                   onPress={() => handleComponentPress(component)}
                 />
               );
@@ -384,6 +397,27 @@ export default function BikeDetailScreen() {
         onClose={() => setShowReplaceSheet(false)}
         onReplaced={handleReplaceComplete}
       />
+
+      <Modal
+        visible={showUpgradePrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowUpgradePrompt(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowUpgradePrompt(false)}>
+          <View style={styles.upgradeOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.upgradeContent}>
+                <UpgradePrompt
+                  message="This component type requires a Pro plan or a completed referral to track."
+                  onUpgrade={() => setShowUpgradePrompt(false)}
+                  onReferral={() => setShowUpgradePrompt(false)}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </ScrollView>
   );
 }
@@ -567,5 +601,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.danger,
+  },
+  upgradeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  upgradeContent: {
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
   },
 });

@@ -90,6 +90,13 @@ fragment BikeFieldsLight on Bike {
   updatedAt
 }
 
+fragment BikeNotificationPreferenceFields on BikeNotificationPreference {
+  bikeId
+  serviceNotificationsEnabled
+  serviceNotificationMode
+  serviceNotificationThreshold
+}
+
 fragment BikeFields on Bike {
   id
   nickname
@@ -124,6 +131,9 @@ fragment BikeFields on Bike {
   }
   predictions {
     ...PredictionFields
+  }
+  notificationPreference {
+    ...BikeNotificationPreferenceFields
   }
   createdAt
   updatedAt
@@ -208,5 +218,11 @@ mutation SnoozeComponent($id: ID!, $hours: Float) {
   snoozeComponent(id: $id, hours: $hours) {
     id
     serviceDueAtHours
+  }
+}
+
+mutation UpdateBikeNotificationPreference($input: UpdateBikeNotificationPreferenceInput!) {
+  updateBikeNotificationPreference(input: $input) {
+    ...BikeNotificationPreferenceFields
   }
 }

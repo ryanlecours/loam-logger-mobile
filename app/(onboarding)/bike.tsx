@@ -292,23 +292,23 @@ export default function BikeScreen() {
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleBack}
-              disabled={submitting}
-            >
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={[styles.button, submitting && styles.buttonDisabled]}
               onPress={handleComplete}
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.textPrimary} />
               ) : (
                 <Text style={styles.buttonText}>Complete Setup</Text>
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleBack}
+              disabled={submitting}
+            >
+              <Text style={styles.secondaryButtonText}>Back</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -341,17 +341,17 @@ export default function BikeScreen() {
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleBack}
-            >
-              <Text style={styles.secondaryButtonText}>Back</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={styles.button}
               onPress={handleDetailsContinue}
             >
               <Text style={styles.buttonText}>Continue</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleBack}
+            >
+              <Text style={styles.secondaryButtonText}>Back</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -378,7 +378,7 @@ export default function BikeScreen() {
                 value={searchQuery}
                 onChangeText={handleSearchChange}
                 placeholder="Search by make and model..."
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textMuted}
                 autoFocus
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -530,12 +530,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginTop: 76,
     marginBottom: 8,
     color: colors.primary,
   },

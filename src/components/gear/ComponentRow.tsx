@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusDot } from './StatusDot';
 import { ComponentFieldsFragment } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
@@ -7,6 +8,7 @@ interface ComponentRowProps {
   component: ComponentFieldsFragment;
   status?: string;
   hoursRemaining?: number | null;
+  restricted?: boolean;
   onPress?: () => void;
 }
 
@@ -25,7 +27,7 @@ function formatLocation(location: string | null | undefined): string {
     .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-export function ComponentRow({ component, status, hoursRemaining, onPress }: ComponentRowProps) {
+export function ComponentRow({ component, status, hoursRemaining, restricted, onPress }: ComponentRowProps) {
   const typeName = formatComponentType(component.type);
   const location = formatLocation(component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
@@ -51,19 +53,23 @@ export function ComponentRow({ component, status, hoursRemaining, onPress }: Com
 
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[styles.container, restricted && styles.containerRestricted]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress}
     >
-      <StatusDot status={effectiveStatus} />
+      {restricted ? (
+        <Ionicons name="lock-closed" size={12} color={colors.textMuted} />
+      ) : (
+        <StatusDot status={effectiveStatus} />
+      )}
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.type}>
+          <Text style={[styles.type, restricted && styles.textRestricted]}>
             {typeName}
             {location ? ` (${location})` : ''}
           </Text>
-          {hoursText && (
+          {!restricted && hoursText && (
             <Text
               style={[
                 styles.hours,
@@ -74,9 +80,12 @@ export function ComponentRow({ component, status, hoursRemaining, onPress }: Com
               {hoursText}
             </Text>
           )}
+          {restricted && (
+            <Text style={styles.restrictedLabel}>Pro</Text>
+          )}
         </View>
         {brandModel && (
-          <Text style={styles.brandModel} numberOfLines={1}>
+          <Text style={[styles.brandModel, restricted && styles.textRestricted]} numberOfLines={1}>
             {brandModel}
           </Text>
         )}
@@ -127,5 +136,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  containerRestricted: {
+    opacity: 0.5,
+  },
+  textRestricted: {
+    color: colors.textMuted,
+  },
+  restrictedLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.monitor,
+    backgroundColor: colors.monitorBg,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginLeft: 8,
   },
 });

@@ -1,21 +1,34 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useGearLightQuery, BikeFieldsLightFragment } from '../../src/graphql/generated';
 import { BikeCard } from '../../src/components/gear/BikeCard';
 import { EmptyGearState } from '../../src/components/gear/EmptyGearState';
+import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
 
 export default function GearScreen() {
   const router = useRouter();
   const [showInactive, setShowInactive] = useState(false);
+  const { canAddBike } = useUserTier();
   const { data, loading, error, refetch } = useGearLightQuery({
     fetchPolicy: 'cache-and-network',
   });
 
   const handleAddBike = () => {
+    if (!canAddBike) {
+      Alert.alert(
+        'Bike Limit Reached',
+        'Your Free plan allows 1 bike. Upgrade to Pro for unlimited bikes.',
+        [
+          { text: 'OK', style: 'cancel' },
+          { text: 'Upgrade to Pro', onPress: () => router.push('/settings-detail/pricing' as Href) },
+        ]
+      );
+      return;
+    }
     router.push('/bike/add' as Href);
   };
 

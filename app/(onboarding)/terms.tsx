@@ -9,6 +9,7 @@ import {
 import { useAcceptTermsMutation } from '../../src/graphql/generated';
 import { useAuth } from '../../src/hooks/useAuth';
 import { isUnauthorizedError } from '../../src/utils/errors';
+import { colors } from '../../src/constants/theme';
 
 // TODO: Import from @loam/shared when available
 const CURRENT_TERMS_VERSION = '1.2.0';
@@ -61,7 +62,7 @@ export default function TermsScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.textPrimary} />
           ) : (
             <Text style={styles.buttonText}>I Accept</Text>
           )}
@@ -74,7 +75,7 @@ export default function TermsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -86,16 +87,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#2d5016',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 32,
   },
   termsPlaceholder: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 24,
     marginBottom: 24,
@@ -105,22 +106,22 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: 16,
-    color: '#999',
+    color: colors.textMuted,
     marginBottom: 8,
   },
   placeholderHint: {
     fontSize: 12,
-    color: '#bbb',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   error: {
-    color: '#dc2626',
+    color: colors.danger,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
