@@ -9,29 +9,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { gql, useMutation } from '@apollo/client';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { useMeQuery } from '../../src/graphql/generated';
+import { useMeQuery, useCreateCheckoutSessionMutation, useCreateBillingPortalSessionMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
-
-const CREATE_CHECKOUT = gql`
-  mutation CreateCheckoutSession($plan: StripePlan!, $platform: CheckoutPlatform) {
-    createCheckoutSession(plan: $plan, platform: $platform) {
-      sessionId
-      url
-    }
-  }
-`;
-
-const CREATE_BILLING_PORTAL = gql`
-  mutation CreateBillingPortalSession($platform: CheckoutPlatform) {
-    createBillingPortalSession(platform: $platform) {
-      url
-    }
-  }
-`;
 
 type BillingPeriod = 'MONTHLY' | 'ANNUAL';
 
@@ -67,8 +49,8 @@ export default function PricingScreen() {
   const router = useRouter();
   const { isPro, isFoundingRider } = useUserTier();
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
-  const [createCheckout, { loading: checkoutLoading }] = useMutation(CREATE_CHECKOUT);
-  const [createPortal, { loading: portalLoading }] = useMutation(CREATE_BILLING_PORTAL);
+  const [createCheckout, { loading: checkoutLoading }] = useCreateCheckoutSessionMutation();
+  const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('ANNUAL');
   const [opening, setOpening] = useState(false);
 

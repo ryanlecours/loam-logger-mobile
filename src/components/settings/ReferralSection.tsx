@@ -1,24 +1,13 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Share, TextInput } from 'react-native';
-import { gql, useQuery } from '@apollo/client';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useUserTier } from '../../hooks/useUserTier';
+import { useReferralStatsQuery } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
 
-const REFERRAL_STATS = gql`
-  query ReferralStats {
-    referralStats {
-      referralCode
-      referralLink
-      pendingCount
-      completedCount
-    }
-  }
-`;
-
 export function ReferralSection() {
-  const { data } = useQuery(REFERRAL_STATS);
+  const { data } = useReferralStatsQuery();
   const { isFreeLight } = useUserTier();
   const [copied, setCopied] = useState(false);
 

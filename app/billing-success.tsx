@@ -10,15 +10,17 @@ export default function BillingSuccessScreen() {
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
     async function handleSuccess() {
       // Refetch user data to pick up the new tier
       await refetch();
       // Brief delay so the user sees the success message
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         router.replace('/(tabs)/settings' as Href);
       }, 1500);
     }
     handleSuccess();
+    return () => clearTimeout(timeoutId);
   }, [refetch, router]);
 
   return (

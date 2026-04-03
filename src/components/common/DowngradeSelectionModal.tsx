@@ -57,6 +57,11 @@ export function DowngradeSelectionModal() {
             <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
           ) : (
             <ScrollView style={styles.bikeList} showsVerticalScrollIndicator={false}>
+              {activeBikes.length === 0 && (
+                <Text style={styles.emptyText}>
+                  No active bikes found. Add a bike to continue using Loam Logger.
+                </Text>
+              )}
               {activeBikes.map((bike) => {
                 const isSelected = selectedBikeId === bike.id;
                 const bikeName = bike.nickname || `${bike.manufacturer} ${bike.model}`;
@@ -145,6 +150,12 @@ const styles = StyleSheet.create({
   bikeList: {
     maxHeight: 300,
     marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   bikeRow: {
     flexDirection: 'row',

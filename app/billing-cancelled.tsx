@@ -8,9 +8,10 @@ export default function BillingCancelledScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       router.replace('/(tabs)/settings' as Href);
     }, 1500);
+    return () => clearTimeout(timeoutId);
   }, [router]);
 
   return (

@@ -1,26 +1,17 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { gql, useMutation } from '@apollo/client';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../hooks/useUserTier';
-import { useMeQuery } from '../../graphql/generated';
+import { useMeQuery, useCreateBillingPortalSessionMutation } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
-
-const CREATE_BILLING_PORTAL = gql`
-  mutation CreateBillingPortalSession($platform: CheckoutPlatform) {
-    createBillingPortalSession(platform: $platform) {
-      url
-    }
-  }
-`;
 
 export function SubscriptionSection() {
   const router = useRouter();
   const { tier, isPro, isFoundingRider } = useUserTier();
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
-  const [createPortal, { loading: portalLoading }] = useMutation(CREATE_BILLING_PORTAL);
+  const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
   const [opening, setOpening] = useState(false);
 
   const loading = portalLoading || opening;

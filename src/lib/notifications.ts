@@ -91,7 +91,7 @@ export function setupNotificationResponseListener(router: Router) {
     const data = response.notification.request.content.data;
 
     if (data?.screen === 'ride' && data?.rideId) {
-      router.push(`/(tabs)/rides`);
+      router.push(`/ride/${data.rideId}` as never);
     } else if (data?.screen === 'bike' && data?.bikeId) {
       router.push(`/bike/${data.bikeId}` as never);
     }

@@ -59,9 +59,10 @@ export function useNotifications() {
         await updatePreferences({
           variables: { input: { expoPushToken: token } },
         }).catch(() => {}); // Non-fatal
+        await refetchUser().catch(() => {}); // Non-fatal
       }
     }
-  }, [updatePreferences]);
+  }, [updatePreferences, refetchUser]);
 
   return {
     permissionStatus,

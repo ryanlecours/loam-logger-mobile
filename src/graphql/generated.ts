@@ -1171,6 +1171,21 @@ export type AddRideMutationVariables = Exact<{
 
 export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
 
+export type CreateCheckoutSessionMutationVariables = Exact<{
+  plan: StripePlan;
+  platform?: InputMaybe<CheckoutPlatform>;
+}>;
+
+
+export type CreateCheckoutSessionMutation = { __typename?: 'Mutation', createCheckoutSession: { __typename?: 'CheckoutSessionResult', sessionId: string, url?: string | null } };
+
+export type CreateBillingPortalSessionMutationVariables = Exact<{
+  platform?: InputMaybe<CheckoutPlatform>;
+}>;
+
+
+export type CreateBillingPortalSessionMutation = { __typename?: 'Mutation', createBillingPortalSession: { __typename?: 'BillingPortalResult', url: string } };
+
 export type DeleteRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
@@ -1277,6 +1292,11 @@ export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, referralCode?: string | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+
+export type ReferralStatsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ReferralStatsQuery = { __typename?: 'Query', referralStats: { __typename?: 'ReferralStats', referralCode: string, referralLink: string, pendingCount: number, completedCount: number } };
 
 export type RecentRidesQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -1532,6 +1552,74 @@ export function useAddRideMutation(baseOptions?: Apollo.MutationHookOptions<AddR
 export type AddRideMutationHookResult = ReturnType<typeof useAddRideMutation>;
 export type AddRideMutationResult = Apollo.MutationResult<AddRideMutation>;
 export type AddRideMutationOptions = Apollo.BaseMutationOptions<AddRideMutation, AddRideMutationVariables>;
+export const CreateCheckoutSessionDocument = gql`
+    mutation CreateCheckoutSession($plan: StripePlan!, $platform: CheckoutPlatform) {
+  createCheckoutSession(plan: $plan, platform: $platform) {
+    sessionId
+    url
+  }
+}
+    `;
+export type CreateCheckoutSessionMutationFn = Apollo.MutationFunction<CreateCheckoutSessionMutation, CreateCheckoutSessionMutationVariables>;
+
+/**
+ * __useCreateCheckoutSessionMutation__
+ *
+ * To run a mutation, you first call `useCreateCheckoutSessionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateCheckoutSessionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createCheckoutSessionMutation, { data, loading, error }] = useCreateCheckoutSessionMutation({
+ *   variables: {
+ *      plan: // value for 'plan'
+ *      platform: // value for 'platform'
+ *   },
+ * });
+ */
+export function useCreateCheckoutSessionMutation(baseOptions?: Apollo.MutationHookOptions<CreateCheckoutSessionMutation, CreateCheckoutSessionMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateCheckoutSessionMutation, CreateCheckoutSessionMutationVariables>(CreateCheckoutSessionDocument, options);
+      }
+export type CreateCheckoutSessionMutationHookResult = ReturnType<typeof useCreateCheckoutSessionMutation>;
+export type CreateCheckoutSessionMutationResult = Apollo.MutationResult<CreateCheckoutSessionMutation>;
+export type CreateCheckoutSessionMutationOptions = Apollo.BaseMutationOptions<CreateCheckoutSessionMutation, CreateCheckoutSessionMutationVariables>;
+export const CreateBillingPortalSessionDocument = gql`
+    mutation CreateBillingPortalSession($platform: CheckoutPlatform) {
+  createBillingPortalSession(platform: $platform) {
+    url
+  }
+}
+    `;
+export type CreateBillingPortalSessionMutationFn = Apollo.MutationFunction<CreateBillingPortalSessionMutation, CreateBillingPortalSessionMutationVariables>;
+
+/**
+ * __useCreateBillingPortalSessionMutation__
+ *
+ * To run a mutation, you first call `useCreateBillingPortalSessionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateBillingPortalSessionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createBillingPortalSessionMutation, { data, loading, error }] = useCreateBillingPortalSessionMutation({
+ *   variables: {
+ *      platform: // value for 'platform'
+ *   },
+ * });
+ */
+export function useCreateBillingPortalSessionMutation(baseOptions?: Apollo.MutationHookOptions<CreateBillingPortalSessionMutation, CreateBillingPortalSessionMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateBillingPortalSessionMutation, CreateBillingPortalSessionMutationVariables>(CreateBillingPortalSessionDocument, options);
+      }
+export type CreateBillingPortalSessionMutationHookResult = ReturnType<typeof useCreateBillingPortalSessionMutation>;
+export type CreateBillingPortalSessionMutationResult = Apollo.MutationResult<CreateBillingPortalSessionMutation>;
+export type CreateBillingPortalSessionMutationOptions = Apollo.BaseMutationOptions<CreateBillingPortalSessionMutation, CreateBillingPortalSessionMutationVariables>;
 export const DeleteRideDocument = gql`
     mutation DeleteRide($id: ID!) {
   deleteRide(id: $id) {
@@ -2075,6 +2163,51 @@ export type MeQueryHookResult = ReturnType<typeof useMeQuery>;
 export type MeLazyQueryHookResult = ReturnType<typeof useMeLazyQuery>;
 export type MeSuspenseQueryHookResult = ReturnType<typeof useMeSuspenseQuery>;
 export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
+export const ReferralStatsDocument = gql`
+    query ReferralStats {
+  referralStats {
+    referralCode
+    referralLink
+    pendingCount
+    completedCount
+  }
+}
+    `;
+
+/**
+ * __useReferralStatsQuery__
+ *
+ * To run a query within a React component, call `useReferralStatsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useReferralStatsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useReferralStatsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useReferralStatsQuery(baseOptions?: Apollo.QueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ReferralStatsQuery, ReferralStatsQueryVariables>(ReferralStatsDocument, options);
+      }
+export function useReferralStatsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ReferralStatsQuery, ReferralStatsQueryVariables>(ReferralStatsDocument, options);
+        }
+// @ts-ignore
+export function useReferralStatsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>): Apollo.UseSuspenseQueryResult<ReferralStatsQuery, ReferralStatsQueryVariables>;
+export function useReferralStatsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>): Apollo.UseSuspenseQueryResult<ReferralStatsQuery | undefined, ReferralStatsQueryVariables>;
+export function useReferralStatsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ReferralStatsQuery, ReferralStatsQueryVariables>(ReferralStatsDocument, options);
+        }
+export type ReferralStatsQueryHookResult = ReturnType<typeof useReferralStatsQuery>;
+export type ReferralStatsLazyQueryHookResult = ReturnType<typeof useReferralStatsLazyQuery>;
+export type ReferralStatsSuspenseQueryHookResult = ReturnType<typeof useReferralStatsSuspenseQuery>;
+export type ReferralStatsQueryResult = Apollo.QueryResult<ReferralStatsQuery, ReferralStatsQueryVariables>;
 export const RecentRidesDocument = gql`
     query RecentRides($take: Int) {
   rides(take: $take) {

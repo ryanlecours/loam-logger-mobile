@@ -45,9 +45,9 @@ export function UpgradePrompt({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+    backgroundColor: colors.monitorBg,
     borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.3)',
+    borderColor: colors.monitorBg,
     borderRadius: 12,
     padding: 16,
   },
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   message: {
     flex: 1,
     fontSize: 14,
-    color: 'rgba(234, 179, 8, 0.9)',
+    color: colors.monitor,
     lineHeight: 20,
   },
   actions: {
