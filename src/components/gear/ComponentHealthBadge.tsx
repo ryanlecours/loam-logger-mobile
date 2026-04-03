@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { colors } from '../../constants/theme';
 
 interface ComponentHealthBadgeProps {
   status: string;
@@ -6,11 +7,11 @@ interface ComponentHealthBadgeProps {
 }
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  ALL_GOOD: { bg: '#dcfce7', text: '#166534', label: 'Good' },
-  DUE_SOON: { bg: '#fef9c3', text: '#854d0e', label: 'Due Soon' },
-  DUE_NOW: { bg: '#fed7aa', text: '#9a3412', label: 'Due Now' },
-  OVERDUE: { bg: '#fecaca', text: '#991b1b', label: 'Overdue' },
-  UNKNOWN: { bg: '#e5e7eb', text: '#6b7280', label: 'Unknown' },
+  ALL_GOOD: { bg: colors.goodBg, text: colors.good, label: 'Good' },
+  DUE_SOON: { bg: colors.monitorBg, text: colors.monitor, label: 'Due Soon' },
+  DUE_NOW: { bg: colors.warningBg, text: colors.warning, label: 'Due Now' },
+  OVERDUE: { bg: colors.dangerBg, text: colors.danger, label: 'Overdue' },
+  UNKNOWN: { bg: 'rgba(156, 163, 175, 0.15)', text: colors.unknown, label: 'Unknown' },
 };
 
 export function ComponentHealthBadge({ status, size = 'medium' }: ComponentHealthBadgeProps) {

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Href } from 'expo-router';
+import { colors } from '../../constants/theme';
 
 export function EmptyBikeState() {
   const router = useRouter();
@@ -8,7 +9,7 @@ export function EmptyBikeState() {
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons name="bicycle-outline" size={48} color="#9ca3af" />
+        <Ionicons name="bicycle-outline" size={48} color={colors.textMuted} />
       </View>
       <Text style={styles.title}>No bikes yet</Text>
       <Text style={styles.subtitle}>
@@ -18,7 +19,7 @@ export function EmptyBikeState() {
         style={styles.button}
         onPress={() => router.push('/bike/add' as Href)}
       >
-        <Ionicons name="add" size={20} color="#fff" />
+        <Ionicons name="add" size={20} color={colors.textPrimary} />
         <Text style={styles.buttonText}>Add Bike</Text>
       </TouchableOpacity>
     </View>
@@ -27,23 +28,20 @@ export function EmptyBikeState() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     marginHorizontal: 16,
     marginVertical: 8,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -51,12 +49,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -64,14 +62,14 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 6,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

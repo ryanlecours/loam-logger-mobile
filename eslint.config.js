@@ -12,9 +12,11 @@ export default tseslint.config([
       '.expo/',
       '.expo-shared/',
       'web-build/',
+      'coverage/',
       '*.log',
       '.env',
       '.env.*',
+      'src/graphql/generated.ts',
     ],
   },
   {

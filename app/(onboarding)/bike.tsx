@@ -8,21 +8,49 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useOnboarding, type SpokesBike } from '../../src/hooks/useOnboarding';
+import { useOnboarding, type SpokesBike, type SpokesImage } from '../../src/hooks/useOnboarding';
 import { getAccessToken } from '../../src/lib/auth';
 import { searchBikes, getBikeById, type SpokesSearchResult } from '../../src/api/spokes';
 import { isUnauthorizedError } from '../../src/utils/errors';
+import { colors } from '../../src/constants/theme';
+import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
+import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
+import { WearStartStep } from '../../src/components/bike/WearStartStep';
+import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 
-type Step = 'search' | 'confirm';
+type Step = 'search' | 'details' | 'wearStart' | 'confirm';
+
+interface ManualForm {
+  manufacturer: string;
+  model: string;
+  year: string;
+  travelForkMm: string;
+  travelShockMm: string;
+}
+
+const INITIAL_MANUAL_FORM: ManualForm = {
+  manufacturer: '',
+  model: '',
+  year: '',
+  travelForkMm: '',
+  travelShockMm: '',
+};
 
 export default function BikeScreen() {
   const { refetchUser, logout } = useAuth();
-  const { data: onboardingData, setSelectedBike } = useOnboarding();
+  const {
+    data: onboardingData,
+    setSelectedBike,
+    setNickname,
+    setNotes,
+    setSelectedImageUrl,
+    setAcquisitionCondition,
+  } = useOnboarding();
 
   const [step, setStep] = useState<Step>('search');
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +59,11 @@ export default function BikeScreen() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [loadingBike, setLoadingBike] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [manualForm, setManualForm] = useState<ManualForm>(INITIAL_MANUAL_FORM);
+
+  // Local state for images (not stored in onboarding context)
+  const [bikeImages, setBikeImages] = useState<SpokesImage[]>([]);
 
   // Debounced search
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -39,18 +72,15 @@ export default function BikeScreen() {
     setSearchQuery(text);
     setSearchError(null);
 
-    // Clear previous timeout
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
 
-    // Don't search if query is too short
     if (text.length < 2) {
       setSearchResults([]);
       return;
     }
 
-    // Debounce search
     const timeout = setTimeout(async () => {
       setSearching(true);
       try {
@@ -70,13 +100,26 @@ export default function BikeScreen() {
   const handleSelectBike = useCallback(async (result: SpokesSearchResult) => {
     setLoadingBike(true);
     try {
-      // Fetch full bike details
       const fullBike = await getBikeById(result.id);
       if (fullBike) {
         setSelectedBike(fullBike);
-        setStep('confirm');
+
+        // Collect images
+        const images: SpokesImage[] = [];
+        if (fullBike.images && fullBike.images.length > 0) {
+          const seen = new Set<string>();
+          for (const img of fullBike.images) {
+            if (img.url && !seen.has(img.url)) {
+              seen.add(img.url);
+              images.push(img);
+            }
+          }
+        }
+        setBikeImages(images);
+        setSelectedImageUrl(fullBike.thumbnailUrl || images[0]?.url || null);
+        setStep('details');
       } else {
-        // If we can't get full details, use search result data
+        // Fallback to search result data
         const bike: SpokesBike = {
           id: result.id,
           maker: result.maker,
@@ -87,19 +130,69 @@ export default function BikeScreen() {
           subcategory: result.subcategory,
         };
         setSelectedBike(bike);
-        setStep('confirm');
+        setBikeImages([]);
+        setSelectedImageUrl(null);
+        setStep('details');
       }
-    } catch (err) {
+    } catch (_err) {
       Alert.alert('Error', 'Failed to load bike details');
     } finally {
       setLoadingBike(false);
     }
-  }, [setSelectedBike]);
+  }, [setSelectedBike, setSelectedImageUrl]);
+
+  const handleManualContinue = useCallback(() => {
+    const { manufacturer, model, year } = manualForm;
+    if (!manufacturer.trim() || !model.trim() || !year.trim()) {
+      Alert.alert('Required Fields', 'Please fill in manufacturer, model, and year.');
+      return;
+    }
+    const yearNum = parseInt(year, 10);
+    if (isNaN(yearNum) || yearNum < 1990 || yearNum > new Date().getFullYear() + 1) {
+      Alert.alert('Invalid Year', 'Please enter a valid year.');
+      return;
+    }
+
+    const manualBike: SpokesBike = {
+      id: `manual-${Date.now()}`,
+      maker: manufacturer.trim(),
+      model: model.trim(),
+      year: yearNum,
+      family: '',
+      category: '',
+      subcategory: null,
+      travelFork: manualForm.travelForkMm ? parseInt(manualForm.travelForkMm, 10) || undefined : undefined,
+      travelRear: manualForm.travelShockMm ? parseInt(manualForm.travelShockMm, 10) || undefined : undefined,
+    };
+
+    setSelectedBike(manualBike);
+    setBikeImages([]);
+    setSelectedImageUrl(null);
+    setAcquisitionCondition('USED');
+    setStep('details');
+  }, [manualForm, setSelectedBike, setSelectedImageUrl, setAcquisitionCondition]);
 
   const handleBack = useCallback(() => {
-    setStep('search');
-    setSelectedBike(null);
-  }, [setSelectedBike]);
+    switch (step) {
+      case 'wearStart':
+        setStep('details');
+        break;
+      case 'details':
+        setStep('search');
+        setSelectedBike(null);
+        setBikeImages([]);
+        setSelectedImageUrl(null);
+        setNickname('');
+        setNotes('');
+        break;
+      default:
+        break;
+    }
+  }, [step, setSelectedBike, setSelectedImageUrl, setNickname, setNotes]);
+
+  const handleDetailsContinue = useCallback(() => {
+    setStep('wearStart');
+  }, []);
 
   async function handleComplete() {
     const bike = onboardingData.selectedBike;
@@ -108,10 +201,14 @@ export default function BikeScreen() {
       return;
     }
 
+    const isManual = bike.id.startsWith('manual-');
+
     setSubmitting(true);
     try {
       const token = await getAccessToken();
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+
+      const spokesComponents = isManual ? undefined : buildSpokesComponentsInput(bike.components);
 
       const response = await fetch(`${apiUrl}/onboarding/complete`, {
         method: 'POST',
@@ -124,9 +221,9 @@ export default function BikeScreen() {
           bikeMake: bike.maker,
           bikeModel: bike.model,
           bikeYear: bike.year,
-          spokesId: bike.id,
+          spokesId: isManual ? undefined : bike.id,
           spokesUrl: bike.spokesUrl,
-          thumbnailUrl: bike.thumbnailUrl,
+          thumbnailUrl: onboardingData.selectedImageUrl || bike.thumbnailUrl,
           family: bike.family,
           category: bike.category,
           subcategory: bike.subcategory,
@@ -136,7 +233,10 @@ export default function BikeScreen() {
           gender: bike.gender,
           frameMaterial: bike.frameMaterial,
           hangerStandard: bike.hangerStandard,
-          spokesComponents: bike.components,
+          spokesComponents,
+          nickname: onboardingData.nickname?.trim() || undefined,
+          notes: onboardingData.notes?.trim() || undefined,
+          acquisitionCondition: onboardingData.acquisitionCondition,
         }),
       });
 
@@ -145,10 +245,8 @@ export default function BikeScreen() {
         throw new Error(error.message || 'Failed to complete onboarding');
       }
 
-      // Refetch user to update onboardingCompleted flag
       await refetchUser();
     } catch (err) {
-      // If unauthorized, log out and redirect to login
       if (isUnauthorizedError(err)) {
         await logout();
         return;
@@ -177,160 +275,295 @@ export default function BikeScreen() {
     </TouchableOpacity>
   ), [handleSelectBike, loadingBike]);
 
-  // Search step
-  if (step === 'search') {
+  // --- Step: Wear Start ---
+
+  if (step === 'wearStart') {
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Add Your Bike</Text>
-          <Text style={styles.subtitle}>Search for your bike to auto-fill specs</Text>
-
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={handleSearchChange}
-              placeholder="Search by make and model..."
-              placeholderTextColor="#999"
-              autoFocus
-              autoCapitalize="words"
-              autoCorrect={false}
+          <ScrollView style={styles.flex}>
+            <WearStartStep
+              selected={onboardingData.acquisitionCondition}
+              onSelect={setAcquisitionCondition}
             />
-            {searching && (
-              <ActivityIndicator style={styles.searchSpinner} color="#2d5016" />
-            )}
+          </ScrollView>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, submitting && styles.buttonDisabled]}
+              onPress={handleComplete}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color={colors.textPrimary} />
+              ) : (
+                <Text style={styles.buttonText}>Complete Setup</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleBack}
+              disabled={submitting}
+            >
+              <Text style={styles.secondaryButtonText}>Back</Text>
+            </TouchableOpacity>
           </View>
-
-          {searchError && (
-            <Text style={styles.errorText}>{searchError}</Text>
-          )}
-
-          {loadingBike && (
-            <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#2d5016" />
-              <Text style={styles.loadingText}>Loading bike details...</Text>
-            </View>
-          )}
-
-          <FlatList
-            data={searchResults}
-            renderItem={renderSearchResult}
-            keyExtractor={(item) => item.id}
-            style={styles.resultsList}
-            contentContainerStyle={styles.resultsContent}
-            ListEmptyComponent={
-              searchQuery.length >= 2 && !searching ? (
-                <Text style={styles.emptyText}>No bikes found. Try a different search.</Text>
-              ) : searchQuery.length < 2 ? (
-                <Text style={styles.hintText}>
-                  Start typing to search for your bike{'\n'}
-                  (e.g., "Santa Cruz Hightower" or "Trek Fuel EX")
-                </Text>
-              ) : null
-            }
-          />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
-  // Confirm step
-  const bike = onboardingData.selectedBike;
-  return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Confirm Your Bike</Text>
-        <Text style={styles.subtitle}>We'll use this to track component wear</Text>
+  // --- Step: Details ---
 
-        <View style={styles.bikeCard}>
-          {bike?.thumbnailUrl && (
-            <Image
-              source={{ uri: bike.thumbnailUrl }}
-              style={styles.bikeImage}
-              resizeMode="contain"
-            />
-          )}
-          <Text style={styles.bikeMake}>{bike?.maker}</Text>
-          <Text style={styles.bikeModel}>{bike?.model}</Text>
-          <Text style={styles.bikeYear}>{bike?.year} • {bike?.category}</Text>
-          {bike?.isEbike && (
-            <View style={styles.ebikeBadge}>
-              <Text style={styles.ebikeBadgeText}>E-Bike</Text>
-            </View>
-          )}
-        </View>
+  if (step === 'details') {
+    const bike = onboardingData.selectedBike;
+    if (!bike) {
+      setStep('search');
+      return null;
+    }
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleBack}
-            disabled={submitting}
-          >
-            <Text style={styles.secondaryButtonText}>Change Bike</Text>
-          </TouchableOpacity>
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <BikeDetailsStep
+            bike={bike}
+            images={bikeImages}
+            selectedImageUrl={onboardingData.selectedImageUrl}
+            onSelectImage={setSelectedImageUrl}
+            nickname={onboardingData.nickname}
+            onNicknameChange={setNickname}
+            notes={onboardingData.notes}
+            onNotesChange={setNotes}
+          />
 
-          <TouchableOpacity
-            style={[styles.button, submitting && styles.buttonDisabled]}
-            onPress={handleComplete}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Complete Setup</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleDetailsContinue}
+            >
+              <Text style={styles.buttonText}>Continue</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleBack}
+            >
+              <Text style={styles.secondaryButtonText}>Back</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    );
+  }
+
+  // --- Step: Search ---
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.content}>
+        <Text style={styles.title}>Add Your Bike</Text>
+        <Text style={styles.subtitle}>Search for your bike to auto-fill specs</Text>
+
+        {!isManualEntry ? (
+          <>
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={handleSearchChange}
+                placeholder="Search by make and model..."
+                placeholderTextColor={colors.textMuted}
+                autoFocus
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+              {searching && (
+                <ActivityIndicator style={styles.searchSpinner} color={colors.primary} />
+              )}
+            </View>
+
+            <SpokesAttribution />
+
+            {searchError && (
+              <Text style={styles.errorText}>{searchError}</Text>
+            )}
+
+            {loadingBike && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading bike details...</Text>
+              </View>
+            )}
+
+            <FlatList
+              data={searchResults}
+              renderItem={renderSearchResult}
+              keyExtractor={(item) => item.id}
+              style={styles.resultsList}
+              contentContainerStyle={styles.resultsListContent}
+              ListEmptyComponent={
+                searchQuery.length >= 2 && !searching ? (
+                  <Text style={styles.emptyText}>No bikes found. Try a different search.</Text>
+                ) : searchQuery.length < 2 ? (
+                  <Text style={styles.hintText}>
+                    Start typing to search for your bike{'\n'}
+                    (e.g., "Santa Cruz Hightower" or "Trek Fuel EX")
+                  </Text>
+                ) : null
+              }
+              ListFooterComponent={
+                <TouchableOpacity
+                  style={styles.manualEntryButton}
+                  onPress={() => setIsManualEntry(true)}
+                >
+                  <Text style={styles.manualEntryText}>
+                    Can't find your bike? Enter details manually
+                  </Text>
+                </TouchableOpacity>
+              }
+            />
+          </>
+        ) : (
+          /* Manual entry form */
+          <ScrollView style={styles.flex} contentContainerStyle={styles.manualFormContent}>
+            <Text style={styles.manualFormTitle}>Enter Bike Details</Text>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Manufacturer *</Text>
+              <TextInput
+                style={styles.fieldInput}
+                value={manualForm.manufacturer}
+                onChangeText={(text) => setManualForm((f) => ({ ...f, manufacturer: text }))}
+                placeholder="e.g., Santa Cruz"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Model *</Text>
+              <TextInput
+                style={styles.fieldInput}
+                value={manualForm.model}
+                onChangeText={(text) => setManualForm((f) => ({ ...f, model: text }))}
+                placeholder="e.g., Bronson"
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Year *</Text>
+              <TextInput
+                style={styles.fieldInput}
+                value={manualForm.year}
+                onChangeText={(text) => setManualForm((f) => ({ ...f, year: text }))}
+                placeholder="e.g., 2024"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+                maxLength={4}
+              />
+            </View>
+
+            <View style={styles.fieldRow}>
+              <View style={[styles.field, styles.fieldHalf]}>
+                <Text style={styles.fieldLabel}>Fork Travel (mm)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={manualForm.travelForkMm}
+                  onChangeText={(text) => setManualForm((f) => ({ ...f, travelForkMm: text }))}
+                  placeholder="e.g., 160"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <View style={[styles.field, styles.fieldHalf]}>
+                <Text style={styles.fieldLabel}>Rear Travel (mm)</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={manualForm.travelShockMm}
+                  onChangeText={(text) => setManualForm((f) => ({ ...f, travelShockMm: text }))}
+                  placeholder="e.g., 150"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleManualContinue}
+            >
+              <Text style={styles.buttonText}>Continue</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.manualEntryButton}
+              onPress={() => {
+                setIsManualEntry(false);
+                setManualForm(INITIAL_MANUAL_FORM);
+              }}
+            >
+              <Text style={styles.manualEntryText}>Back to search</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginTop: 76,
     marginBottom: 8,
-    color: '#2d5016',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 24,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   searchInput: {
     flex: 1,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#333',
+    color: colors.textPrimary,
   },
   searchSpinner: {
     marginLeft: 8,
   },
   errorText: {
-    color: '#dc2626',
+    color: colors.danger,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
@@ -338,51 +571,51 @@ const styles = StyleSheet.create({
   resultsList: {
     flex: 1,
   },
-  resultsContent: {
+  resultsListContent: {
     paddingBottom: 24,
   },
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: colors.cardBorder,
   },
   resultContent: {
     flex: 1,
   },
   resultMake: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   resultModel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   resultYear: {
     fontSize: 14,
-    color: '#888',
+    color: colors.textMuted,
   },
   resultArrow: {
     fontSize: 24,
-    color: '#ccc',
+    color: colors.textMuted,
     marginLeft: 8,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 14,
     marginTop: 40,
   },
   hintText: {
     textAlign: 'center',
-    color: '#888',
+    color: colors.textMuted,
     fontSize: 14,
     marginTop: 40,
     lineHeight: 22,
@@ -393,7 +626,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(10, 10, 10, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -401,49 +634,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
-  },
-  bikeCard: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  bikeImage: {
-    width: '100%',
-    height: 200,
-    marginBottom: 16,
-  },
-  bikeMake: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 4,
-  },
-  bikeModel: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  bikeYear: {
-    fontSize: 16,
-    color: '#888',
-  },
-  ebikeBadge: {
-    marginTop: 12,
-    backgroundColor: '#2d5016',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ebikeBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.textSecondary,
   },
   buttonContainer: {
     gap: 12,
@@ -451,7 +642,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -460,7 +651,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -470,11 +661,55 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2d5016',
+    borderColor: colors.primary,
   },
   secondaryButtonText: {
-    color: '#2d5016',
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '600',
+  },
+  manualEntryButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  manualEntryText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textDecorationLine: 'underline',
+  },
+  manualFormContent: {
+    paddingBottom: 40,
+  },
+  manualFormTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 24,
+  },
+  field: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  fieldInput: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fieldHalf: {
+    flex: 1,
   },
 });

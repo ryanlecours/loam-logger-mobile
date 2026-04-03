@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ComponentFieldsFragment, useLogComponentServiceMutation } from '../../graphql/generated';
 import { StatusDot } from './StatusDot';
+import { colors } from '../../constants/theme';
 
 interface LogServiceSheetProps {
   visible: boolean;
@@ -138,7 +139,7 @@ export function LogServiceSheet({
               <View style={styles.header}>
                 <Text style={styles.title}>Log Service</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#6b7280" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -161,7 +162,7 @@ export function LogServiceSheet({
               <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
                 {serviceableComponents.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Ionicons name="construct-outline" size={48} color="#d1d5db" />
+                    <Ionicons name="construct-outline" size={48} color={colors.textMuted} />
                     <Text style={styles.emptyText}>
                       No serviceable components found
                     </Text>
@@ -187,9 +188,9 @@ export function LogServiceSheet({
                       >
                         <View style={styles.checkbox}>
                           {isSelected ? (
-                            <Ionicons name="checkbox" size={24} color="#2563eb" />
+                            <Ionicons name="checkbox" size={24} color={colors.primary} />
                           ) : (
-                            <Ionicons name="square-outline" size={24} color="#9ca3af" />
+                            <Ionicons name="square-outline" size={24} color={colors.textMuted} />
                           )}
                         </View>
                         <StatusDot status={component.status || 'UNKNOWN'} />
@@ -222,10 +223,10 @@ export function LogServiceSheet({
                   disabled={selectedIds.size === 0 || loading}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={colors.textPrimary} />
                   ) : (
                     <>
-                      <Ionicons name="checkmark" size={20} color="#fff" />
+                      <Ionicons name="checkmark" size={20} color={colors.textPrimary} />
                       <Text style={styles.logButtonText}>
                         Log Service{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
                       </Text>
@@ -244,11 +245,11 @@ export function LogServiceSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.cardBorder,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 8,
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   closeButton: {
     padding: 4,
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   selectAllButton: {
     paddingVertical: 4,
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
   },
   selectAllText: {
     fontSize: 14,
-    color: '#2563eb',
+    color: colors.primary,
     fontWeight: '500',
   },
   list: {
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 12,
     fontSize: 15,
-    color: '#9ca3af',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   componentItem: {
@@ -318,10 +319,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
   },
   componentItemSelected: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryMuted,
   },
   checkbox: {
     width: 24,
@@ -332,29 +333,29 @@ const styles = StyleSheet.create({
   componentType: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   componentBrand: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   componentHours: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textMuted,
     marginTop: 2,
   },
   footer: {
     padding: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
   },
   logButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 10,
     gap: 8,
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   logButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

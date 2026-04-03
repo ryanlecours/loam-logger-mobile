@@ -13,9 +13,20 @@ query Me {
     isFoundingRider
     hoursDisplayPreference
     predictionMode
+    distanceUnit
+    notifyOnRideUpload
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource
+    subscriptionTier
+    referralCode
+    needsDowngradeSelection
+    tierLimits {
+      maxBikes
+      allowedComponentTypes
+      currentBikeCount
+      canAddBike
+    }
     accounts {
       provider
       connectedAt

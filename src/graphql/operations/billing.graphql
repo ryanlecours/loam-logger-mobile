@@ -1,0 +1,12 @@
+mutation CreateCheckoutSession($plan: StripePlan!, $platform: CheckoutPlatform) {
+  createCheckoutSession(plan: $plan, platform: $platform) {
+    sessionId
+    url
+  }
+}
+
+mutation CreateBillingPortalSession($platform: CheckoutPlatform) {
+  createBillingPortalSession(platform: $platform) {
+    url
+  }
+}

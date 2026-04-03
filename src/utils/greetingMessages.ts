@@ -34,7 +34,13 @@ export function formatDuration(seconds: number): string {
 /**
  * Format distance in miles
  */
-export function formatDistance(miles: number): string {
+export function formatDistance(meters: number, unit: 'mi' | 'km' = 'mi'): string {
+  if (unit === 'km') {
+    const km = meters / 1000;
+    if (km < 10) return `${km.toFixed(1)} km`;
+    return `${Math.round(km)} km`;
+  }
+  const miles = meters / 1609.344;
   if (miles < 10) {
     return `${miles.toFixed(1)} mi`;
   }
@@ -42,10 +48,13 @@ export function formatDistance(miles: number): string {
 }
 
 /**
- * Format elevation in feet
+ * Format elevation (stored in meters, displayed in feet for mi users or meters for km users)
  */
-export function formatElevation(feet: number): string {
-  return `${Math.round(feet).toLocaleString()} ft`;
+export function formatElevation(meters: number, unit: 'mi' | 'km' = 'mi'): string {
+  if (unit === 'km') {
+    return `${Math.round(meters).toLocaleString()} m`;
+  }
+  return `${Math.round(meters * 3.28084).toLocaleString()} ft`;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../constants/theme';
 
 interface ConnectedAccount {
   provider: string;
@@ -56,7 +57,7 @@ export function DataSourceSelector({
                 <>
                   <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
                     <Ionicons
-                      name={config.icon as any}
+                      name={config.icon as React.ComponentProps<typeof Ionicons>['name']}
                       size={24}
                       color={config.color}
                     />
@@ -84,13 +85,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   subtitle: {
     fontSize: 13,
-    color: '#9ca3af',
+    color: colors.textMuted,
     marginBottom: 12,
   },
   cards: {
@@ -102,11 +103,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.cardBorder,
   },
   iconContainer: {
     width: 40,
@@ -119,6 +120,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
   },
 });

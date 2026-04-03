@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
+import { colors } from '../../src/constants/theme';
 
 const MIN_AGE = 16;
 const MAX_AGE = 120;
@@ -72,7 +73,7 @@ export default function AgeScreen() {
             value={ageInput}
             onChangeText={handleAgeChange}
             placeholder="Enter your age"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textMuted}
             keyboardType="number-pad"
             maxLength={3}
             autoFocus
@@ -97,7 +98,7 @@ export default function AgeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -109,38 +110,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#2d5016',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 32,
   },
   inputContainer: {
     marginBottom: 24,
   },
   input: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.card,
     borderRadius: 8,
     padding: 16,
     fontSize: 24,
     textAlign: 'center',
-    color: '#333',
+    color: colors.textPrimary,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderColor: colors.danger,
   },
   errorText: {
-    color: '#dc2626',
+    color: colors.danger,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

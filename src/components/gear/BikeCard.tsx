@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsLightFragment } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
+import { colors } from '../../constants/theme';
 
 interface BikeCardProps {
   bike: BikeFieldsLightFragment;
@@ -20,7 +21,7 @@ export function BikeCard({ bike, overallStatus, onPress }: BikeCardProps) {
           <Image source={{ uri: bike.thumbnailUrl }} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={styles.placeholder}>
-            <Ionicons name="bicycle" size={40} color="#9ca3af" />
+            <Ionicons name="bicycle" size={40} color={colors.textMuted} />
           </View>
         )}
       </View>
@@ -45,7 +46,7 @@ export function BikeCard({ bike, overallStatus, onPress }: BikeCardProps) {
           {bike.components?.length || 0} components tracked
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevron} />
+      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} style={styles.chevron} />
     </TouchableOpacity>
   );
 }
@@ -53,23 +54,20 @@ export function BikeCard({ bike, overallStatus, onPress }: BikeCardProps) {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     marginHorizontal: 16,
     marginVertical: 6,
     padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   imageContainer: {
     width: 80,
     height: 80,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
   },
   image: {
     width: '100%',
@@ -94,12 +92,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     flex: 1,
   },
   subtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   badges: {
@@ -109,8 +107,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     fontSize: 11,
-    color: '#6b7280',
-    backgroundColor: '#f3f4f6',
+    color: colors.textSecondary,
+    backgroundColor: colors.background,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -118,7 +116,7 @@ const styles = StyleSheet.create({
   },
   components: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   chevron: {
     alignSelf: 'center',

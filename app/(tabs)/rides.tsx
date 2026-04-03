@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRidesPaginated, RideItem } from '../../src/hooks/useRidesPaginated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { RideListItem } from '../../src/components/rides';
+import { colors } from '../../src/constants/theme';
 
 export default function RidesScreen() {
   const router = useRouter();
@@ -36,9 +37,9 @@ export default function RidesScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleRidePress = (ride: RideItem) => {
+  const handleRidePress = useCallback((ride: RideItem) => {
     router.push(`/ride/${ride.id}` as Href);
-  };
+  }, [router]);
 
   const handleAddRide = () => {
     router.push('/ride/add' as Href);
@@ -52,7 +53,7 @@ export default function RidesScreen() {
         onPress={() => handleRidePress(item)}
       />
     ),
-    [getBikeName]
+    [getBikeName, handleRidePress]
   );
 
   const renderEmpty = () => {
@@ -60,14 +61,14 @@ export default function RidesScreen() {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconContainer}>
-          <Ionicons name="bicycle-outline" size={48} color="#9ca3af" />
+          <Ionicons name="bicycle-outline" size={48} color={colors.textMuted} />
         </View>
         <Text style={styles.emptyTitle}>No rides yet</Text>
         <Text style={styles.emptySubtitle}>
           Add your first ride manually or sync from Strava/Garmin
         </Text>
         <TouchableOpacity style={styles.emptyButton} onPress={handleAddRide}>
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons name="add" size={20} color={colors.textPrimary} />
           <Text style={styles.emptyButtonText}>Add Ride</Text>
         </TouchableOpacity>
       </View>
@@ -78,7 +79,7 @@ export default function RidesScreen() {
     if (!hasMore || rides.length === 0) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#6b7280" />
+        <ActivityIndicator size="small" color={colors.textMuted} />
       </View>
     );
   };
@@ -95,13 +96,13 @@ export default function RidesScreen() {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
       />
 
       {rides.length > 0 && (
         <TouchableOpacity style={styles.fab} onPress={handleAddRide}>
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
     </View>
@@ -111,7 +112,7 @@ export default function RidesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   emptyList: {
     flex: 1,
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -134,12 +135,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -147,14 +148,14 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 6,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

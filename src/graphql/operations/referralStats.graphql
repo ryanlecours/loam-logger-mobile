@@ -1,0 +1,8 @@
+query ReferralStats {
+  referralStats {
+    referralCode
+    referralLink
+    pendingCount
+    completedCount
+  }
+}

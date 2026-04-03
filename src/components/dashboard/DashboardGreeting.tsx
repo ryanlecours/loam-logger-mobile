@@ -4,6 +4,7 @@ import {
   getRandomDefaultMessage,
   getBikeHealthInsight,
 } from '../../utils/greetingMessages';
+import { colors } from '../../constants/theme';
 
 interface DashboardGreetingProps {
   firstName: string;
@@ -41,11 +42,11 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 4,
   },
 });

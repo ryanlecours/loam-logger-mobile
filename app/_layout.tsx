@@ -1,14 +1,22 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { ApolloProvider } from '@apollo/client';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 import { client } from '../src/lib/apolloClient';
 import { useEffect } from 'react';
+import { colors } from '../src/constants/theme';
+import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
+import { useNotifications } from '../src/hooks/useNotifications';
+import { useUserTier } from '../src/hooks/useUserTier';
+import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
+
+// Configure foreground notification display at module level
+configureNotificationHandler();
 
 function LoadingScreen() {
   return (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#2d5016" />
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }
@@ -20,6 +28,7 @@ function RootLayoutNav() {
     hasAcceptedCurrentTerms,
     onboardingCompleted,
   } = useAuth();
+  const { needsDowngradeSelection } = useUserTier();
   const segments = useSegments() as string[];
   const router = useRouter();
 
@@ -78,22 +87,66 @@ function RootLayoutNav() {
     }
   }, [loading, isAuthenticated, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
 
+  // Register push token and set up notification tap handler when fully authenticated
+  const { registerTokenIfGranted } = useNotifications();
+
+  useEffect(() => {
+    if (!isAuthenticated || !onboardingCompleted) return;
+
+    // Register/refresh push token
+    registerTokenIfGranted();
+
+    // Handle notification taps (navigate to relevant screen)
+    const subscription = setupNotificationResponseListener(router);
+    return () => subscription.remove();
+  }, [isAuthenticated, onboardingCompleted, registerTokenIfGranted, router]);
+
   // Show loading while auth initializes
   if (loading) {
     return <LoadingScreen />;
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="bike" />
-      <Stack.Screen name="ride" />
-      <Stack.Screen name="oauth" />
-      <Stack.Screen name="closed-beta" />
-      <Stack.Screen name="waitlist" />
-    </Stack>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.textPrimary,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="bike"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ride"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="settings-detail"
+          options={{
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen name="oauth" />
+        <Stack.Screen name="billing-success" options={{ headerShown: false }} />
+        <Stack.Screen name="billing-cancelled" options={{ headerShown: false }} />
+        <Stack.Screen name="billing-return" options={{ headerShown: false }} />
+        <Stack.Screen name="closed-beta" />
+        <Stack.Screen name="waitlist" />
+      </Stack>
+      {isAuthenticated && needsDowngradeSelection && <DowngradeSelectionModal />}
+    </>
   );
 }
 
@@ -102,7 +155,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
 });
 

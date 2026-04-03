@@ -1,24 +1,36 @@
 import { View, StyleSheet } from 'react-native';
+import { colors } from '../../constants/theme';
 
 export function DashboardSkeleton() {
   return (
     <View style={styles.container}>
-      {/* Greeting skeleton */}
+      {/* Header skeleton */}
       <View style={styles.greetingContainer}>
         <View style={[styles.skeleton, styles.greetingLine]} />
         <View style={[styles.skeleton, styles.subtitleLine]} />
       </View>
 
-      {/* Bike card skeleton */}
-      <View style={styles.cardContainer}>
-        <View style={[styles.skeleton, styles.imageArea]} />
-        <View style={styles.cardContent}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.skeleton, styles.nameLine]} />
-            <View style={[styles.skeleton, styles.badge]} />
+      {/* Stat cards skeleton */}
+      <View style={styles.statsRow}>
+        {[1, 2, 3].map((i) => (
+          <View key={i} style={styles.statCard}>
+            <View style={[styles.skeleton, { width: 20, height: 20, borderRadius: 10 }]} />
+            <View style={[styles.skeleton, { width: 50, height: 24, marginTop: 8 }]} />
+            <View style={[styles.skeleton, { width: 30, height: 12, marginTop: 4 }]} />
           </View>
-          <View style={[styles.skeleton, styles.statusLine]} />
-          <View style={[styles.skeleton, styles.footerLine]} />
+        ))}
+      </View>
+
+      {/* Button skeleton */}
+      <View style={[styles.skeleton, styles.buttonSkeleton]} />
+
+      {/* Section skeleton */}
+      <View style={styles.sectionSkeleton}>
+        <View style={[styles.skeleton, { width: 120, height: 14 }]} />
+        <View style={styles.cardSkeleton}>
+          <View style={[styles.skeleton, { width: '60%', height: 16 }]} />
+          <View style={[styles.skeleton, { width: '100%', height: 6, marginTop: 12 }]} />
+          <View style={[styles.skeleton, { width: '40%', height: 14, marginTop: 10 }]} />
         </View>
       </View>
     </View>
@@ -28,35 +40,30 @@ export function DashboardSkeleton() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 24,
   },
   greetingContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
-  cardContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: 14,
     alignItems: 'center',
-    marginBottom: 12,
   },
   skeleton: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.skeleton,
     borderRadius: 6,
   },
   greetingLine: {
@@ -68,26 +75,21 @@ const styles = StyleSheet.create({
     height: 16,
     marginTop: 8,
   },
-  imageArea: {
-    height: 140,
-    borderRadius: 0,
-  },
-  nameLine: {
-    width: '50%',
-    height: 20,
-  },
-  badge: {
-    width: 60,
-    height: 24,
+  buttonSkeleton: {
+    height: 48,
+    marginHorizontal: 16,
+    marginBottom: 20,
     borderRadius: 12,
   },
-  statusLine: {
-    width: '70%',
-    height: 14,
-    marginBottom: 12,
+  sectionSkeleton: {
+    paddingHorizontal: 16,
   },
-  footerLine: {
-    width: '30%',
-    height: 14,
+  cardSkeleton: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: 16,
+    marginTop: 12,
   },
 });

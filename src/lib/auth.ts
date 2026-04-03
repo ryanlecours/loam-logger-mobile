@@ -19,8 +19,13 @@ export interface User {
   role: UserRole;
   mustChangePassword: boolean;
   isFoundingRider: boolean;
+  subscriptionTier?: string | null;
+  referralCode?: string | null;
+  needsDowngradeSelection?: boolean;
   hoursDisplayPreference?: string | null;
   predictionMode?: string | null;
+  distanceUnit?: string | null;
+  notifyOnRideUpload?: boolean;
   createdAt: string;
 }
 

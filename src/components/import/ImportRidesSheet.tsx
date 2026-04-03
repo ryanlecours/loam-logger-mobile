@@ -20,6 +20,7 @@ import {
   type GarminBackfillResult,
 } from '../../api/backfill';
 import type { IntegrationProvider } from '../../api/integrations';
+import { colors } from '../../constants/theme';
 
 interface ImportRidesSheetProps {
   visible: boolean;
@@ -60,7 +61,7 @@ export function ImportRidesSheet({
   const [history, setHistory] = useState<BackfillRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [result, setResult] = useState<StravaBackfillResult | GarminBackfillResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   const config = PROVIDER_CONFIG[provider];
 
@@ -141,7 +142,7 @@ export function ImportRidesSheet({
                 <View style={[styles.headerAccent, { backgroundColor: config.color }]} />
                 <Text style={styles.title}>Import {config.label} Rides</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#6b7280" />
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -184,7 +185,7 @@ export function ImportRidesSheet({
                               ) : isSelected ? (
                                 <Ionicons name="radio-button-on" size={24} color={config.color} />
                               ) : (
-                                <Ionicons name="radio-button-off" size={24} color="#d1d5db" />
+                                <Ionicons name="radio-button-off" size={24} color={colors.cardBorder} />
                               )}
                             </View>
                             <View style={styles.yearContent}>
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '75%',
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.cardBorder,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 8,
@@ -323,14 +324,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   closeButton: {
     padding: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     paddingHorizontal: 20,
     marginBottom: 16,
   },
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.cardBorder,
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -364,21 +365,21 @@ const styles = StyleSheet.create({
   yearLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   yearLabelDisabled: {
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   yearMeta: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   footer: {
     padding: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
   },
   importButton: {
     flexDirection: 'row',
@@ -404,12 +405,12 @@ const styles = StyleSheet.create({
   processingTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   processingSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   completeContainer: {
@@ -427,12 +428,12 @@ const styles = StyleSheet.create({
   completeTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   completeMessage: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -449,11 +450,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   statLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
 });

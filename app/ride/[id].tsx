@@ -11,12 +11,13 @@ import {
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRidesPageQuery, useDeleteRideMutation } from '../../src/graphql/generated';
+import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
   formatDuration,
-  formatDistance,
   formatElevation,
 } from '../../src/utils/greetingMessages';
+import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -54,13 +55,13 @@ function getSourceInfo(ride: {
   whoopWorkoutId?: string | null;
 }): { label: string; color: string } | null {
   if (ride.stravaActivityId) {
-    return { label: 'Synced from Strava', color: '#fc4c02' };
+    return { label: 'Synced from Strava', color: colors.strava };
   }
   if (ride.garminActivityId) {
-    return { label: 'Synced from Garmin', color: '#007dc3' };
+    return { label: 'Synced from Garmin', color: colors.garmin };
   }
   if (ride.whoopWorkoutId) {
-    return { label: 'Synced from WHOOP', color: '#00a651' };
+    return { label: 'Synced from WHOOP', color: colors.whoop };
   }
   return null;
 }
@@ -68,6 +69,7 @@ function getSourceInfo(ride: {
 export default function RideDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
 
   // Fetch ride from the cached rides query
@@ -112,7 +114,7 @@ export default function RideDetailScreen() {
                 refetchQueries: ['RidesPage', 'RecentRides'],
               });
               router.back();
-            } catch (error) {
+            } catch (_error) {
               Alert.alert('Error', 'Failed to delete ride');
               setDeleting(false);
             }
@@ -125,7 +127,7 @@ export default function RideDetailScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2d5016" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -133,7 +135,7 @@ export default function RideDetailScreen() {
   if (!ride) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color="#9ca3af" />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
         <Text style={styles.errorText}>Ride not found</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>
@@ -166,7 +168,7 @@ export default function RideDetailScreen() {
             <Ionicons
               name={getRideTypeIcon(ride.rideType)}
               size={24}
-              color="#2d5016"
+              color={colors.primary}
             />
             <Text style={styles.typeLabel}>{getRideTypeLabel(ride.rideType)}</Text>
           </View>
@@ -182,7 +184,7 @@ export default function RideDetailScreen() {
 
         {ride.location && (
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={16} color="#6b7280" />
+            <Ionicons name="location-outline" size={16} color={colors.textMuted} />
             <Text style={styles.location}>{ride.location}</Text>
           </View>
         )}
@@ -193,23 +195,23 @@ export default function RideDetailScreen() {
         <Text style={styles.sectionTitle}>Stats</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
-            <Ionicons name="time-outline" size={20} color="#6b7280" />
+            <Ionicons name="time-outline" size={20} color={colors.textMuted} />
             <Text style={styles.statValue}>{formatDuration(ride.durationSeconds)}</Text>
             <Text style={styles.statLabel}>Duration</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="navigate-outline" size={20} color="#6b7280" />
-            <Text style={styles.statValue}>{formatDistance(ride.distanceMiles)}</Text>
+            <Ionicons name="navigate-outline" size={20} color={colors.textMuted} />
+            <Text style={styles.statValue}>{formatDistance(ride.distanceMeters)}</Text>
             <Text style={styles.statLabel}>Distance</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="trending-up-outline" size={20} color="#6b7280" />
-            <Text style={styles.statValue}>{formatElevation(ride.elevationGainFeet)}</Text>
+            <Ionicons name="trending-up-outline" size={20} color={colors.textMuted} />
+            <Text style={styles.statValue}>{formatElevation(ride.elevationGainMeters, distanceUnit)}</Text>
             <Text style={styles.statLabel}>Elevation</Text>
           </View>
           {ride.averageHr && (
             <View style={styles.statItem}>
-              <Ionicons name="heart-outline" size={20} color="#6b7280" />
+              <Ionicons name="heart-outline" size={20} color={colors.textMuted} />
               <Text style={styles.statValue}>{ride.averageHr} bpm</Text>
               <Text style={styles.statLabel}>Avg HR</Text>
             </View>
@@ -222,7 +224,7 @@ export default function RideDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Bike</Text>
           <View style={styles.bikeRow}>
-            <Ionicons name="bicycle" size={20} color="#6b7280" />
+            <Ionicons name="bicycle" size={20} color={colors.textMuted} />
             <Text style={styles.bikeName}>{bikeName}</Text>
           </View>
         </View>
@@ -243,7 +245,7 @@ export default function RideDetailScreen() {
           onPress={handleEdit}
           disabled={deleting}
         >
-          <Ionicons name="pencil-outline" size={18} color="#2d5016" />
+          <Ionicons name="pencil-outline" size={18} color={colors.primary} />
           <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -252,10 +254,10 @@ export default function RideDetailScreen() {
           disabled={deleting}
         >
           {deleting ? (
-            <ActivityIndicator size="small" color="#dc2626" />
+            <ActivityIndicator size="small" color={colors.danger} />
           ) : (
             <>
-              <Ionicons name="trash-outline" size={18} color="#dc2626" />
+              <Ionicons name="trash-outline" size={18} color={colors.danger} />
               <Text style={styles.deleteButtonText}>Delete</Text>
             </>
           )}
@@ -268,7 +270,7 @@ export default function RideDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -287,23 +289,23 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textMuted,
     marginTop: 12,
     marginBottom: 24,
   },
   backButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
   },
   backButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -327,7 +329,7 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2d5016',
+    color: colors.primary,
   },
   sourceBadge: {
     paddingHorizontal: 8,
@@ -337,16 +339,16 @@ const styles = StyleSheet.create({
   sourceBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.textPrimary,
   },
   date: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   time: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   locationRow: {
@@ -357,12 +359,12 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: colors.textMuted,
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -379,12 +381,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.textPrimary,
     marginTop: 6,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textMuted,
     marginTop: 2,
   },
   bikeRow: {
@@ -394,11 +396,11 @@ const styles = StyleSheet.create({
   },
   bikeName: {
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   notes: {
     fontSize: 15,
-    color: '#374151',
+    color: colors.textSecondary,
     lineHeight: 22,
   },
   actions: {
@@ -412,16 +414,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#2d5016',
+    borderColor: colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
   },
   editButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#2d5016',
+    color: colors.primary,
   },
   deleteButton: {
     flex: 1,
@@ -429,15 +431,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#dc2626',
+    borderColor: colors.danger,
     paddingVertical: 12,
     borderRadius: 8,
   },
   deleteButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#dc2626',
+    color: colors.danger,
   },
 });

@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RecentRidesQuery, BikeFieldsFragment } from '../../graphql/generated';
 import { RideCard } from './RideCard';
+import { colors } from '../../constants/theme';
 
 type Ride = RecentRidesQuery['rides'][0];
 
@@ -31,7 +32,7 @@ export function RecentRidesList({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Recent Rides</Text>
+          <Text style={styles.title}>RECENT RIDES</Text>
         </View>
         <View style={styles.card}>
           {[1, 2, 3].map((i) => (
@@ -52,10 +53,10 @@ export function RecentRidesList({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Recent Rides</Text>
+          <Text style={styles.title}>RECENT RIDES</Text>
         </View>
         <View style={styles.emptyCard}>
-          <Ionicons name="bicycle-outline" size={32} color="#9ca3af" />
+          <Ionicons name="bicycle-outline" size={32} color={colors.textMuted} />
           <Text style={styles.emptyText}>No rides logged yet</Text>
           <Text style={styles.emptySubtext}>
             Your recent rides will appear here
@@ -68,16 +69,16 @@ export function RecentRidesList({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Recent Rides</Text>
+        <Text style={styles.title}>RECENT RIDES</Text>
         {onSeeAll && (
           <TouchableOpacity onPress={onSeeAll} style={styles.seeAllButton}>
             <Text style={styles.seeAllText}>See all</Text>
-            <Ionicons name="chevron-forward" size={14} color="#2563eb" />
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
           </TouchableOpacity>
         )}
       </View>
       <View style={styles.card}>
-        {rides.map((ride, index) => (
+        {rides.map((ride) => (
           <RideCard
             key={ride.id}
             ride={ride}
@@ -102,9 +103,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 1,
   },
   seeAllButton: {
     flexDirection: 'row',
@@ -112,41 +114,35 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 14,
-    color: '#2563eb',
+    color: colors.primary,
     marginRight: 2,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     marginHorizontal: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   emptyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     marginHorizontal: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   emptyText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 13,
-    color: '#9ca3af',
+    color: colors.textMuted,
     marginTop: 4,
   },
   skeletonRow: {
@@ -154,13 +150,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.cardBorder,
   },
   skeletonIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.skeleton,
     marginRight: 12,
   },
   skeletonContent: {
@@ -168,7 +164,7 @@ const styles = StyleSheet.create({
   },
   skeletonLine: {
     height: 14,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.skeleton,
     borderRadius: 4,
     width: '60%',
     marginBottom: 8,

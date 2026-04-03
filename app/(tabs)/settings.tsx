@@ -3,13 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Scr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
+import { useUserTier } from '../../src/hooks/useUserTier';
+import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
-import { useMeQuery } from '../../src/graphql/generated';
+import { useMeQuery, useUpdateUserPreferencesMutation } from '../../src/graphql/generated';
 import { setDataSourcePreference } from '../../src/api/backfill';
 import { deleteAccount } from '../../src/lib/auth';
 import { DataSourceSelector } from '../../src/components/settings/DataSourceSelector';
+import { NotificationPreferences } from '../../src/components/settings/NotificationPreferences';
+import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
+import { ReferralSection } from '../../src/components/settings/ReferralSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
+import { colors } from '../../src/constants/theme';
 
 function IntegrationRow({
   provider,
@@ -31,6 +37,7 @@ function IntegrationRow({
     if (!loading && status) {
       onConnectionChange?.(provider, status.connected);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onConnectionChange and provider are stable props from parent; including them would cause unnecessary re-fires
   }, [loading, status?.connected]);
 
   if (loading) {
@@ -94,7 +101,33 @@ function IntegrationRow({
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { isPro } = useUserTier();
   const { data: meData, refetch: refetchMe } = useMeQuery();
+  const { distanceUnit, setDistanceUnit } = useDistanceUnit();
+  const [updatePreferences] = useUpdateUserPreferencesMutation();
+
+  const predictionMode = meData?.me?.predictionMode ?? 'simple';
+
+  const handlePredictionModeChange = useCallback(async (mode: string) => {
+    if (mode === 'predictive' && !isPro) {
+      Alert.alert(
+        'Pro Feature',
+        'Advanced wear predictions require a Pro plan.',
+        [
+          { text: 'OK', style: 'cancel' },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          { text: 'Upgrade', onPress: () => router.push('/settings-detail/pricing' as any) },
+        ]
+      );
+      return;
+    }
+    try {
+      await updatePreferences({ variables: { input: { predictionMode: mode } } });
+      await refetchMe();
+    } catch {
+      Alert.alert('Error', 'Failed to update prediction mode.');
+    }
+  }, [isPro, updatePreferences, refetchMe, router]);
 
   const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
   const [dataSourceLoading, setDataSourceLoading] = useState(false);
@@ -199,6 +232,10 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      <SubscriptionSection />
+
+      <ReferralSection />
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Connected Services</Text>
         <IntegrationRow
@@ -227,6 +264,97 @@ export default function SettingsScreen() {
           />
         </View>
       )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <View style={styles.prefRow}>
+          <Text style={styles.prefLabel}>Distance Unit</Text>
+          <View style={styles.segmentedControl}>
+            <TouchableOpacity
+              style={[
+                styles.segment,
+                distanceUnit === 'mi' && styles.segmentActive,
+              ]}
+              onPress={() => setDistanceUnit('mi')}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  distanceUnit === 'mi' && styles.segmentTextActive,
+                ]}
+              >
+                Miles
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segment,
+                distanceUnit === 'km' && styles.segmentActive,
+              ]}
+              onPress={() => setDistanceUnit('km')}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  distanceUnit === 'km' && styles.segmentTextActive,
+                ]}
+              >
+                Kilometers
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.prefRow}>
+          <View style={styles.prefLabelRow}>
+            <Text style={styles.prefLabel}>Wear Predictions</Text>
+            {!isPro && (
+              <View style={styles.proBadge}>
+                <Ionicons name="lock-closed" size={10} color={colors.monitor} />
+                <Text style={styles.proBadgeText}>Pro</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.segmentedControl}>
+            <TouchableOpacity
+              style={[
+                styles.segment,
+                predictionMode === 'simple' && styles.segmentActive,
+              ]}
+              onPress={() => handlePredictionModeChange('simple')}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  predictionMode === 'simple' && styles.segmentTextActive,
+                ]}
+              >
+                Simple
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.segment,
+                predictionMode === 'predictive' && styles.segmentActive,
+                !isPro && predictionMode !== 'predictive' && styles.segmentLocked,
+              ]}
+              onPress={() => handlePredictionModeChange('predictive')}
+            >
+              <Text
+                style={[
+                  styles.segmentText,
+                  predictionMode === 'predictive' && styles.segmentTextActive,
+                  !isPro && predictionMode !== 'predictive' && styles.segmentTextLocked,
+                ]}
+              >
+                Predictive
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      <NotificationPreferences />
 
       <View style={styles.section}>
         <TouchableOpacity
@@ -267,49 +395,52 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     marginTop: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.cardBorder,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 12,
     textTransform: 'uppercase',
   },
   item: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.cardBorder,
   },
   label: {
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   value: {
     fontSize: 16,
-    color: '#333',
+    color: colors.textPrimary,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginVertical: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   logoutButton: {
-    backgroundColor: '#dc3545',
+    backgroundColor: colors.danger,
   },
   logoutText: {
     color: '#fff',
@@ -320,7 +451,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: colors.cardBorder,
   },
   integrationInfo: {
     flex: 1,
@@ -328,11 +459,11 @@ const styles = StyleSheet.create({
   integrationLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.textPrimary,
   },
   integrationDate: {
     fontSize: 13,
-    color: '#999',
+    color: colors.textMuted,
     marginTop: 2,
   },
   integrationActions: {
@@ -366,29 +497,88 @@ const styles = StyleSheet.create({
   },
   disconnectButton: {
     borderWidth: 1,
-    borderColor: '#dc3545',
+    borderColor: colors.danger,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   disconnectText: {
-    color: '#dc3545',
+    color: colors.danger,
     fontSize: 14,
     fontWeight: '600',
   },
+  prefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  prefLabel: {
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontWeight: '500',
+  },
+  prefLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.monitorBg,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  proBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.monitor,
+  },
+  segmentLocked: {
+    opacity: 0.5,
+  },
+  segmentTextLocked: {
+    color: colors.textMuted,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    overflow: 'hidden',
+  },
+  segment: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  segmentActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  segmentTextActive: {
+    color: colors.textPrimary,
+  },
   dangerSection: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     marginTop: 32,
     marginBottom: 32,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#dc3545',
+    borderTopColor: colors.danger,
   },
   dangerSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#dc3545',
+    color: colors.danger,
     marginBottom: 12,
     textTransform: 'uppercase',
   },

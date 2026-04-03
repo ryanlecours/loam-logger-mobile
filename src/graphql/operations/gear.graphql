@@ -81,11 +81,20 @@ fragment BikeFieldsLight on Bike {
   motorTorqueNm
   batteryWh
   acquisitionCondition
+  status
+  retiredAt
   components {
     ...ComponentFields
   }
   createdAt
   updatedAt
+}
+
+fragment BikeNotificationPreferenceFields on BikeNotificationPreference {
+  bikeId
+  serviceNotificationsEnabled
+  serviceNotificationMode
+  serviceNotificationThreshold
 }
 
 fragment BikeFields on Bike {
@@ -115,11 +124,16 @@ fragment BikeFields on Bike {
   motorTorqueNm
   batteryWh
   acquisitionCondition
+  status
+  retiredAt
   components {
     ...ComponentFields
   }
   predictions {
     ...PredictionFields
+  }
+  notificationPreference {
+    ...BikeNotificationPreferenceFields
   }
   createdAt
   updatedAt
@@ -129,13 +143,16 @@ query GearLight {
   bikes {
     ...BikeFieldsLight
   }
+  allBikes: bikes(includeInactive: true) {
+    ...BikeFieldsLight
+  }
   spareComponents: components(filter: { onlySpare: true }) {
     ...ComponentFields
   }
 }
 
 query Gear {
-  bikes {
+  bikes(includeInactive: true) {
     ...BikeFields
   }
   spareComponents: components(filter: { onlySpare: true }) {
@@ -162,6 +179,18 @@ mutation DeleteBike($id: ID!) {
   }
 }
 
+mutation RetireBike($id: ID!, $status: BikeStatus!) {
+  retireBike(id: $id, status: $status) {
+    ...BikeFields
+  }
+}
+
+mutation ReactivateBike($id: ID!) {
+  reactivateBike(id: $id) {
+    ...BikeFields
+  }
+}
+
 mutation UpdateComponent($id: ID!, $input: UpdateComponentInput!) {
   updateComponent(id: $id, input: $input) {
     ...ComponentFields
@@ -182,5 +211,18 @@ mutation InstallComponent($input: InstallComponentInput!) {
     displacedComponent {
       ...ComponentFields
     }
+  }
+}
+
+mutation SnoozeComponent($id: ID!, $hours: Float) {
+  snoozeComponent(id: $id, hours: $hours) {
+    id
+    serviceDueAtHours
+  }
+}
+
+mutation UpdateBikeNotificationPreference($input: UpdateBikeNotificationPreferenceInput!) {
+  updateBikeNotificationPreference(input: $input) {
+    ...BikeNotificationPreferenceFields
   }
 }

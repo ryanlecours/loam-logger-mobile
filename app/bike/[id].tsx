@@ -1,24 +1,34 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
-import { useGearQuery, ComponentFieldsFragment } from '../../src/graphql/generated';
+import { useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
 import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthBadge';
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
+import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
+import { useUserTier } from '../../src/hooks/useUserTier';
+import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
+import { colors } from '../../src/constants/theme';
 
 export default function BikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { isFreeLight } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
   const [showReplaceSheet, setShowReplaceSheet] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const { data, loading, error, refetch } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
+
+  const [deleteBike] = useDeleteBikeMutation();
+  const [retireBike] = useRetireBikeMutation();
+  const [reactivateBike] = useReactivateBikeMutation();
 
   const bike = data?.bikes?.find((b) => b.id === id);
   const predictions = bike?.predictions;
@@ -27,7 +37,7 @@ export default function BikeDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Loading...' }} />
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -36,7 +46,7 @@ export default function BikeDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Error' }} />
-        <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
         <Text style={styles.errorTitle}>
           {error ? 'Failed to load bike' : 'Bike not found'}
         </Text>
@@ -50,13 +60,11 @@ export default function BikeDetailScreen() {
   const displayName = bike.nickname || `${bike.manufacturer} ${bike.model}`;
   const subtitle = bike.nickname ? `${bike.manufacturer} ${bike.model}` : null;
 
-  // Build component list with prediction data
   const componentPredictions = predictions?.components || [];
   const predictionMap = new Map(
     componentPredictions.map((p) => [p.componentId, p])
   );
 
-  // Sort components by urgency (due now/overdue first)
   const sortedComponents = [...(bike.components || [])].sort((a, b) => {
     const predA = predictionMap.get(a.id);
     const predB = predictionMap.get(b.id);
@@ -72,13 +80,18 @@ export default function BikeDetailScreen() {
     return orderA - orderB;
   });
 
+  const isComponentRestricted = (type: string) =>
+    isFreeLight && !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(type);
+
   const handleComponentPress = (component: ComponentFieldsFragment) => {
+    if (isComponentRestricted(component.type)) {
+      setShowUpgradePrompt(true);
+      return;
+    }
     setSelectedComponent(component);
   };
 
   const handleLogServiceFromDetail = () => {
-    // Close detail sheet and open log service with the component pre-selected
-    const componentId = selectedComponent?.id;
     setSelectedComponent(null);
     setTimeout(() => {
       setShowLogService(true);
@@ -86,7 +99,6 @@ export default function BikeDetailScreen() {
   };
 
   const handleReplaceFromDetail = () => {
-    // Keep the selected component and open replace sheet
     setShowReplaceSheet(true);
   };
 
@@ -96,17 +108,106 @@ export default function BikeDetailScreen() {
     refetch();
   };
 
+  const handleRetireSell = () => {
+    const options = ['Mark as Retired', 'Mark as Sold', 'Cancel'];
+    const cancelButtonIndex = 2;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          title: 'Retire or Sell Bike',
+          message: 'This bike will be moved to your retired bikes list. You can still view its history.',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) confirmRetire('RETIRED');
+          else if (buttonIndex === 1) confirmRetire('SOLD');
+        }
+      );
+    } else {
+      Alert.alert(
+        'Retire or Sell Bike',
+        'This bike will be moved to your retired bikes list.',
+        [
+          { text: 'Mark as Retired', onPress: () => confirmRetire('RETIRED') },
+          { text: 'Mark as Sold', onPress: () => confirmRetire('SOLD') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  const confirmRetire = async (status: 'RETIRED' | 'SOLD') => {
+    try {
+      await retireBike({
+        variables: { id: bike.id, status: status as BikeStatus },
+      });
+      await refetch();
+      router.back();
+    } catch (err) {
+      Alert.alert('Error', (err as Error).message);
+    }
+  };
+
+  const handleReactivate = () => {
+    Alert.alert(
+      'Reactivate Bike?',
+      'This will move the bike back to your active bikes list.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reactivate',
+          onPress: async () => {
+            try {
+              await reactivateBike({ variables: { id: bike.id } });
+              await refetch();
+              router.back();
+            } catch (err) {
+              Alert.alert('Error', (err as Error).message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const isInactive = bike.status === BikeStatus.Retired || bike.status === BikeStatus.Sold;
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Bike?',
+      'This will permanently delete this bike, all its components, and service history. Rides will be preserved but no longer associated with this bike. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBike({ variables: { id: bike.id } });
+              await refetch();
+              router.back();
+            } catch (err) {
+              Alert.alert('Error', (err as Error).message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={refetch} tintColor="#2563eb" />
+        <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.primary} />
       }
     >
       <Stack.Screen
         options={{
           title: displayName,
-          headerBackTitle: 'Gear',
+          headerBackTitle: '',
         }}
       />
 
@@ -116,7 +217,7 @@ export default function BikeDetailScreen() {
           <Image source={{ uri: bike.thumbnailUrl }} style={styles.heroImage} resizeMode="cover" />
         ) : (
           <View style={styles.heroPlaceholder}>
-            <Ionicons name="bicycle" size={80} color="#9ca3af" />
+            <Ionicons name="bicycle" size={80} color={colors.textMuted} />
           </View>
         )}
         <View style={styles.heroOverlay}>
@@ -213,6 +314,7 @@ export default function BikeDetailScreen() {
                   component={component}
                   status={prediction?.status || component.status || undefined}
                   hoursRemaining={prediction?.hoursRemaining}
+                  restricted={isComponentRestricted(component.type)}
                   onPress={() => handleComponentPress(component)}
                 />
               );
@@ -237,14 +339,39 @@ export default function BikeDetailScreen() {
           style={styles.actionButton}
           onPress={() => setShowLogService(true)}
         >
-          <Ionicons name="construct" size={20} color="#2563eb" />
+          <Ionicons name="construct" size={20} color={colors.primary} />
           <Text style={styles.actionButtonText}>Log Service</Text>
+        </TouchableOpacity>
+
+        {isInactive ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleReactivate}
+          >
+            <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            <Text style={styles.actionButtonText}>Reactivate Bike</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleRetireSell}
+          >
+            <Ionicons name="archive-outline" size={20} color={colors.warning} />
+            <Text style={[styles.actionButtonText, { color: colors.warning }]}>Retire / Sell</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={styles.dangerButton}
+          onPress={handleDelete}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <Text style={styles.dangerButtonText}>Delete Bike</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.bottomPadding} />
 
-      {/* Log Service Sheet */}
       <LogServiceSheet
         visible={showLogService}
         onClose={() => setShowLogService(false)}
@@ -252,7 +379,6 @@ export default function BikeDetailScreen() {
         onServiceLogged={refetch}
       />
 
-      {/* Component Detail Sheet */}
       <ComponentDetailSheet
         visible={!!selectedComponent && !showReplaceSheet}
         component={selectedComponent}
@@ -262,7 +388,6 @@ export default function BikeDetailScreen() {
         onReplace={handleReplaceFromDetail}
       />
 
-      {/* Replace Component Sheet */}
       <ReplaceComponentSheet
         visible={showReplaceSheet}
         component={selectedComponent}
@@ -271,6 +396,27 @@ export default function BikeDetailScreen() {
         onClose={() => setShowReplaceSheet(false)}
         onReplaced={handleReplaceComplete}
       />
+
+      <Modal
+        visible={showUpgradePrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowUpgradePrompt(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowUpgradePrompt(false)}>
+          <View style={styles.upgradeOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.upgradeContent}>
+                <UpgradePrompt
+                  message="This component type requires a Pro plan or a completed referral to track."
+                  onUpgrade={() => setShowUpgradePrompt(false)}
+                  onReferral={() => setShowUpgradePrompt(false)}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </ScrollView>
   );
 }
@@ -278,30 +424,30 @@ export default function BikeDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   errorTitle: {
     marginTop: 12,
     fontSize: 17,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
   },
   retryButton: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     borderRadius: 8,
   },
   retryText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -317,7 +463,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.card,
   },
   heroOverlay: {
     position: 'absolute',
@@ -328,18 +474,18 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   heroContent: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     padding: 12,
     borderRadius: 8,
   },
   heroTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.textPrimary,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
   heroStatusRow: {
@@ -348,9 +494,11 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 12,
     marginHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
   sectionHeader: {
@@ -363,13 +511,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.textPrimary,
     padding: 16,
     paddingBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#f97316',
+    color: colors.warning,
     fontWeight: '500',
   },
   specsGrid: {
@@ -384,17 +532,17 @@ const styles = StyleSheet.create({
   },
   specLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   specValue: {
     fontSize: 15,
-    color: '#1f2937',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   componentsList: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.cardBorder,
   },
   emptyComponents: {
     padding: 24,
@@ -402,7 +550,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   notesBox: {
     padding: 16,
@@ -410,7 +558,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   bottomPadding: {
@@ -419,12 +567,15 @@ const styles = StyleSheet.create({
   actionsSection: {
     marginTop: 16,
     marginHorizontal: 16,
+    gap: 10,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -432,6 +583,33 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2563eb',
+    color: colors.primary,
+  },
+  dangerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.dangerBg,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  dangerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.danger,
+  },
+  upgradeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  upgradeContent: {
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
   },
 });
