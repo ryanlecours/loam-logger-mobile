@@ -12,10 +12,10 @@ import { Stack, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { useMeQuery, useCreateCheckoutSessionMutation, useCreateBillingPortalSessionMutation } from '../../src/graphql/generated';
+import { useMeQuery, useCreateCheckoutSessionMutation, useCreateBillingPortalSessionMutation, StripePlan, CheckoutPlatform } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 
-type BillingPeriod = 'MONTHLY' | 'ANNUAL';
+type BillingPeriod = StripePlan;
 
 const FEATURES = [
   {
@@ -51,7 +51,7 @@ export default function PricingScreen() {
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
   const [createCheckout, { loading: checkoutLoading }] = useCreateCheckoutSessionMutation();
   const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('ANNUAL');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(StripePlan.Annual);
   const [opening, setOpening] = useState(false);
 
   const loading = checkoutLoading || portalLoading || opening;
@@ -60,7 +60,7 @@ export default function PricingScreen() {
     try {
       setOpening(true);
       const { data } = await createCheckout({
-        variables: { plan: billingPeriod, platform: 'MOBILE' },
+        variables: { plan: billingPeriod, platform: CheckoutPlatform.Mobile },
       });
       const url = data?.createCheckoutSession?.url;
       if (url) {
@@ -79,7 +79,7 @@ export default function PricingScreen() {
     try {
       setOpening(true);
       const { data } = await createPortal({
-        variables: { platform: 'MOBILE' },
+        variables: { platform: CheckoutPlatform.Mobile },
       });
       const url = data?.createBillingPortalSession?.url;
       if (url) {
@@ -161,18 +161,18 @@ export default function PricingScreen() {
             <View style={styles.pricingSection}>
               <View style={styles.toggle}>
                 <TouchableOpacity
-                  style={[styles.toggleOption, billingPeriod === 'ANNUAL' && styles.toggleOptionActive]}
-                  onPress={() => setBillingPeriod('ANNUAL')}
+                  style={[styles.toggleOption, billingPeriod === StripePlan.Annual && styles.toggleOptionActive]}
+                  onPress={() => setBillingPeriod(StripePlan.Annual)}
                 >
-                  <Text style={[styles.toggleText, billingPeriod === 'ANNUAL' && styles.toggleTextActive]}>
+                  <Text style={[styles.toggleText, billingPeriod === StripePlan.Annual && styles.toggleTextActive]}>
                     Annual
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.toggleOption, billingPeriod === 'MONTHLY' && styles.toggleOptionActive]}
-                  onPress={() => setBillingPeriod('MONTHLY')}
+                  style={[styles.toggleOption, billingPeriod === StripePlan.Monthly && styles.toggleOptionActive]}
+                  onPress={() => setBillingPeriod(StripePlan.Monthly)}
                 >
-                  <Text style={[styles.toggleText, billingPeriod === 'MONTHLY' && styles.toggleTextActive]}>
+                  <Text style={[styles.toggleText, billingPeriod === StripePlan.Monthly && styles.toggleTextActive]}>
                     Monthly
                   </Text>
                 </TouchableOpacity>
@@ -180,11 +180,11 @@ export default function PricingScreen() {
 
               <View style={styles.priceDisplay}>
                 <Text style={styles.priceAmount}>
-                  {billingPeriod === 'ANNUAL' ? '$7.50' : '$9.99'}
+                  {billingPeriod === StripePlan.Annual ? '$7.50' : '$9.99'}
                 </Text>
                 <Text style={styles.pricePeriod}> / month</Text>
               </View>
-              {billingPeriod === 'ANNUAL' && (
+              {billingPeriod === StripePlan.Annual && (
                 <View style={styles.annualDetails}>
                   <Text style={styles.billedText}>Billed annually at $90</Text>
                   <View style={styles.saveBadge}>
@@ -204,7 +204,7 @@ export default function PricingScreen() {
                 <ActivityIndicator size="small" color={colors.textPrimary} />
               ) : (
                 <Text style={styles.ctaText}>
-                  {billingPeriod === 'ANNUAL' ? 'Start Pro — $90/yr' : 'Start Pro — $9.99/mo'}
+                  {billingPeriod === StripePlan.Annual ? 'Start Pro — $90/yr' : 'Start Pro — $9.99/mo'}
                 </Text>
               )}
             </TouchableOpacity>

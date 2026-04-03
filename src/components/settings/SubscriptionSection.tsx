@@ -4,7 +4,7 @@ import { useRouter, Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../hooks/useUserTier';
-import { useMeQuery, useCreateBillingPortalSessionMutation } from '../../graphql/generated';
+import { useMeQuery, useCreateBillingPortalSessionMutation, CheckoutPlatform } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
 
 export function SubscriptionSection() {
@@ -19,7 +19,7 @@ export function SubscriptionSection() {
   const handleManageBilling = async () => {
     try {
       setOpening(true);
-      const { data } = await createPortal({ variables: { platform: 'MOBILE' } });
+      const { data } = await createPortal({ variables: { platform: CheckoutPlatform.Mobile } });
       const url = data?.createBillingPortalSession?.url;
       if (url) {
         await WebBrowser.openBrowserAsync(url);
