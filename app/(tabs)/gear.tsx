@@ -37,10 +37,9 @@ export default function GearScreen() {
   };
 
   const activeBikes = data?.bikes || [];
-  const allBikes = data?.allBikes || [];
   const inactiveBikes = useMemo(
-    () => allBikes.filter((b) => b.status === 'RETIRED' || b.status === 'SOLD'),
-    [allBikes],
+    () => (data?.allBikes || []).filter((b) => b.status === 'RETIRED' || b.status === 'SOLD'),
+    [data?.allBikes],
   );
   const spareComponents = data?.spareComponents || [];
 

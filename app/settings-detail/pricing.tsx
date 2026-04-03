@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useRouter, Href } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { gql, useMutation } from '@apollo/client';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';

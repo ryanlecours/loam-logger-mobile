@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RecentRidesQuery } from '../../graphql/generated';
 import {
-  formatDuration,
   formatRideDate,
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
@@ -27,9 +26,9 @@ const RIDE_TYPE_EMOJI: Record<string, string> = {
   TRAINER: '\uD83C\uDFE0',    // house
 };
 
-export function RideCard({ ride, bikeName, onPress }: RideCardProps) {
+export function RideCard({ ride, bikeName: _bikeName, onPress }: RideCardProps) {
   const { formatDistance } = useDistanceUnit();
-  const dateStr = formatRideDate(ride.startTime);
+  const _dateStr = formatRideDate(ride.startTime);
   const durationHours = ride.durationSeconds ? (ride.durationSeconds / 3600).toFixed(1) : null;
   const distanceDisplay = ride.distanceMeters ? formatDistance(ride.distanceMeters) : null;
 

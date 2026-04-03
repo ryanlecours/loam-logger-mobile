@@ -3,7 +3,6 @@ import { useRouter, Href } from 'expo-router';
 import { useState, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../src/hooks/useAuth';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
@@ -42,14 +41,12 @@ function formatComponentType(type: string): string {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { tier, isPro, isFreeLight, isFoundingRider } = useUserTier();
+  const { isPro, isFreeLight, isFoundingRider } = useUserTier();
   const { distanceUnit } = useDistanceUnit();
   const {
     bikes,
     spareComponents,
     loading: bikesLoading,
-    hasPredictions,
     refetch: refetchBikes,
   } = useBikesWithPredictions();
 
@@ -99,10 +96,6 @@ export default function DashboardScreen() {
   const displayName = selectedBike
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
     : 'No Bike Selected';
-
-  const handleBikePress = (bikeId: string) => {
-    router.push(`/bike/${bikeId}` as Href);
-  };
 
   if (bikesLoading && !bikes.length) {
     return (

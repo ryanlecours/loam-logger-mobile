@@ -8,12 +8,10 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useOnboarding, type SpokesBike, type SpokesImage } from '../../src/hooks/useOnboarding';
 import { getAccessToken } from '../../src/lib/auth';
@@ -136,7 +134,7 @@ export default function BikeScreen() {
         setSelectedImageUrl(null);
         setStep('details');
       }
-    } catch (err) {
+    } catch (_err) {
       Alert.alert('Error', 'Failed to load bike details');
     } finally {
       setLoadingBike(false);

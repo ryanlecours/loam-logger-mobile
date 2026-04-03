@@ -61,7 +61,7 @@ export function ImportRidesSheet({
   const [history, setHistory] = useState<BackfillRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [result, setResult] = useState<StravaBackfillResult | GarminBackfillResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   const config = PROVIDER_CONFIG[provider];
 

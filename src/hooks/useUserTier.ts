@@ -1,4 +1,4 @@
-import { useMeQuery, type SubscriptionTier, type ComponentType } from '../graphql/generated';
+import { useMeQuery, type ComponentType } from '../graphql/generated';
 import type { SubscriptionTierName } from '../constants/tiers';
 
 /**

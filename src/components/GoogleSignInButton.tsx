@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   View,
-  Platform,
 } from 'react-native';
 
 interface Props {
@@ -21,6 +20,7 @@ let statusCodes: typeof import('@react-native-google-signin/google-signin').stat
 let isNativeModuleAvailable = false;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const googleSignIn = require('@react-native-google-signin/google-signin');
   GoogleSignin = googleSignIn.GoogleSignin;
   statusCodes = googleSignIn.statusCodes;

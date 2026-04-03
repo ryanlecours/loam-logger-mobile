@@ -12,6 +12,7 @@ export function SpokesAttribution() {
         activeOpacity={0.7}
       >
         <Image
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           source={require('../../../assets/powered-by-99-spokes-for-dark-bg.png')}
           style={styles.logo}
           resizeMode="contain"

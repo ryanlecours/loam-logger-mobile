@@ -15,7 +15,7 @@ export default function BillingReturnScreen() {
       router.replace('/(tabs)/settings' as Href);
     }
     handleReturn();
-  }, []);
+  }, [refetch, router]);
 
   return (
     <View style={styles.container}>

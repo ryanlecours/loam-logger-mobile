@@ -19,7 +19,7 @@ export default function BillingSuccessScreen() {
       }, 1500);
     }
     handleSuccess();
-  }, []);
+  }, [refetch, router]);
 
   return (
     <View style={styles.container}>

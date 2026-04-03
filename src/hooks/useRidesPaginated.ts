@@ -16,12 +16,13 @@ export function useRidesPaginated(filter?: RidesFilterInput) {
     notifyOnNetworkStatusChange: true,
   });
 
-  const rides = data?.rides || [];
+  const rides = data?.rides ?? [];
   const hasMore = rides.length >= PAGE_SIZE && rides.length % PAGE_SIZE === 0;
 
   const loadMore = useCallback(() => {
-    const lastRide = rides[rides.length - 1];
-    if (lastRide && hasMore) {
+    const currentRides = data?.rides ?? [];
+    const lastRide = currentRides[currentRides.length - 1];
+    if (lastRide && currentRides.length >= PAGE_SIZE && currentRides.length % PAGE_SIZE === 0) {
       fetchMore({
         variables: { after: lastRide.id },
         updateQuery: (prev, { fetchMoreResult }) => {
@@ -33,7 +34,7 @@ export function useRidesPaginated(filter?: RidesFilterInput) {
         },
       });
     }
-  }, [rides, hasMore, fetchMore]);
+  }, [data?.rides, fetchMore]);
 
   const handleRefetch = useCallback(async () => {
     await refetch({ take: PAGE_SIZE, after: null, filter });

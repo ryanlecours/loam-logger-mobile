@@ -114,7 +114,7 @@ export default function RideDetailScreen() {
                 refetchQueries: ['RidesPage', 'RecentRides'],
               });
               router.back();
-            } catch (error) {
+            } catch (_error) {
               Alert.alert('Error', 'Failed to delete ride');
               setDeleting(false);
             }

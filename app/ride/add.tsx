@@ -124,7 +124,7 @@ export default function AddRideScreen() {
         refetchQueries: ['RidesPage', 'RecentRides'],
       });
       router.back();
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to add ride. Please try again.');
     }
   };

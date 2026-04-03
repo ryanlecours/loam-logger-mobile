@@ -7,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,

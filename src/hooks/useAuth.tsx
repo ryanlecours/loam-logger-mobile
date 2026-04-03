@@ -87,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(mappedUser);
 
       if (__DEV__) {
+        // eslint-disable-next-line no-console
         console.log('[useAuth] ME query resolved:', {
           id: mappedUser.id,
           email: mappedUser.email,
@@ -100,13 +101,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle ME query errors - if the query fails, log out the user
   // This handles cases like invalid/expired tokens that can't be refreshed
+  const logout = useCallback(async () => {
+    await logoutAuth();
+    await client.clearStore(); // Clear Apollo cache
+    setUser(null);
+    setIsAuthenticated(false);
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log('[useAuth] Logged out, cleared tokens and Apollo cache');
+    }
+  }, [client]);
+
   useEffect(() => {
     if (viewerError && !viewerLoading && isAuthenticated) {
       console.error('[useAuth] ME query error:', viewerError.message);
       // Token is likely invalid - clear auth state
       logout();
     }
-  }, [viewerError, viewerLoading, isAuthenticated]);
+  }, [viewerError, viewerLoading, isAuthenticated, logout]);
 
   // Register token refresh callback to refetch user when token is refreshed
   const refetchUser = useCallback(async () => {
@@ -120,22 +132,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setTokenRefreshCallback(() => {
       if (__DEV__) {
+        // eslint-disable-next-line no-console
         console.log('[useAuth] Token refreshed, refetching user...');
       }
       refetchUser();
     });
     return () => setTokenRefreshCallback(null);
   }, [refetchUser]);
-
-  async function logout() {
-    await logoutAuth();
-    await client.clearStore(); // Clear Apollo cache
-    setUser(null);
-    setIsAuthenticated(false);
-    if (__DEV__) {
-      console.log('[useAuth] Logged out, cleared tokens and Apollo cache');
-    }
-  }
 
   // Loading is true while initializing OR while fetching viewer after auth
   const loading = initializing || (isAuthenticated && viewerLoading && !user);

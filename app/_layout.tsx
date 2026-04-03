@@ -99,7 +99,7 @@ function RootLayoutNav() {
     // Handle notification taps (navigate to relevant screen)
     const subscription = setupNotificationResponseListener(router);
     return () => subscription.remove();
-  }, [isAuthenticated, onboardingCompleted]);
+  }, [isAuthenticated, onboardingCompleted, registerTokenIfGranted, router]);
 
   // Show loading while auth initializes
   if (loading) {

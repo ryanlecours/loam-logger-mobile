@@ -82,7 +82,7 @@ export default function EditRideScreen() {
       setNotes(ride.notes || '');
       setInitialized(true);
     }
-  }, [ride, initialized]);
+  }, [ride, initialized, distanceUnit, fromMeters]);
 
   const handleDateChange = (_event: unknown, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -154,7 +154,7 @@ export default function EditRideScreen() {
         refetchQueries: ['RidesPage', 'RecentRides'],
       });
       router.back();
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to update ride. Please try again.');
     }
   };

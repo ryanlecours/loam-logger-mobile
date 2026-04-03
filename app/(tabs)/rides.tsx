@@ -37,9 +37,9 @@ export default function RidesScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleRidePress = (ride: RideItem) => {
+  const handleRidePress = useCallback((ride: RideItem) => {
     router.push(`/ride/${ride.id}` as Href);
-  };
+  }, [router]);
 
   const handleAddRide = () => {
     router.push('/ride/add' as Href);
@@ -53,7 +53,7 @@ export default function RidesScreen() {
         onPress={() => handleRidePress(item)}
       />
     ),
-    [getBikeName]
+    [getBikeName, handleRidePress]
   );
 
   const renderEmpty = () => {

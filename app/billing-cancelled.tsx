@@ -11,7 +11,7 @@ export default function BillingCancelledScreen() {
     setTimeout(() => {
       router.replace('/(tabs)/settings' as Href);
     }, 1500);
-  }, []);
+  }, [router]);
 
   return (
     <View style={styles.container}>

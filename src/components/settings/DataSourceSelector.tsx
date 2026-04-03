@@ -57,7 +57,7 @@ export function DataSourceSelector({
                 <>
                   <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
                     <Ionicons
-                      name={config.icon as any}
+                      name={config.icon as React.ComponentProps<typeof Ionicons>['name']}
                       size={24}
                       color={config.color}
                     />

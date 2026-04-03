@@ -37,6 +37,7 @@ function IntegrationRow({
     if (!loading && status) {
       onConnectionChange?.(provider, status.connected);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onConnectionChange and provider are stable props from parent; including them would cause unnecessary re-fires
   }, [loading, status?.connected]);
 
   if (loading) {
@@ -114,6 +115,7 @@ export default function SettingsScreen() {
         'Advanced wear predictions require a Pro plan.',
         [
           { text: 'OK', style: 'cancel' },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           { text: 'Upgrade', onPress: () => router.push('/settings-detail/pricing' as any) },
         ]
       );

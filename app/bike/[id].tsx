@@ -92,7 +92,6 @@ export default function BikeDetailScreen() {
   };
 
   const handleLogServiceFromDetail = () => {
-    const componentId = selectedComponent?.id;
     setSelectedComponent(null);
     setTimeout(() => {
       setShowLogService(true);
