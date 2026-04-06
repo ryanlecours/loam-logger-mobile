@@ -62,6 +62,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+  console.log('[notifications] Push token:', tokenData.data); // TEMP: remove after testing
   return tokenData.data;
 }
 

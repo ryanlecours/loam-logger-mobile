@@ -357,6 +357,24 @@ export default function SettingsScreen() {
       <NotificationPreferences />
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal</Text>
+        <TouchableOpacity
+          style={styles.legalRow}
+          onPress={() => router.push('/settings-detail/terms')}
+        >
+          <Text style={styles.legalRowText}>Terms & Conditions</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.legalRow}
+          onPress={() => router.push('/settings-detail/privacy-policy')}
+        >
+          <Text style={styles.legalRowText}>Privacy Policy</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <TouchableOpacity
           style={[styles.button, styles.logoutButton]}
           onPress={handleLogout}
@@ -564,6 +582,18 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   segmentTextActive: {
+    color: colors.textPrimary,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  legalRowText: {
+    fontSize: 16,
     color: colors.textPrimary,
   },
   dangerSection: {
