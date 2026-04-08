@@ -20,7 +20,7 @@ function formatComponentType(type: string): string {
 }
 
 function formatLocation(location: string | null | undefined): string {
-  if (!location) return '';
+  if (!location || location === 'NONE') return '';
   return location
     .replace(/_/g, ' ')
     .toLowerCase()

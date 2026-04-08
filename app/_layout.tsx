@@ -8,6 +8,8 @@ import { colors } from '../src/constants/theme';
 import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
 import { useNotifications } from '../src/hooks/useNotifications';
 import { useUserTier } from '../src/hooks/useUserTier';
+import { initializeRevenueCat } from '../src/lib/revenuecat';
+import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
 
 // Configure foreground notification display at module level
@@ -101,6 +103,17 @@ function RootLayoutNav() {
     return () => subscription.remove();
   }, [isAuthenticated, onboardingCompleted, registerTokenIfGranted, router]);
 
+  // Initialize RevenueCat for IAP using stored user ID (available immediately, no network wait)
+  useEffect(() => {
+    if (!isAuthenticated || !onboardingCompleted) return;
+
+    getStoredUser().then((user) => {
+      if (user?.id) {
+        initializeRevenueCat(user.id);
+      }
+    });
+  }, [isAuthenticated, onboardingCompleted]);
+
   // Show loading while auth initializes
   if (loading) {
     return <LoadingScreen />;
@@ -135,7 +148,7 @@ function RootLayoutNav() {
         <Stack.Screen
           name="settings-detail"
           options={{
-            headerShown: true,
+            headerShown: false,
           }}
         />
         <Stack.Screen name="oauth" />

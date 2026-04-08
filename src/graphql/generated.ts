@@ -955,6 +955,12 @@ export enum StripePlan {
   Monthly = 'MONTHLY'
 }
 
+export enum SubscriptionProvider {
+  Apple = 'APPLE',
+  Google = 'GOOGLE',
+  Stripe = 'STRIPE'
+}
+
 export enum SubscriptionTier {
   FreeFull = 'FREE_FULL',
   FreeLight = 'FREE_LIGHT',
@@ -1131,6 +1137,7 @@ export type User = {
   rides: Array<Ride>;
   role: UserRole;
   servicePreferences: Array<UserServicePreference>;
+  subscriptionProvider?: Maybe<SubscriptionProvider>;
   subscriptionTier: SubscriptionTier;
   tierLimits: TierLimits;
 };
@@ -1291,7 +1298,7 @@ export type UpdateBikeNotificationPreferenceMutation = { __typename?: 'Mutation'
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, referralCode?: string | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, referralCode?: string | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type ReferralStatsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2113,6 +2120,7 @@ export const MeDocument = gql`
     createdAt
     activeDataSource
     subscriptionTier
+    subscriptionProvider
     referralCode
     needsDowngradeSelection
     tierLimits {

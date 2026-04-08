@@ -232,9 +232,13 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <SubscriptionSection />
+      <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+        <SubscriptionSection />
+      </View>
 
-      <ReferralSection />
+      <View style={{ paddingHorizontal: 16 }}>
+        <ReferralSection />
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Connected Services</Text>
@@ -354,7 +358,9 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <NotificationPreferences />
+      <View style={{ paddingHorizontal: 16 }}>
+        <NotificationPreferences />
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Legal</Text>

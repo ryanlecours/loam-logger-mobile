@@ -66,15 +66,39 @@ export default function BikeDetailScreen() {
   );
 
   const sortedComponents = [...(bike.components || [])].sort((a, b) => {
+    // Group alike components together, then sort by status within each group
+    const groupOrder: Record<string, number> = {
+      // Suspension
+      FORK: 0, SHOCK: 1,
+      // Drivetrain
+      CHAIN: 10, CASSETTE: 11, REAR_DERAILLEUR: 12, CRANK: 13, DRIVETRAIN: 14, PEDALS: 15,
+      // Brakes
+      BRAKE_PAD: 20, BRAKE_ROTOR: 21, BRAKES: 22,
+      // Wheels & tires
+      TIRES: 30, RIMS: 31, WHEEL_HUBS: 32,
+      // Cockpit & seatpost
+      HANDLEBAR: 40, STEM: 41, DROPPER: 42, SADDLE: 43, SEATPOST: 44,
+      // Bearings
+      HEADSET: 50, BOTTOM_BRACKET: 51, PIVOT_BEARINGS: 52,
+      // Other
+      OTHER: 60,
+    };
+    const statusOrder: Record<string, number> = {
+      OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,
+    };
+
+    const groupA = groupOrder[a.type] ?? 60;
+    const groupB = groupOrder[b.type] ?? 60;
+    if (groupA !== groupB) return groupA - groupB;
+
+    // Within the same group, sort by location (FRONT before REAR)
+    const locA = a.location === 'FRONT' ? 0 : a.location === 'REAR' ? 1 : 2;
+    const locB = b.location === 'FRONT' ? 0 : b.location === 'REAR' ? 1 : 2;
+    if (locA !== locB) return locA - locB;
+
+    // Within the same type+location, sort by urgency
     const predA = predictionMap.get(a.id);
     const predB = predictionMap.get(b.id);
-    const statusOrder: Record<string, number> = {
-      OVERDUE: 0,
-      DUE_NOW: 1,
-      DUE_SOON: 2,
-      ALL_GOOD: 3,
-      UNKNOWN: 4,
-    };
     const orderA = statusOrder[predA?.status || a.status || 'UNKNOWN'] ?? 4;
     const orderB = statusOrder[predB?.status || b.status || 'UNKNOWN'] ?? 4;
     return orderA - orderB;

@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ComponentFieldsFragment, useLogComponentServiceMutation } from '../../graphql/generated';
 import { StatusDot } from './StatusDot';
@@ -31,7 +33,7 @@ function formatComponentType(type: string): string {
 }
 
 function formatLocation(location: string | null | undefined): string {
-  if (!location) return '';
+  if (!location || location === 'NONE') return '';
   return location
     .replace(/_/g, ' ')
     .toLowerCase()
@@ -48,7 +50,16 @@ export function LogServiceSheet({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     preSelectedId ? new Set([preSelectedId]) : new Set()
   );
+  const [serviceDate, setServiceDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [logService, { loading }] = useLogComponentServiceMutation();
+
+  const isToday = serviceDate.toDateString() === new Date().toDateString();
+
+  const onDateChange = useCallback((_event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (date) setServiceDate(date);
+  }, []);
 
   const toggleSelection = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -78,7 +89,7 @@ export function LogServiceSheet({
   const handleLogService = useCallback(async () => {
     if (selectedIds.size === 0) return;
 
-    const performedAt = new Date().toISOString();
+    const performedAt = serviceDate.toISOString();
     const ids = Array.from(selectedIds);
 
     try {
@@ -116,6 +127,8 @@ export function LogServiceSheet({
 
   const handleClose = useCallback(() => {
     setSelectedIds(new Set());
+    setServiceDate(new Date());
+    setShowDatePicker(false);
     onClose();
   }, [onClose]);
 
@@ -158,6 +171,29 @@ export function LogServiceSheet({
                   </TouchableOpacity>
                 )}
               </View>
+
+              <View style={styles.dateRow}>
+                <Text style={styles.dateLabel}>Service date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(!showDatePicker)}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                  <Text style={styles.dateButtonText}>
+                    {isToday ? 'Today' : serviceDate.toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={serviceDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  maximumDate={new Date()}
+                  onChange={onDateChange}
+                  themeVariant="dark"
+                />
+              )}
 
               <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
                 {serviceableComponents.length === 0 ? (
@@ -285,6 +321,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 16,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  dateLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primaryMuted,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  dateButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 14,

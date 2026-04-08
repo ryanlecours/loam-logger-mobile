@@ -9,26 +9,30 @@ import { colors } from '../../constants/theme';
 
 export function SubscriptionSection() {
   const router = useRouter();
-  const { tier, isPro, isFoundingRider } = useUserTier();
+  const { tier, isPro, isFoundingRider, subscriptionProvider } = useUserTier();
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
   const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
   const [opening, setOpening] = useState(false);
-
   const loading = portalLoading || opening;
 
-  const handleManageBilling = async () => {
-    try {
-      setOpening(true);
-      const { data } = await createPortal({ variables: { platform: CheckoutPlatform.Mobile } });
-      const url = data?.createBillingPortalSession?.url;
-      if (url) {
-        await WebBrowser.openBrowserAsync(url);
-        await refetch();
+  const handleManage = async () => {
+    if (subscriptionProvider === 'APPLE' || subscriptionProvider === 'GOOGLE') {
+      router.push('/settings-detail/customer-center' as Href);
+    } else {
+      // Stripe subscriber — open billing portal
+      try {
+        setOpening(true);
+        const { data } = await createPortal({ variables: { platform: CheckoutPlatform.Mobile } });
+        const url = data?.createBillingPortalSession?.url;
+        if (url) {
+          await WebBrowser.openBrowserAsync(url);
+          await refetch();
+        }
+      } catch {
+        Alert.alert('Error', 'Failed to open billing portal. Please try again.');
+      } finally {
+        setOpening(false);
       }
-    } catch {
-      Alert.alert('Error', 'Failed to open billing portal. Please try again.');
-    } finally {
-      setOpening(false);
     }
   };
 
@@ -69,7 +73,7 @@ export function SubscriptionSection() {
         {isPro && !isFoundingRider && (
           <TouchableOpacity
             style={[styles.manageButton, loading && styles.buttonDisabled]}
-            onPress={handleManageBilling}
+            onPress={handleManage}
             disabled={loading}
           >
             {loading ? (
@@ -83,6 +87,7 @@ export function SubscriptionSection() {
           </TouchableOpacity>
         )}
       </View>
+
     </View>
   );
 }

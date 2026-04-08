@@ -1,7 +1,17 @@
 import { Stack } from 'expo-router';
+import { colors } from '../../src/constants/theme';
 
 export default function SettingsLayout() {
   return (
-    <Stack screenOptions={{ headerShown: true, headerBackTitle: '' }} />
+    <Stack
+      screenOptions={{
+        headerShown: true,
+        headerBackTitle: '',
+        headerStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.textPrimary,
+        headerTitleStyle: { fontWeight: 'bold' },
+        headerShadowVisible: false,
+      }}
+    />
   );
 }

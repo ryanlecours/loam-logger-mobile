@@ -21,6 +21,7 @@ export function useUserTier() {
   const isFreeLight = tier === 'FREE_LIGHT' && !isFoundingRider && !isAdmin;
   const isFreeFull = tier === 'FREE_FULL' && !isFoundingRider && !isAdmin;
 
+  const subscriptionProvider = (viewer?.subscriptionProvider as string | null) ?? null;
   const tierLimits = viewer?.tierLimits ?? null;
   const canAddBike = tierLimits?.canAddBike ?? true;
   const allowedComponentTypes = (tierLimits?.allowedComponentTypes ?? []) as ComponentType[];
@@ -35,6 +36,7 @@ export function useUserTier() {
     isFreeFull,
     isFoundingRider,
     isAdmin,
+    subscriptionProvider,
     canAddBike,
     allowedComponentTypes,
     needsDowngradeSelection,

@@ -140,8 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => setTokenRefreshCallback(null);
   }, [refetchUser]);
 
-  // Loading is true while initializing OR while fetching viewer after auth
-  const loading = initializing || (isAuthenticated && viewerLoading && !user);
+  // Loading is true while initializing OR while waiting for user data after auth.
+  // The !user check prevents a flash where isAuthenticated is true but gating
+  // flags (hasAcceptedCurrentTerms, etc.) haven't been derived yet.
+  // Stop loading if the viewer query finished (success or error) or is no longer in flight.
+  const loading = initializing || (isAuthenticated && !user && viewerLoading);
 
   // Derive gating flags from user
   const hasAcceptedCurrentTerms = user?.hasAcceptedCurrentTerms ?? false;

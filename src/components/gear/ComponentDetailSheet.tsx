@@ -37,7 +37,7 @@ function formatComponentType(type: string): string {
 }
 
 function formatLocation(location: string | null | undefined): string {
-  if (!location) return '';
+  if (!location || location === 'NONE') return '';
   return location
     .replace(/_/g, ' ')
     .toLowerCase()
@@ -47,6 +47,7 @@ function formatLocation(location: string | null | undefined): string {
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return 'Never';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Never';
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
