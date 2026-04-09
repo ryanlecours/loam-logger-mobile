@@ -72,7 +72,7 @@ function BikeNotificationCard({
           },
           refetchQueries: ['Gear'],
         });
-      } catch (err) {
+      } catch {
         Alert.alert('Error', 'Failed to update notification preferences.');
       } finally {
         setSaving(false);

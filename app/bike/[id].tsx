@@ -14,6 +14,23 @@ import { useUserTier } from '../../src/hooks/useUserTier';
 import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
+const COMPONENT_GROUP_MAP: Record<string, string> = {
+  FORK: 'Suspension', SHOCK: 'Suspension',
+  CHAIN: 'Drivetrain', CASSETTE: 'Drivetrain', REAR_DERAILLEUR: 'Drivetrain',
+  CRANK: 'Drivetrain', DRIVETRAIN: 'Drivetrain', PEDALS: 'Drivetrain',
+  BRAKE_PAD: 'Brakes', BRAKE_ROTOR: 'Brakes', BRAKES: 'Brakes',
+  TIRES: 'Wheels & Tires', RIMS: 'Wheels & Tires', WHEEL_HUBS: 'Wheels & Tires',
+  HANDLEBAR: 'Cockpit', STEM: 'Cockpit', DROPPER: 'Cockpit',
+  SADDLE: 'Cockpit', SEATPOST: 'Cockpit',
+  HEADSET: 'Bearings', BOTTOM_BRACKET: 'Bearings', PIVOT_BEARINGS: 'Bearings',
+};
+
+const GROUP_ORDER = ['Suspension', 'Drivetrain', 'Brakes', 'Wheels & Tires', 'Cockpit', 'Bearings', 'Other'];
+
+const STATUS_ORDER: Record<string, number> = {
+  OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,
+};
+
 export default function BikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -33,6 +50,36 @@ export default function BikeDetailScreen() {
 
   const bike = data?.bikes?.find((b) => b.id === id);
   const predictions = bike?.predictions;
+
+  const predictionMap = useMemo(() => {
+    const components = predictions?.components || [];
+    return new Map(components.map((p) => [p.componentId, p]));
+  }, [predictions?.components]);
+
+  const componentGroups = useMemo(() => {
+    const bikeComponents = bike?.components || [];
+    const groups = new Map<string, ComponentFieldsFragment[]>();
+    for (const comp of bikeComponents) {
+      const group = COMPONENT_GROUP_MAP[comp.type] || 'Other';
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(comp);
+    }
+    for (const [, comps] of groups) {
+      comps.sort((a, b) => {
+        const locA = a.location === 'FRONT' ? 0 : a.location === 'REAR' ? 1 : 2;
+        const locB = b.location === 'FRONT' ? 0 : b.location === 'REAR' ? 1 : 2;
+        if (locA !== locB) return locA - locB;
+        const predA = predictionMap.get(a.id);
+        const predB = predictionMap.get(b.id);
+        const orderA = STATUS_ORDER[predA?.status || a.status || 'UNKNOWN'] ?? 4;
+        const orderB = STATUS_ORDER[predB?.status || b.status || 'UNKNOWN'] ?? 4;
+        return orderA - orderB;
+      });
+    }
+    return GROUP_ORDER
+      .filter((g) => groups.has(g))
+      .map((g) => ({ name: g, components: groups.get(g)! }));
+  }, [bike?.components, predictionMap]);
 
   if (loading && !data) {
     return (
@@ -60,53 +107,6 @@ export default function BikeDetailScreen() {
 
   const displayName = bike.nickname || `${bike.manufacturer} ${bike.model}`;
   const subtitle = bike.nickname ? `${bike.manufacturer} ${bike.model}` : null;
-
-  const componentPredictions = predictions?.components || [];
-  const predictionMap = new Map(
-    componentPredictions.map((p) => [p.componentId, p])
-  );
-
-  const COMPONENT_GROUP_MAP: Record<string, string> = {
-    FORK: 'Suspension', SHOCK: 'Suspension',
-    CHAIN: 'Drivetrain', CASSETTE: 'Drivetrain', REAR_DERAILLEUR: 'Drivetrain',
-    CRANK: 'Drivetrain', DRIVETRAIN: 'Drivetrain', PEDALS: 'Drivetrain',
-    BRAKE_PAD: 'Brakes', BRAKE_ROTOR: 'Brakes', BRAKES: 'Brakes',
-    TIRES: 'Wheels & Tires', RIMS: 'Wheels & Tires', WHEEL_HUBS: 'Wheels & Tires',
-    HANDLEBAR: 'Cockpit', STEM: 'Cockpit', DROPPER: 'Cockpit',
-    SADDLE: 'Cockpit', SEATPOST: 'Cockpit',
-    HEADSET: 'Bearings', BOTTOM_BRACKET: 'Bearings', PIVOT_BEARINGS: 'Bearings',
-  };
-
-  const GROUP_ORDER = ['Suspension', 'Drivetrain', 'Brakes', 'Wheels & Tires', 'Cockpit', 'Bearings', 'Other'];
-
-  const statusOrder: Record<string, number> = {
-    OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,
-  };
-
-  const componentGroups = useMemo(() => {
-    const groups = new Map<string, ComponentFieldsFragment[]>();
-    for (const comp of bike.components || []) {
-      const group = COMPONENT_GROUP_MAP[comp.type] || 'Other';
-      if (!groups.has(group)) groups.set(group, []);
-      groups.get(group)!.push(comp);
-    }
-    // Sort within each group by location then status
-    for (const [, comps] of groups) {
-      comps.sort((a, b) => {
-        const locA = a.location === 'FRONT' ? 0 : a.location === 'REAR' ? 1 : 2;
-        const locB = b.location === 'FRONT' ? 0 : b.location === 'REAR' ? 1 : 2;
-        if (locA !== locB) return locA - locB;
-        const predA = predictionMap.get(a.id);
-        const predB = predictionMap.get(b.id);
-        const orderA = statusOrder[predA?.status || a.status || 'UNKNOWN'] ?? 4;
-        const orderB = statusOrder[predB?.status || b.status || 'UNKNOWN'] ?? 4;
-        return orderA - orderB;
-      });
-    }
-    return GROUP_ORDER
-      .filter((g) => groups.has(g))
-      .map((g) => ({ name: g, components: groups.get(g)! }));
-  }, [bike.components, predictionMap]);
 
   const toggleGroup = (name: string) => {
     setCollapsedGroups((prev) => {

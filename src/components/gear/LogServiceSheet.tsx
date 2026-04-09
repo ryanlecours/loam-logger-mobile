@@ -123,7 +123,7 @@ export function LogServiceSheet({
     } catch (error) {
       Alert.alert('Error', (error as Error).message);
     }
-  }, [selectedIds, logService, onClose, onServiceLogged]);
+  }, [selectedIds, serviceDate, logService, onClose, onServiceLogged]);
 
   const handleClose = useCallback(() => {
     setSelectedIds(new Set());

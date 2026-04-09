@@ -246,7 +246,7 @@ export default function AddBikeScreen() {
         Alert.alert('Failed to Add Bike', err.message);
       }
     }
-  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router]);
+  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router, stravaConnected, fetchUnmappedGears]);
 
   // --- Step: Wear Start ---
 
