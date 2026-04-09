@@ -8,6 +8,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useGearQuery, useUpdateBikeNotificationPreferenceMutation, ServiceNotificationMode } from '../../src/graphql/generated';
@@ -38,12 +39,19 @@ function BikeNotificationCard({
   const [updatePref] = useUpdateBikeNotificationPreferenceMutation();
 
   const pref = bike.notificationPreference;
-  const enabled = pref?.serviceNotificationsEnabled ?? true;
-  const mode = pref?.serviceNotificationMode ?? ServiceNotificationMode.RidesBefore;
-  const threshold = pref?.serviceNotificationThreshold ?? 3;
+  const serverEnabled = pref?.serviceNotificationsEnabled ?? true;
+  const serverMode = pref?.serviceNotificationMode ?? ServiceNotificationMode.RidesBefore;
+  const serverThreshold = pref?.serviceNotificationThreshold ?? 3;
 
-  const [localThreshold, setLocalThreshold] = useState(String(threshold));
+  const [localEnabled, setLocalEnabled] = useState<boolean | null>(null);
+  const [localMode, setLocalMode] = useState<ServiceNotificationMode | null>(null);
+  const [localThreshold, setLocalThreshold] = useState(String(serverThreshold));
   const [saving, setSaving] = useState(false);
+
+  // Use local state for immediate UI feedback, fall back to server state
+  const enabled = localEnabled ?? serverEnabled;
+  const mode = localMode ?? serverMode;
+  const threshold = serverThreshold;
 
   const bikeName = bike.nickname || `${bike.manufacturer} ${bike.model}`;
 
@@ -64,6 +72,8 @@ function BikeNotificationCard({
           },
           refetchQueries: ['Gear'],
         });
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update notification preferences.');
       } finally {
         setSaving(false);
       }
@@ -72,10 +82,12 @@ function BikeNotificationCard({
   );
 
   const handleToggle = (value: boolean) => {
+    setLocalEnabled(value);
     update({ serviceNotificationsEnabled: value });
   };
 
   const handleModeChange = (newMode: ServiceNotificationMode) => {
+    setLocalMode(newMode);
     update({ serviceNotificationMode: newMode });
   };
 

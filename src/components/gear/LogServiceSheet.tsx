@@ -232,8 +232,7 @@ export function LogServiceSheet({
                         <StatusDot status={component.status || 'UNKNOWN'} />
                         <View style={styles.componentContent}>
                           <Text style={styles.componentType}>
-                            {typeName}
-                            {location ? ` (${location})` : ''}
+                            {location ? `${location} ${typeName}` : typeName}
                           </Text>
                           {brandModel && (
                             <Text style={styles.componentBrand}>{brandModel}</Text>

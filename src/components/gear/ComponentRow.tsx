@@ -66,8 +66,7 @@ export function ComponentRow({ component, status, hoursRemaining, restricted, on
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.type, restricted && styles.textRestricted]}>
-            {typeName}
-            {location ? ` (${location})` : ''}
+            {location ? `${location} ${typeName}` : typeName}
           </Text>
           {!restricted && hoursText && (
             <Text

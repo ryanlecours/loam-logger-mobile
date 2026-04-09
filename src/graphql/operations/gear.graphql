@@ -15,6 +15,12 @@ fragment ComponentFields on Component {
   lastServicedAt
   location
   status
+  serviceLogs {
+    id
+    performedAt
+    notes
+    hoursAtService
+  }
 }
 
 fragment PredictionFields on BikePredictionSummary {

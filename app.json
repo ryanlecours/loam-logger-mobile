@@ -4,7 +4,6 @@
     "slug": "loam-logger",
     "version": "1.0.0",
     "orientation": "portrait",
-    "entryPoint": "./node_modules/expo-router/entry",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

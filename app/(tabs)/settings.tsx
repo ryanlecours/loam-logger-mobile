@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useUserTier } from '../../src/hooks/useUserTier';
@@ -232,11 +232,11 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+      <View style={{ marginTop: 16, marginHorizontal: 16 }}>
         <SubscriptionSection />
       </View>
 
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ marginHorizontal: 16 }}>
         <ReferralSection />
       </View>
 
@@ -256,6 +256,18 @@ export default function SettingsScreen() {
           onImportPress={() => handleImportPress('strava')}
           onConnectionChange={handleConnectionChange}
         />
+        {connectedProviders.has('strava') && (
+          <TouchableOpacity
+            style={styles.legalRow}
+            onPress={() => router.push('/settings-detail/strava-mappings' as Href)}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="git-compare-outline" size={18} color={colors.strava} />
+              <Text style={styles.legalRowText}>Strava Bike Mapping</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {connectedProviders.size >= 2 && (
@@ -314,7 +326,7 @@ export default function SettingsScreen() {
             <Text style={styles.prefLabel}>Wear Predictions</Text>
             {!isPro && (
               <View style={styles.proBadge}>
-                <Ionicons name="lock-closed" size={10} color={colors.monitor} />
+                <Ionicons name="lock-closed" size={10} color="#fbbf24" />
                 <Text style={styles.proBadgeText}>Pro</Text>
               </View>
             )}
@@ -358,7 +370,7 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ marginHorizontal: 16 }}>
         <NotificationPreferences />
       </View>
 
@@ -380,7 +392,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
+      <View style={{ marginTop: 16, marginHorizontal: 16 }}>
         <TouchableOpacity
           style={[styles.button, styles.logoutButton]}
           onPress={handleLogout}
@@ -424,10 +436,11 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: colors.card,
     marginTop: 16,
+    marginHorizontal: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   sectionTitle: {
@@ -436,11 +449,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 12,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   item: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    paddingVertical: 4,
   },
   label: {
     fontSize: 14,
@@ -551,7 +563,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: colors.monitorBg,
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -559,7 +571,7 @@ const styles = StyleSheet.create({
   proBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.monitor,
+    color: '#fbbf24',
   },
   segmentLocked: {
     opacity: 0.5,
@@ -606,10 +618,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     marginTop: 32,
     marginBottom: 32,
+    marginHorizontal: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.danger,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.danger,
   },
   dangerSectionTitle: {
     fontSize: 14,

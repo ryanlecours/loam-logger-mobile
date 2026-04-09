@@ -9,10 +9,12 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
-import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
+import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 
 /** User-facing hints for what "service" means for specific component types */
@@ -80,8 +82,16 @@ export function ComponentDetailSheet({
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
   const [snoozeSuccess, setSnoozeSuccess] = useState(false);
+  const [preSnoozeInterval, setPreSnoozeInterval] = useState<number | null>(null);
+  const [savingInterval, setSavingInterval] = useState(false);
+  const [optimisticInterval, setOptimisticInterval] = useState<number | null>(null);
+  const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
+  const [showRidesInfo, setShowRidesInfo] = useState(false);
 
   const [snoozeComponent, { loading: snoozing }] = useSnoozeComponentMutation({
+    refetchQueries: ['Gear', 'GearLight'],
+  });
+  const [updateComponent, { loading: undoing }] = useUpdateComponentMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
 
@@ -90,23 +100,80 @@ export function ComponentDetailSheet({
     setShowCustomInput(false);
     setCustomHours('');
     setSnoozeSuccess(false);
+    setPreSnoozeInterval(null);
+    setShowConfidenceInfo(false);
+    setShowRidesInfo(false);
+    setOptimisticInterval(null);
     onClose();
   }, [onClose]);
 
   const handleSnooze = useCallback(async (hours: number) => {
     if (!component) return;
     try {
+      setPreSnoozeInterval(component.serviceDueAtHours ?? null);
       await snoozeComponent({
         variables: { id: component.id, hours },
       });
       setSnoozeSuccess(true);
-      setTimeout(() => {
-        handleClose();
-      }, 1000);
     } catch (err) {
       console.error('Failed to snooze component:', err);
     }
-  }, [component, snoozeComponent, handleClose]);
+  }, [component, snoozeComponent]);
+
+  const handleEditInterval = useCallback(() => {
+    if (!component) return;
+    const componentId = component.id;
+    const currentInterval = String(serviceInterval ?? '');
+
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Service Interval',
+        'How many hours between services for this component?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Save',
+            onPress: (value) => {
+              const parsed = parseFloat(value || '');
+              if (isNaN(parsed) || parsed < 1 || parsed > 1000) return;
+              setSavingInterval(true);
+              setOptimisticInterval(parsed);
+              updateComponent({
+                variables: { id: componentId, input: { serviceDueAtHours: parsed } },
+                awaitRefetchQueries: true,
+              }).then(() => {
+                setOptimisticInterval(null);
+              }).catch(() => {
+                setOptimisticInterval(null);
+                Alert.alert('Error', 'Failed to update interval.');
+              }).finally(() => {
+                setSavingInterval(false);
+              });
+            },
+          },
+        ],
+        'plain-text',
+        currentInterval,
+        'number-pad'
+      );
+    } else {
+      Alert.alert('Service Interval', `Current interval: ${currentInterval}h. Use the web app to edit service intervals on Android.`);
+    }
+  }, [component, serviceInterval, updateComponent]);
+
+  const handleUndoSnooze = useCallback(async () => {
+    if (!component || preSnoozeInterval === null) return;
+    try {
+      await updateComponent({
+        variables: { id: component.id, input: { serviceDueAtHours: preSnoozeInterval } },
+      });
+      setSnoozeSuccess(false);
+      setShowSnoozeOptions(false);
+      setPreSnoozeInterval(null);
+    } catch (err) {
+      console.error('Failed to undo snooze:', err);
+    }
+  }, [component, preSnoozeInterval, updateComponent]);
 
   if (!component) return null;
 
@@ -117,7 +184,7 @@ export function ComponentDetailSheet({
   const confidence = formatConfidence(prediction?.confidence);
 
   const hoursRemaining = prediction?.hoursRemaining;
-  const serviceInterval = prediction?.serviceIntervalHours || component.serviceDueAtHours;
+  const serviceInterval = optimisticInterval ?? prediction?.serviceIntervalHours ?? component.serviceDueAtHours;
   const hoursSinceService = prediction?.hoursSinceService;
   const ridesRemaining = prediction?.ridesRemainingEstimate;
   const lastServiced = component.lastServicedAt;
@@ -140,8 +207,7 @@ export function ComponentDetailSheet({
               <View style={styles.header}>
                 <View style={styles.headerContent}>
                   <Text style={styles.title}>
-                    {typeName}
-                    {location ? ` (${location})` : ''}
+                    {location ? `${location} ${typeName}` : typeName}
                   </Text>
                   {brandModel && brandModel !== 'Stock' && (
                     <Text style={styles.brandModel}>{brandModel}</Text>
@@ -155,14 +221,52 @@ export function ComponentDetailSheet({
               <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Status Badge */}
                 <View style={styles.statusRow}>
-                  <ComponentHealthBadge status={status} />
-                  <View style={styles.confidenceRow}>
+                  <View style={styles.conditionRow}>
+                    <Text style={styles.conditionLabel}>Condition:</Text>
+                    <ComponentHealthBadge status={status} />
+                  </View>
+                  <TouchableOpacity
+                    style={styles.confidenceRow}
+                    onPress={() => setShowConfidenceInfo(!showConfidenceInfo)}
+                    activeOpacity={0.7}
+                  >
                     <Ionicons name="analytics-outline" size={14} color={confidence.color} />
                     <Text style={[styles.confidenceText, { color: confidence.color }]}>
                       {confidence.label} confidence
                     </Text>
-                  </View>
+                    <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
+                  </TouchableOpacity>
                 </View>
+
+                {showConfidenceInfo && (
+                  <View style={styles.confidenceInfoCard}>
+                    <Text style={styles.confidenceInfoTitle}>How confidence is calculated</Text>
+                    <Text style={styles.confidenceInfoText}>
+                      Confidence reflects how much data Loam Logger has to estimate when this component will need service.
+                    </Text>
+                    <View style={styles.confidenceLevelRow}>
+                      <View style={[styles.confidenceDot, { backgroundColor: '#16a34a' }]} />
+                      <View style={styles.confidenceLevelContent}>
+                        <Text style={styles.confidenceLevelLabel}>High</Text>
+                        <Text style={styles.confidenceLevelDesc}>Service date was set during calibration, or multiple service logs provide a clear pattern.</Text>
+                      </View>
+                    </View>
+                    <View style={styles.confidenceLevelRow}>
+                      <View style={[styles.confidenceDot, { backgroundColor: '#ca8a04' }]} />
+                      <View style={styles.confidenceLevelContent}>
+                        <Text style={styles.confidenceLevelLabel}>Medium</Text>
+                        <Text style={styles.confidenceLevelDesc}>Wear was estimated using a slider or limited ride data. Accuracy improves as you log more rides and services.</Text>
+                      </View>
+                    </View>
+                    <View style={styles.confidenceLevelRow}>
+                      <View style={[styles.confidenceDot, { backgroundColor: '#dc2626' }]} />
+                      <View style={styles.confidenceLevelContent}>
+                        <Text style={styles.confidenceLevelLabel}>Low</Text>
+                        <Text style={styles.confidenceLevelDesc}>Using default service intervals. Log a service or calibrate your components to improve accuracy.</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
 
                 {/* Service hint */}
                 {SERVICE_HINTS[component.type] && status !== 'ALL_GOOD' && (
@@ -181,11 +285,15 @@ export function ComponentDetailSheet({
                         size={20}
                         color={hoursRemaining <= 0 ? colors.danger : colors.primary}
                       />
-                      <Text style={styles.statValue}>
-                        {hoursRemaining <= 0
-                          ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
-                          : `${hoursRemaining.toFixed(0)}h`}
-                      </Text>
+                      {savingInterval ? (
+                        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+                      ) : (
+                        <Text style={styles.statValue}>
+                          {hoursRemaining <= 0
+                            ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
+                            : `${hoursRemaining.toFixed(0)}h`}
+                        </Text>
+                      )}
                       <Text style={styles.statLabel}>
                         {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
                       </Text>
@@ -193,11 +301,23 @@ export function ComponentDetailSheet({
                   )}
 
                   {serviceInterval && (
-                    <View style={styles.statItem}>
+                    <TouchableOpacity
+                      style={[styles.statItem, styles.statItemTappable]}
+                      onPress={handleEditInterval}
+                      activeOpacity={0.7}
+                      disabled={savingInterval}
+                    >
                       <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{serviceInterval}h</Text>
+                      {savingInterval ? (
+                        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+                      ) : (
+                        <Text style={styles.statValue}>{serviceInterval}h</Text>
+                      )}
                       <Text style={styles.statLabel}>Interval</Text>
-                    </View>
+                      {!savingInterval && (
+                        <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
+                      )}
+                    </TouchableOpacity>
                   )}
 
                   {hoursSinceService !== null && hoursSinceService !== undefined && (
@@ -209,19 +329,88 @@ export function ComponentDetailSheet({
                   )}
 
                   {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
-                    <View style={styles.statItem}>
+                    <TouchableOpacity
+                      style={styles.statItem}
+                      onPress={() => setShowRidesInfo(!showRidesInfo)}
+                      activeOpacity={0.7}
+                    >
                       <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{ridesRemaining}</Text>
+                      {savingInterval ? (
+                        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+                      ) : (
+                        <Text style={styles.statValue}>{ridesRemaining}</Text>
+                      )}
                       <Text style={styles.statLabel}>Rides Left</Text>
-                    </View>
+                      <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
+                    </TouchableOpacity>
                   )}
                 </View>
 
-                {/* Last Serviced */}
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Last Serviced</Text>
-                  <Text style={styles.infoValue}>{formatDate(lastServiced)}</Text>
-                </View>
+                {showRidesInfo && (
+                  <View style={styles.confidenceInfoCard}>
+                    <Text style={styles.confidenceInfoTitle}>How rides remaining is calculated</Text>
+                    <Text style={styles.confidenceInfoText}>
+                      Loam Logger looks at your recent ride history to determine your average ride duration, then estimates how many rides fit in the remaining service hours.
+                    </Text>
+                    <View style={styles.ridesInfoItem}>
+                      <Ionicons name="time-outline" size={16} color={colors.primary} />
+                      <Text style={styles.ridesInfoText}>
+                        Hours remaining is divided by your average ride length to get rides left.
+                      </Text>
+                    </View>
+                    <View style={styles.ridesInfoItem}>
+                      <Ionicons name="trending-up-outline" size={16} color={colors.primary} />
+                      <Text style={styles.ridesInfoText}>
+                        This updates automatically as you log more rides. Longer or shorter rides will shift the estimate.
+                      </Text>
+                    </View>
+                    <View style={styles.ridesInfoItem}>
+                      <Ionicons name="refresh-outline" size={16} color={colors.primary} />
+                      <Text style={styles.ridesInfoText}>
+                        Changing the service interval or logging a service resets the calculation.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Service History */}
+                {(() => {
+                  // Filter out installation records (hoursAtService: 0) and invalid dates
+                  const realServiceLogs = (component.serviceLogs ?? [])
+                    .filter((log) => log.hoursAtService > 0 || formatDate(log.performedAt) !== 'Never')
+                    .filter((log) => formatDate(log.performedAt) !== 'Never')
+                    .slice()
+                    .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
+
+                  if (realServiceLogs.length > 0) {
+                    return (
+                      <View style={styles.serviceHistorySection}>
+                        <Text style={styles.serviceHistoryTitle}>Service History</Text>
+                        {realServiceLogs.slice(0, 5).map((log) => (
+                          <View key={log.id} style={styles.serviceLogRow}>
+                            <Ionicons name="build-outline" size={14} color={colors.textMuted} />
+                            <Text style={styles.serviceLogDate}>{formatDate(log.performedAt)}</Text>
+                            <Text style={styles.serviceLogHours}>{log.hoursAtService.toFixed(0)}h at service</Text>
+                          </View>
+                        ))}
+                        {realServiceLogs.length > 5 && (
+                          <Text style={styles.serviceLogMore}>
+                            +{realServiceLogs.length - 5} more
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Last Serviced</Text>
+                      <Text style={styles.infoValue}>
+                        {lastServiced && formatDate(lastServiced) !== 'Never' ? formatDate(lastServiced) : 'Never'}
+                      </Text>
+                    </View>
+                  );
+                })()}
 
                 {/* Component Type */}
                 <View style={styles.infoRow}>
@@ -297,11 +486,20 @@ export function ComponentDetailSheet({
                   </View>
                 )}
 
-                {/* Snooze success feedback */}
+                {/* Snooze success feedback with undo */}
                 {snoozeSuccess && (
                   <View style={styles.snoozeSuccess}>
                     <Ionicons name="checkmark-circle" size={24} color={colors.good} />
                     <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
+                    {preSnoozeInterval !== null && (
+                      <TouchableOpacity onPress={handleUndoSnooze} disabled={undoing}>
+                        {undoing ? (
+                          <ActivityIndicator size="small" color={colors.textMuted} />
+                        ) : (
+                          <Text style={styles.undoText}>Undo</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </ScrollView>
@@ -344,6 +542,7 @@ export function ComponentDetailSheet({
         </View>
       </TouchableWithoutFeedback>
     </Modal>
+
   );
 }
 
@@ -567,6 +766,124 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.good,
+  },
+  undoText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  statItemTappable: {
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderStyle: 'dashed',
+  },
+  editIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  conditionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  conditionLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  ridesInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
+  },
+  ridesInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  confidenceInfoCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  confidenceInfoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  confidenceInfoText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  confidenceLevelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 10,
+  },
+  confidenceDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 5,
+  },
+  confidenceLevelContent: {
+    flex: 1,
+  },
+  confidenceLevelLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  confidenceLevelDesc: {
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+  serviceHistorySection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
+  serviceHistoryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  serviceLogRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+  },
+  serviceLogDate: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: '500',
+  },
+  serviceLogHours: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  serviceLogMore: {
+    fontSize: 13,
+    color: colors.textMuted,
+    paddingVertical: 4,
+    paddingLeft: 22,
   },
   actions: {
     flexDirection: 'row',

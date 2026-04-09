@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ export default function BikeDetailScreen() {
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
   const [showReplaceSheet, setShowReplaceSheet] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const { data, loading, error, refetch } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
@@ -65,44 +66,56 @@ export default function BikeDetailScreen() {
     componentPredictions.map((p) => [p.componentId, p])
   );
 
-  const sortedComponents = [...(bike.components || [])].sort((a, b) => {
-    // Group alike components together, then sort by status within each group
-    const groupOrder: Record<string, number> = {
-      // Suspension
-      FORK: 0, SHOCK: 1,
-      // Drivetrain
-      CHAIN: 10, CASSETTE: 11, REAR_DERAILLEUR: 12, CRANK: 13, DRIVETRAIN: 14, PEDALS: 15,
-      // Brakes
-      BRAKE_PAD: 20, BRAKE_ROTOR: 21, BRAKES: 22,
-      // Wheels & tires
-      TIRES: 30, RIMS: 31, WHEEL_HUBS: 32,
-      // Cockpit & seatpost
-      HANDLEBAR: 40, STEM: 41, DROPPER: 42, SADDLE: 43, SEATPOST: 44,
-      // Bearings
-      HEADSET: 50, BOTTOM_BRACKET: 51, PIVOT_BEARINGS: 52,
-      // Other
-      OTHER: 60,
-    };
-    const statusOrder: Record<string, number> = {
-      OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,
-    };
+  const COMPONENT_GROUP_MAP: Record<string, string> = {
+    FORK: 'Suspension', SHOCK: 'Suspension',
+    CHAIN: 'Drivetrain', CASSETTE: 'Drivetrain', REAR_DERAILLEUR: 'Drivetrain',
+    CRANK: 'Drivetrain', DRIVETRAIN: 'Drivetrain', PEDALS: 'Drivetrain',
+    BRAKE_PAD: 'Brakes', BRAKE_ROTOR: 'Brakes', BRAKES: 'Brakes',
+    TIRES: 'Wheels & Tires', RIMS: 'Wheels & Tires', WHEEL_HUBS: 'Wheels & Tires',
+    HANDLEBAR: 'Cockpit', STEM: 'Cockpit', DROPPER: 'Cockpit',
+    SADDLE: 'Cockpit', SEATPOST: 'Cockpit',
+    HEADSET: 'Bearings', BOTTOM_BRACKET: 'Bearings', PIVOT_BEARINGS: 'Bearings',
+  };
 
-    const groupA = groupOrder[a.type] ?? 60;
-    const groupB = groupOrder[b.type] ?? 60;
-    if (groupA !== groupB) return groupA - groupB;
+  const GROUP_ORDER = ['Suspension', 'Drivetrain', 'Brakes', 'Wheels & Tires', 'Cockpit', 'Bearings', 'Other'];
 
-    // Within the same group, sort by location (FRONT before REAR)
-    const locA = a.location === 'FRONT' ? 0 : a.location === 'REAR' ? 1 : 2;
-    const locB = b.location === 'FRONT' ? 0 : b.location === 'REAR' ? 1 : 2;
-    if (locA !== locB) return locA - locB;
+  const statusOrder: Record<string, number> = {
+    OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,
+  };
 
-    // Within the same type+location, sort by urgency
-    const predA = predictionMap.get(a.id);
-    const predB = predictionMap.get(b.id);
-    const orderA = statusOrder[predA?.status || a.status || 'UNKNOWN'] ?? 4;
-    const orderB = statusOrder[predB?.status || b.status || 'UNKNOWN'] ?? 4;
-    return orderA - orderB;
-  });
+  const componentGroups = useMemo(() => {
+    const groups = new Map<string, ComponentFieldsFragment[]>();
+    for (const comp of bike.components || []) {
+      const group = COMPONENT_GROUP_MAP[comp.type] || 'Other';
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(comp);
+    }
+    // Sort within each group by location then status
+    for (const [, comps] of groups) {
+      comps.sort((a, b) => {
+        const locA = a.location === 'FRONT' ? 0 : a.location === 'REAR' ? 1 : 2;
+        const locB = b.location === 'FRONT' ? 0 : b.location === 'REAR' ? 1 : 2;
+        if (locA !== locB) return locA - locB;
+        const predA = predictionMap.get(a.id);
+        const predB = predictionMap.get(b.id);
+        const orderA = statusOrder[predA?.status || a.status || 'UNKNOWN'] ?? 4;
+        const orderB = statusOrder[predB?.status || b.status || 'UNKNOWN'] ?? 4;
+        return orderA - orderB;
+      });
+    }
+    return GROUP_ORDER
+      .filter((g) => groups.has(g))
+      .map((g) => ({ name: g, components: groups.get(g)! }));
+  }, [bike.components, predictionMap]);
+
+  const toggleGroup = (name: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const isComponentRestricted = (type: string) =>
     isFreeLight && !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(type);
@@ -325,22 +338,56 @@ export default function BikeDetailScreen() {
           )}
         </View>
         <View style={styles.componentsList}>
-          {sortedComponents.length === 0 ? (
+          {componentGroups.length === 0 ? (
             <View style={styles.emptyComponents}>
               <Text style={styles.emptyText}>No components tracked yet</Text>
             </View>
           ) : (
-            sortedComponents.map((component) => {
-              const prediction = predictionMap.get(component.id);
+            componentGroups.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.name);
+              // Count components needing attention in this group
+              const attentionCount = group.components.filter((c) => {
+                const pred = predictionMap.get(c.id);
+                const s = pred?.status || c.status;
+                return s === 'OVERDUE' || s === 'DUE_NOW' || s === 'DUE_SOON';
+              }).length;
+
               return (
-                <ComponentRow
-                  key={component.id}
-                  component={component}
-                  status={prediction?.status || component.status || undefined}
-                  hoursRemaining={prediction?.hoursRemaining}
-                  restricted={isComponentRestricted(component.type)}
-                  onPress={() => handleComponentPress(component)}
-                />
+                <View key={group.name}>
+                  <TouchableOpacity
+                    style={styles.groupHeader}
+                    onPress={() => toggleGroup(group.name)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.groupHeaderLeft}>
+                      <Ionicons
+                        name={isCollapsed ? 'chevron-forward' : 'chevron-down'}
+                        size={16}
+                        color={colors.textMuted}
+                      />
+                      <Text style={styles.groupHeaderText}>{group.name}</Text>
+                      <Text style={styles.groupCount}>{group.components.length}</Text>
+                    </View>
+                    {attentionCount > 0 && (
+                      <View style={styles.attentionBadge}>
+                        <Text style={styles.attentionBadgeText}>{attentionCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {!isCollapsed && group.components.map((component) => {
+                    const prediction = predictionMap.get(component.id);
+                    return (
+                      <ComponentRow
+                        key={component.id}
+                        component={component}
+                        status={prediction?.status || component.status || undefined}
+                        hoursRemaining={prediction?.hoursRemaining}
+                        restricted={isComponentRestricted(component.type)}
+                        onPress={() => handleComponentPress(component)}
+                      />
+                    );
+                  })}
+                </View>
               );
             })
           )}
@@ -567,6 +614,43 @@ const styles = StyleSheet.create({
   componentsList: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.cardBorder,
+  },
+  groupHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  groupHeaderText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  groupCount: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  attentionBadge: {
+    backgroundColor: colors.warningBg,
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  attentionBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.warning,
   },
   emptyComponents: {
     padding: 24,

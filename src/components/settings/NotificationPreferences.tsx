@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   sectionTitle: {
@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 12,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   row: {
