@@ -19,6 +19,7 @@ query Me {
     createdAt
     activeDataSource
     subscriptionTier
+    subscriptionProvider
     referralCode
     needsDowngradeSelection
     tierLimits {

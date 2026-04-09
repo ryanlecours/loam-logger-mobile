@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,14 +14,33 @@ import { useUserTier } from '../../src/hooks/useUserTier';
 import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
+const COMPONENT_GROUP_MAP: Record<string, string> = {
+  FORK: 'Suspension', SHOCK: 'Suspension',
+  CHAIN: 'Drivetrain', CASSETTE: 'Drivetrain', REAR_DERAILLEUR: 'Drivetrain',
+  CRANK: 'Drivetrain', DRIVETRAIN: 'Drivetrain', PEDALS: 'Drivetrain',
+  BRAKE_PAD: 'Brakes', BRAKE_ROTOR: 'Brakes', BRAKES: 'Brakes',
+  TIRES: 'Wheels & Tires', RIMS: 'Wheels & Tires', WHEEL_HUBS: 'Wheels & Tires',
+  HANDLEBAR: 'Cockpit', STEM: 'Cockpit', DROPPER: 'Cockpit',
+  SADDLE: 'Cockpit', SEATPOST: 'Cockpit',
+  HEADSET: 'Bearings', BOTTOM_BRACKET: 'Bearings', PIVOT_BEARINGS: 'Bearings',
+};
+
+const GROUP_ORDER = ['Suspension', 'Drivetrain', 'Brakes', 'Wheels & Tires', 'Cockpit', 'Bearings', 'Other'];
+
+const STATUS_ORDER: Record<string, number> = {
+  OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,
+};
+
 export default function BikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isFreeLight } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
+  const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
   const [showReplaceSheet, setShowReplaceSheet] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const { data, loading, error, refetch } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
@@ -32,6 +51,36 @@ export default function BikeDetailScreen() {
 
   const bike = data?.bikes?.find((b) => b.id === id);
   const predictions = bike?.predictions;
+
+  const predictionMap = useMemo(() => {
+    const components = predictions?.components || [];
+    return new Map(components.map((p) => [p.componentId, p]));
+  }, [predictions?.components]);
+
+  const componentGroups = useMemo(() => {
+    const bikeComponents = bike?.components || [];
+    const groups = new Map<string, ComponentFieldsFragment[]>();
+    for (const comp of bikeComponents) {
+      const group = COMPONENT_GROUP_MAP[comp.type] || 'Other';
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group)!.push(comp);
+    }
+    for (const [, comps] of groups) {
+      comps.sort((a, b) => {
+        const locA = a.location === 'FRONT' ? 0 : a.location === 'REAR' ? 1 : 2;
+        const locB = b.location === 'FRONT' ? 0 : b.location === 'REAR' ? 1 : 2;
+        if (locA !== locB) return locA - locB;
+        const predA = predictionMap.get(a.id);
+        const predB = predictionMap.get(b.id);
+        const orderA = STATUS_ORDER[predA?.status || a.status || 'UNKNOWN'] ?? 4;
+        const orderB = STATUS_ORDER[predB?.status || b.status || 'UNKNOWN'] ?? 4;
+        return orderA - orderB;
+      });
+    }
+    return GROUP_ORDER
+      .filter((g) => groups.has(g))
+      .map((g) => ({ name: g, components: groups.get(g)! }));
+  }, [bike?.components, predictionMap]);
 
   if (loading && !data) {
     return (
@@ -60,25 +109,14 @@ export default function BikeDetailScreen() {
   const displayName = bike.nickname || `${bike.manufacturer} ${bike.model}`;
   const subtitle = bike.nickname ? `${bike.manufacturer} ${bike.model}` : null;
 
-  const componentPredictions = predictions?.components || [];
-  const predictionMap = new Map(
-    componentPredictions.map((p) => [p.componentId, p])
-  );
-
-  const sortedComponents = [...(bike.components || [])].sort((a, b) => {
-    const predA = predictionMap.get(a.id);
-    const predB = predictionMap.get(b.id);
-    const statusOrder: Record<string, number> = {
-      OVERDUE: 0,
-      DUE_NOW: 1,
-      DUE_SOON: 2,
-      ALL_GOOD: 3,
-      UNKNOWN: 4,
-    };
-    const orderA = statusOrder[predA?.status || a.status || 'UNKNOWN'] ?? 4;
-    const orderB = statusOrder[predB?.status || b.status || 'UNKNOWN'] ?? 4;
-    return orderA - orderB;
-  });
+  const toggleGroup = (name: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   const isComponentRestricted = (type: string) =>
     isFreeLight && !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(type);
@@ -92,8 +130,10 @@ export default function BikeDetailScreen() {
   };
 
   const handleLogServiceFromDetail = () => {
+    const componentId = selectedComponent?.id ?? null;
     setSelectedComponent(null);
     setTimeout(() => {
+      setServicePreSelectedId(componentId);
       setShowLogService(true);
     }, 300);
   };
@@ -301,22 +341,56 @@ export default function BikeDetailScreen() {
           )}
         </View>
         <View style={styles.componentsList}>
-          {sortedComponents.length === 0 ? (
+          {componentGroups.length === 0 ? (
             <View style={styles.emptyComponents}>
               <Text style={styles.emptyText}>No components tracked yet</Text>
             </View>
           ) : (
-            sortedComponents.map((component) => {
-              const prediction = predictionMap.get(component.id);
+            componentGroups.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.name);
+              // Count components needing attention in this group
+              const attentionCount = group.components.filter((c) => {
+                const pred = predictionMap.get(c.id);
+                const s = pred?.status || c.status;
+                return s === 'OVERDUE' || s === 'DUE_NOW' || s === 'DUE_SOON';
+              }).length;
+
               return (
-                <ComponentRow
-                  key={component.id}
-                  component={component}
-                  status={prediction?.status || component.status || undefined}
-                  hoursRemaining={prediction?.hoursRemaining}
-                  restricted={isComponentRestricted(component.type)}
-                  onPress={() => handleComponentPress(component)}
-                />
+                <View key={group.name}>
+                  <TouchableOpacity
+                    style={styles.groupHeader}
+                    onPress={() => toggleGroup(group.name)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.groupHeaderLeft}>
+                      <Ionicons
+                        name={isCollapsed ? 'chevron-forward' : 'chevron-down'}
+                        size={16}
+                        color={colors.textMuted}
+                      />
+                      <Text style={styles.groupHeaderText}>{group.name}</Text>
+                      <Text style={styles.groupCount}>{group.components.length}</Text>
+                    </View>
+                    {attentionCount > 0 && (
+                      <View style={styles.attentionBadge}>
+                        <Text style={styles.attentionBadgeText}>{attentionCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                  {!isCollapsed && group.components.map((component) => {
+                    const prediction = predictionMap.get(component.id);
+                    return (
+                      <ComponentRow
+                        key={component.id}
+                        component={component}
+                        status={prediction?.status || component.status || undefined}
+                        hoursRemaining={prediction?.hoursRemaining}
+                        restricted={isComponentRestricted(component.type)}
+                        onPress={() => handleComponentPress(component)}
+                      />
+                    );
+                  })}
+                </View>
               );
             })
           )}
@@ -374,9 +448,13 @@ export default function BikeDetailScreen() {
 
       <LogServiceSheet
         visible={showLogService}
-        onClose={() => setShowLogService(false)}
+        onClose={() => {
+          setShowLogService(false);
+          setServicePreSelectedId(null);
+        }}
         components={bike.components || []}
         onServiceLogged={refetch}
+        preSelectedId={servicePreSelectedId}
       />
 
       <ComponentDetailSheet
@@ -543,6 +621,43 @@ const styles = StyleSheet.create({
   componentsList: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.cardBorder,
+  },
+  groupHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  groupHeaderText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  groupCount: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  attentionBadge: {
+    backgroundColor: colors.warningBg,
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  attentionBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.warning,
   },
   emptyComponents: {
     padding: 24,

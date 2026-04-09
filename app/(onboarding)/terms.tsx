@@ -9,15 +9,15 @@ import {
 import { useAcceptTermsMutation } from '../../src/graphql/generated';
 import { useAuth } from '../../src/hooks/useAuth';
 import { isUnauthorizedError } from '../../src/utils/errors';
+import { LegalDocument } from '../../src/components/legal/LegalDocument';
+import { TERMS_SECTIONS, CURRENT_TERMS_VERSION } from '../../src/legal/terms';
 import { colors } from '../../src/constants/theme';
-
-// TODO: Import from @loam/shared when available
-const CURRENT_TERMS_VERSION = '1.2.0';
 
 export default function TermsScreen() {
   const { refetchUser, logout } = useAuth();
   const [acceptTerms, { loading }] = useAcceptTermsMutation();
   const [error, setError] = useState<string | null>(null);
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
 
   async function handleAccept() {
     try {
@@ -42,24 +42,32 @@ export default function TermsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <View style={styles.header}>
         <Text style={styles.title}>Terms of Service</Text>
-        <Text style={styles.subtitle}>Please accept our terms to continue</Text>
+        <Text style={styles.subtitle}>Please read and accept to continue</Text>
+      </View>
 
-        {/* Placeholder - actual terms content will be added in MOB-07 */}
-        <View style={styles.termsPlaceholder}>
-          <Text style={styles.placeholderText}>[Terms content placeholder]</Text>
-          <Text style={styles.placeholderHint}>
-            Full terms display will be implemented in MOB-07
-          </Text>
-        </View>
+      <View style={styles.documentContainer}>
+        <LegalDocument
+          sections={TERMS_SECTIONS}
+          onScrollEnd={() => setHasScrolledToEnd(true)}
+        />
+      </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+      {!hasScrolledToEnd && (
+        <Text style={styles.scrollHint}>Scroll to read all terms</Text>
+      )}
 
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[
+            styles.button,
+            (!hasScrolledToEnd || loading) && styles.buttonDisabled,
+          ]}
           onPress={handleAccept}
-          disabled={loading}
+          disabled={!hasScrolledToEnd || loading}
         >
           {loading ? (
             <ActivityIndicator color={colors.textPrimary} />
@@ -77,48 +85,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
+  header: {
     paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
     color: colors.primary,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
     color: colors.textSecondary,
-    marginBottom: 32,
+    marginTop: 4,
   },
-  termsPlaceholder: {
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    padding: 24,
-    marginBottom: 24,
-    minHeight: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
+  documentContainer: {
+    flex: 1,
+    marginHorizontal: 16,
   },
-  placeholderText: {
-    fontSize: 16,
-    color: colors.textMuted,
-    marginBottom: 8,
-  },
-  placeholderHint: {
-    fontSize: 12,
+  scrollHint: {
+    fontSize: 13,
     color: colors.textMuted,
     textAlign: 'center',
+    paddingVertical: 6,
   },
   error: {
     color: colors.danger,
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 8,
   },
   button: {
     backgroundColor: colors.primary,
@@ -127,7 +131,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.4,
   },
   buttonText: {
     color: colors.textPrimary,

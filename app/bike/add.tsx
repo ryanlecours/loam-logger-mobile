@@ -15,8 +15,9 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { searchBikes, getBikeById, SpokesSearchResult } from '../../src/api/spokes';
-import { useAddBikeMutation, useGearLightQuery, AcquisitionCondition } from '../../src/graphql/generated';
+import { useAddBikeMutation, useGearLightQuery, useUnmappedStravaGearsLazyQuery, useMeQuery, AcquisitionCondition } from '../../src/graphql/generated';
 import { SpokesBike, SpokesImage } from '../../src/hooks/useOnboarding';
+import { StravaGearMappingSheet } from '../../src/components/gear/StravaGearMappingSheet';
 import { colors } from '../../src/constants/theme';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
@@ -67,6 +68,14 @@ export default function AddBikeScreen() {
 
   const [addBike, { loading: adding }] = useAddBikeMutation();
   const { refetch: refetchGear } = useGearLightQuery();
+  const { data: meData } = useMeQuery({ fetchPolicy: 'cache-first' });
+  const [fetchUnmappedGears] = useUnmappedStravaGearsLazyQuery({ fetchPolicy: 'network-only' });
+
+  // Strava gear mapping state
+  const [showMappingSheet, setShowMappingSheet] = useState(false);
+  const [createdBikeId, setCreatedBikeId] = useState<string | null>(null);
+  const [createdBikeName, setCreatedBikeName] = useState('');
+  const stravaConnected = meData?.me?.accounts?.some(a => a.provider === 'strava') ?? false;
 
   // --- Search ---
 
@@ -181,7 +190,7 @@ export default function AddBikeScreen() {
     const isManual = selectedBike.id.startsWith('manual-');
 
     try {
-      await addBike({
+      const result = await addBike({
         variables: {
           input: {
             manufacturer: selectedBike.maker,
@@ -211,6 +220,20 @@ export default function AddBikeScreen() {
       });
 
       await refetchGear();
+
+      // Check if Strava is connected and unmapped gears exist
+      const newBike = result.data?.addBike;
+      if (stravaConnected && newBike) {
+        const { data: unmappedData } = await fetchUnmappedGears();
+        const unmapped = unmappedData?.unmappedStravaGears?.filter(g => !g.isMapped) ?? [];
+        if (unmapped.length > 0) {
+          setCreatedBikeId(newBike.id);
+          setCreatedBikeName(newBike.nickname || `${newBike.manufacturer} ${newBike.model}`);
+          setShowMappingSheet(true);
+          return;
+        }
+      }
+
       router.back();
     } catch (error) {
       const err = error as ApolloError;
@@ -223,7 +246,7 @@ export default function AddBikeScreen() {
         Alert.alert('Failed to Add Bike', err.message);
       }
     }
-  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router]);
+  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router, stravaConnected, fetchUnmappedGears]);
 
   // --- Step: Wear Start ---
 
@@ -311,6 +334,7 @@ export default function AddBikeScreen() {
   // --- Step: Search ---
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -514,6 +538,20 @@ export default function AddBikeScreen() {
         </ScrollView>
       )}
     </KeyboardAvoidingView>
+
+    {createdBikeId && (
+      <StravaGearMappingSheet
+        visible={showMappingSheet}
+        onClose={() => {
+          setShowMappingSheet(false);
+          router.back();
+        }}
+        bikeId={createdBikeId}
+        bikeName={createdBikeName}
+        onMappingCreated={() => refetchGear()}
+      />
+    )}
+    </>
   );
 }
 

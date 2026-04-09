@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { colors } from '../src/constants/theme';
 
 export default function ClosedBetaScreen() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function ClosedBetaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -55,30 +56,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
-    color: '#2d5016',
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 24,
     lineHeight: 24,
   },
   info: {
     fontSize: 14,
     textAlign: 'center',
-    color: '#888',
+    color: colors.textMuted,
     marginBottom: 32,
     lineHeight: 20,
   },
   button: {
-    backgroundColor: '#2d5016',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

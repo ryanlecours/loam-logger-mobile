@@ -36,7 +36,7 @@ const PROVIDER_CONFIG = {
   strava: { label: 'Strava', color: '#fc4c02' },
 };
 
-function getYearOptions(): string[] {
+function getStravaYearOptions(): string[] {
   const currentYear = new Date().getFullYear();
   const years: string[] = ['ytd'];
   for (let i = 0; i < 5; i++) {
@@ -45,8 +45,15 @@ function getYearOptions(): string[] {
   return years;
 }
 
-function getYearLabel(year: string): string {
-  if (year === 'ytd') return 'Year to Date';
+// Garmin limits historical data access to the past 30 days
+function getGarminYearOptions(): string[] {
+  return ['ytd'];
+}
+
+function getYearLabel(year: string, provider: string): string {
+  if (year === 'ytd') {
+    return provider === 'garmin' ? 'Last 30 Days' : 'Year to Date';
+  }
   return year;
 }
 
@@ -122,7 +129,7 @@ export function ImportRidesSheet({
     onClose();
   }, [onClose]);
 
-  const yearOptions = getYearOptions();
+  const yearOptions = provider === 'garmin' ? getGarminYearOptions() : getStravaYearOptions();
 
   return (
     <Modal
@@ -190,7 +197,7 @@ export function ImportRidesSheet({
                             </View>
                             <View style={styles.yearContent}>
                               <Text style={[styles.yearLabel, isDisabled && styles.yearLabelDisabled]}>
-                                {getYearLabel(year)}
+                                {getYearLabel(year, provider)}
                               </Text>
                               {isCompleted && request?.ridesFound != null && (
                                 <Text style={styles.yearMeta}>
@@ -205,6 +212,12 @@ export function ImportRidesSheet({
                         );
                       })}
                     </ScrollView>
+                  )}
+
+                  {provider === 'garmin' && (
+                    <Text style={styles.garminNote}>
+                      Garmin limits historical data access to the past 30 days. New rides sync automatically going forward.
+                    </Text>
                   )}
 
                   <View style={styles.footer}>
@@ -287,6 +300,13 @@ export function ImportRidesSheet({
 }
 
 const styles = StyleSheet.create({
+  garminNote: {
+    fontSize: 12,
+    color: colors.textMuted,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    lineHeight: 16,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
