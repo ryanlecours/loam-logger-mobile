@@ -62,8 +62,6 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-  // eslint-disable-next-line no-console
-  console.log('[notifications] Push token:', tokenData.data);
   return tokenData.data;
 }
 

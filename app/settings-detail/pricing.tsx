@@ -6,15 +6,13 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Linking,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { useMeQuery, useCreateBillingPortalSessionMutation, CheckoutPlatform } from '../../src/graphql/generated';
-import { restorePurchases } from '../../src/lib/revenuecat';
 import { colors } from '../../src/constants/theme';
 
 export default function PricingScreen() {
@@ -22,32 +20,11 @@ export default function PricingScreen() {
   const { isPro, isFoundingRider, subscriptionProvider } = useUserTier();
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
   const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
-  const [restoring, setRestoring] = useState(false);
   const [managingStripe, setManagingStripe] = useState(false);
 
-  const handleRestore = async () => {
-    setRestoring(true);
-    try {
-      const hasPro = await restorePurchases();
-      if (hasPro) {
-        await refetch();
-        Alert.alert('Restored!', 'Your Pro subscription has been restored.');
-        router.back();
-      } else {
-        Alert.alert('No Purchases Found', 'We could not find any previous purchases to restore.');
-      }
-    } catch {
-      Alert.alert('Restore Failed', 'Please try again.');
-    } finally {
-      setRestoring(false);
-    }
-  };
-
   const handleManage = async () => {
-    if (subscriptionProvider === 'APPLE') {
-      Linking.openURL('https://apps.apple.com/account/subscriptions');
-    } else if (subscriptionProvider === 'GOOGLE') {
-      Linking.openURL('https://play.google.com/store/account/subscriptions');
+    if (subscriptionProvider === 'APPLE' || subscriptionProvider === 'GOOGLE') {
+      router.push('/settings-detail/customer-center' as Href);
     } else {
       // Stripe subscriber — open billing portal
       try {
@@ -136,19 +113,6 @@ export default function PricingScreen() {
           }
         }}
       />
-      <View style={styles.restoreContainer}>
-        <TouchableOpacity
-          style={styles.restoreButton}
-          onPress={handleRestore}
-          disabled={restoring}
-        >
-          {restoring ? (
-            <ActivityIndicator size="small" color={colors.textMuted} />
-          ) : (
-            <Text style={styles.restoreText}>Restore Purchases</Text>
-          )}
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -199,17 +163,5 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
-  },
-  restoreContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-  },
-  restoreButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  restoreText: {
-    fontSize: 14,
-    color: colors.textMuted,
   },
 });

@@ -1,4 +1,4 @@
-import { useMeQuery, type ComponentType } from '../graphql/generated';
+import { useMeQuery, type ComponentType, type SubscriptionProvider } from '../graphql/generated';
 import type { SubscriptionTierName } from '../constants/tiers';
 
 /**
@@ -21,7 +21,7 @@ export function useUserTier() {
   const isFreeLight = tier === 'FREE_LIGHT' && !isFoundingRider && !isAdmin;
   const isFreeFull = tier === 'FREE_FULL' && !isFoundingRider && !isAdmin;
 
-  const subscriptionProvider = (viewer?.subscriptionProvider as string | null) ?? null;
+  const subscriptionProvider: SubscriptionProvider | null = viewer?.subscriptionProvider ?? null;
   const tierLimits = viewer?.tierLimits ?? null;
   const canAddBike = tierLimits?.canAddBike ?? true;
   const allowedComponentTypes = (tierLimits?.allowedComponentTypes ?? []) as ComponentType[];

@@ -379,8 +379,7 @@ export function ComponentDetailSheet({
                 {(() => {
                   // Filter out installation records (hoursAtService: 0) and invalid dates
                   const realServiceLogs = (component.serviceLogs ?? [])
-                    .filter((log) => log.hoursAtService > 0 || formatDate(log.performedAt) !== 'Never')
-                    .filter((log) => formatDate(log.performedAt) !== 'Never')
+                    .filter((log) => log.hoursAtService > 0 && formatDate(log.performedAt) !== 'Never')
                     .slice()
                     .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
 

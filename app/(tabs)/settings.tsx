@@ -384,7 +384,7 @@ export default function SettingsScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.legalRow}
+          style={[styles.legalRow, styles.legalRowLast]}
           onPress={() => router.push('/settings-detail/privacy-policy')}
         >
           <Text style={styles.legalRowText}>Privacy Policy</Text>
@@ -609,6 +609,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+  },
+  legalRowLast: {
+    borderBottomWidth: 0,
   },
   legalRowText: {
     fontSize: 16,

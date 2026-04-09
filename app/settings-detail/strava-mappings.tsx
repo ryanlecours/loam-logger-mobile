@@ -233,7 +233,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 14,
@@ -248,7 +247,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    marginBottom: 12,
   },
   badgeText: {
     fontSize: 12,
