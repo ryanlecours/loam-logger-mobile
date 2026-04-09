@@ -118,7 +118,7 @@ export default function StravaMappingsScreen() {
                       </View>
                     </View>
                     <TouchableOpacity
-                      onPress={() => handleDelete(mapping.id, mapping.stravaGearName)}
+                      onPress={() => handleDelete(mapping.id, mapping.stravaGearName ?? null)}
                       style={styles.deleteButton}
                     >
                       <Ionicons name="trash-outline" size={18} color={colors.danger} />

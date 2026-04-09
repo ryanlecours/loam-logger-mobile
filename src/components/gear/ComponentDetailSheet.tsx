@@ -123,7 +123,9 @@ export function ComponentDetailSheet({
   const handleEditInterval = useCallback(() => {
     if (!component) return;
     const componentId = component.id;
-    const currentInterval = String(serviceInterval ?? '');
+    const currentInterval = String(
+      optimisticInterval ?? prediction?.serviceIntervalHours ?? component.serviceDueAtHours ?? ''
+    );
 
     if (Platform.OS === 'ios') {
       Alert.prompt(
@@ -133,7 +135,7 @@ export function ComponentDetailSheet({
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Save',
-            onPress: (value) => {
+            onPress: (value?: string) => {
               const parsed = parseFloat(value || '');
               if (isNaN(parsed) || parsed < 1 || parsed > 1000) return;
               setSavingInterval(true);
@@ -159,7 +161,7 @@ export function ComponentDetailSheet({
     } else {
       Alert.alert('Service Interval', `Current interval: ${currentInterval}h. Use the web app to edit service intervals on Android.`);
     }
-  }, [component, serviceInterval, updateComponent]);
+  }, [component, optimisticInterval, prediction?.serviceIntervalHours, updateComponent]);
 
   const handleUndoSnooze = useCallback(async () => {
     if (!component || preSnoozeInterval === null) return;
