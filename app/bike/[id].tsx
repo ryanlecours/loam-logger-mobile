@@ -36,6 +36,7 @@ export default function BikeDetailScreen() {
   const router = useRouter();
   const { isFreeLight } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
+  const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
   const [showReplaceSheet, setShowReplaceSheet] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
@@ -129,8 +130,10 @@ export default function BikeDetailScreen() {
   };
 
   const handleLogServiceFromDetail = () => {
+    const componentId = selectedComponent?.id ?? null;
     setSelectedComponent(null);
     setTimeout(() => {
+      setServicePreSelectedId(componentId);
       setShowLogService(true);
     }, 300);
   };
@@ -445,9 +448,13 @@ export default function BikeDetailScreen() {
 
       <LogServiceSheet
         visible={showLogService}
-        onClose={() => setShowLogService(false)}
+        onClose={() => {
+          setShowLogService(false);
+          setServicePreSelectedId(null);
+        }}
         components={bike.components || []}
         onServiceLogged={refetch}
+        preSelectedId={servicePreSelectedId}
       />
 
       <ComponentDetailSheet

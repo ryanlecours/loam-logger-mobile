@@ -148,9 +148,9 @@ export default function RidesScreen() {
           );
         })}
       </ScrollView>
-      {rides.length > 0 && (
+      {rides.length > 0 && !hasMore && (
         <Text style={styles.rideCount}>
-          {rides.length}{hasMore ? '+' : ''} {rides.length === 1 ? 'ride' : 'rides'}
+          {rides.length} {rides.length === 1 ? 'ride' : 'rides'}
         </Text>
       )}
     </View>

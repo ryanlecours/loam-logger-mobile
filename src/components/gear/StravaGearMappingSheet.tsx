@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -59,6 +60,7 @@ export function StravaGearMappingSheet({
       onClose();
     } catch {
       setMappingGearId(null);
+      Alert.alert('Error', 'Failed to create mapping.');
     }
   }, [bikeId, createMapping, onMappingCreated, onClose]);
 
