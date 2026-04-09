@@ -15,6 +15,10 @@ let initializedUserId: string | null = null;
  */
 export async function initializeRevenueCat(userId: string): Promise<void> {
   if (Platform.OS === 'web' || initializedUserId === userId) return;
+  if (!RC_API_KEY) {
+    console.error('[RevenueCat] Missing EXPO_PUBLIC_REVENUECAT_API_KEY');
+    return;
+  }
 
   if (__DEV__) {
     Purchases.setLogLevel(LOG_LEVEL.DEBUG);

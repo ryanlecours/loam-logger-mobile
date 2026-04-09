@@ -39,7 +39,8 @@ export default function StravaMappingsScreen() {
   const [mappingGearId, setMappingGearId] = useState<string | null>(null);
 
   const mappings = mappingsData?.stravaGearMappings ?? [];
-  const unmappedGears = unmappedData?.unmappedStravaGears?.filter(g => !g.isMapped) ?? [];
+  // Server already returns only unmapped gears
+  const unmappedGears = unmappedData?.unmappedStravaGears ?? [];
   const bikes = gearData?.bikes ?? [];
 
   // Exclude bikes that already have a mapping
@@ -132,7 +133,7 @@ export default function StravaMappingsScreen() {
             {unmappedGears.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Unmapped Strava Bikes</Text>
+                  <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Unmapped Strava Bikes</Text>
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{unmappedGears.length}</Text>
                   </View>
@@ -233,6 +234,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 14,

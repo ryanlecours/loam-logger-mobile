@@ -97,6 +97,9 @@ export default function PricingScreen() {
             router.replace('/(tabs)/settings');
           }
         }}
+        onPurchaseError={({ error }) => {
+          Alert.alert('Purchase Failed', error.message || 'Please try again.');
+        }}
         onRestoreCompleted={async () => {
           await refetch();
           if (router.canGoBack()) {
@@ -104,6 +107,9 @@ export default function PricingScreen() {
           } else {
             router.replace('/(tabs)/settings');
           }
+        }}
+        onRestoreError={({ error }) => {
+          Alert.alert('Restore Failed', error.message || 'Please try again.');
         }}
         onDismiss={() => {
           if (router.canGoBack()) {

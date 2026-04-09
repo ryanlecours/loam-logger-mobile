@@ -40,7 +40,8 @@ export function StravaGearMappingSheet({
   });
   const [mappingGearId, setMappingGearId] = useState<string | null>(null);
 
-  const unmappedGears = data?.unmappedStravaGears?.filter(g => !g.isMapped) ?? [];
+  // Server already returns only unmapped gears
+  const unmappedGears = data?.unmappedStravaGears ?? [];
 
   const handleMap = useCallback(async (gearId: string, gearName: string | null) => {
     setMappingGearId(gearId);

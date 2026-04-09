@@ -89,7 +89,10 @@ export function LogServiceSheet({
   const handleLogService = useCallback(async () => {
     if (selectedIds.size === 0) return;
 
-    const performedAt = serviceDate.toISOString();
+    // Set to noon to prevent timezone shifts moving the date to the previous day
+    const noon = new Date(serviceDate);
+    noon.setHours(12, 0, 0, 0);
+    const performedAt = noon.toISOString();
     const ids = Array.from(selectedIds);
 
     try {
