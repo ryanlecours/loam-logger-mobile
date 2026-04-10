@@ -1,0 +1,45 @@
+query CalibrationState {
+  calibrationState {
+    showOverlay
+    overdueCount
+    totalComponentCount
+    bikes {
+      bikeId
+      bikeName
+      thumbnailUrl
+      components {
+        componentId
+        componentType
+        location
+        brand
+        model
+        status
+        hoursRemaining
+        ridesRemainingEstimate
+        confidence
+        currentHours
+        serviceIntervalHours
+        hoursSinceService
+      }
+    }
+  }
+}
+
+mutation LogBulkComponentService($input: BulkServiceLogInput!) {
+  logBulkComponentService(input: $input) {
+    success
+    updatedCount
+  }
+}
+
+mutation DismissCalibration {
+  dismissCalibration {
+    id
+  }
+}
+
+mutation CompleteCalibration {
+  completeCalibration {
+    id
+  }
+}

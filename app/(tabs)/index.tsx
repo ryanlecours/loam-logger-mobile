@@ -1,6 +1,6 @@
 import { ScrollView, View, Text, Image, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
@@ -9,6 +9,7 @@ import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats
 import {
   BikeFieldsFragment,
   ComponentPrediction,
+  useCalibrationStateQuery,
 } from '../../src/graphql/generated';
 import {
   DashboardSkeleton,
@@ -20,6 +21,7 @@ import {
 } from '../../src/components/dashboard';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
+import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
@@ -57,6 +59,17 @@ export default function DashboardScreen() {
   const [selectedPrediction, setSelectedPrediction] = useState<ComponentPrediction | null>(null);
   const [showLogService, setShowLogService] = useState(false);
   const [showReplace, setShowReplace] = useState(false);
+  const [showCalibration, setShowCalibration] = useState(false);
+
+  const { data: calibrationData } = useCalibrationStateQuery({
+    fetchPolicy: 'cache-and-network',
+  });
+
+  useEffect(() => {
+    if (calibrationData?.calibrationState?.showOverlay) {
+      setShowCalibration(true);
+    }
+  }, [calibrationData]);
 
   const { stats: rideStats, refetch: refetchStats } = useRideStats(timeframe);
 
@@ -324,6 +337,12 @@ export default function DashboardScreen() {
           }}
         />
       )}
+
+      {/* Calibration Sheet */}
+      <CalibrationSheet
+        visible={showCalibration}
+        onClose={() => setShowCalibration(false)}
+      />
     </SafeAreaView>
   );
 }

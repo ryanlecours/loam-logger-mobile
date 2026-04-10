@@ -1,6 +1,6 @@
 import type { LegalSection } from './terms';
 
-export const PRIVACY_LAST_UPDATED = 'November 13, 2025';
+export const PRIVACY_LAST_UPDATED = 'April 9, 2026';
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
   {
@@ -29,30 +29,34 @@ Loam Logger ("we," "us," or "our") is an application built by Ryan LeCours. This
   },
   {
     title: '4. Sharing',
-    body: 'We do not sell personal data. We may share with trusted processors (e.g., hosting, analytics) under data-processing terms. We may disclose if required by law or to protect rights and safety.',
+    body: 'We do not sell personal data. We may share with trusted processors (e.g., hosting, analytics, error tracking) under data-processing terms. We may disclose if required by law or to protect rights and safety.',
   },
   {
-    title: '5. Retention & Deletion',
+    title: '5. Error Tracking & Crash Reporting',
+    body: 'We use Sentry (sentry.io), a third-party error tracking service, to monitor application stability and diagnose crashes. When an error occurs, Sentry may receive a pseudonymized user identifier (an internal ID, not your name or email), device and OS information, and technical details about the error. No fitness data, ride information, or personal content is sent to Sentry. For more information, see Sentry\'s privacy policy at https://sentry.io/privacy/.',
+  },
+  {
+    title: '6. Retention & Deletion',
     body: 'We retain data while your account is active and as needed for service integrity. You can request deletion of your account and associated data at any time from Settings or by contacting us. Disconnecting Garmin stops new imports; you may also request removal of previously imported Garmin data.',
   },
   {
-    title: '6. Security',
+    title: '7. Security',
     body: 'We use industry-standard security controls; however, no method of transmission or storage is 100% secure.',
   },
   {
-    title: '7. Children',
+    title: '8. Children',
     body: 'Loam Logger is not intended for children under 18. We do not knowingly collect data from children.',
   },
   {
-    title: '8. International Transfers',
+    title: '9. International Transfers',
     body: 'Data may be processed in the United States or other countries with appropriate safeguards.',
   },
   {
-    title: '9. Changes',
+    title: '10. Changes',
     body: 'We may update this policy. We\'ll post the new date above and, if material, notify you in-app.',
   },
   {
-    title: '10. Contact',
+    title: '11. Contact',
     body: 'Questions or deletion requests: ryan.lecours@loamlogger.app',
   },
 ];

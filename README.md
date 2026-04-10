@@ -32,6 +32,7 @@ Create a `.env` file (one is included with development defaults):
 EXPO_PUBLIC_API_URL=http://localhost:4000
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-google-client-id
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id
+EXPO_PUBLIC_SENTRY_DSN=your-sentry-dsn
 ```
 
 For staging:
@@ -133,6 +134,22 @@ eas build --profile preview
 # Production build
 eas build --profile production
 ```
+
+## Error Tracking
+
+[Sentry](https://sentry.io) is integrated for crash reporting and error tracking. It is disabled in development (`__DEV__`).
+
+- **Expo plugin**: `@sentry/react-native/expo` in `app.json`
+- **Initialization**: `app/_layout.tsx` (module-level `Sentry.init()` + `Sentry.wrap()`)
+- **User context**: Set automatically after authentication
+- **Source maps**: Uploaded during EAS builds via `SENTRY_AUTH_TOKEN`
+
+### Required secrets for builds
+
+| Secret | Where | Purpose |
+|--------|-------|---------|
+| `EXPO_TOKEN` | GitHub Actions + EAS | EAS CLI authentication |
+| `SENTRY_AUTH_TOKEN` | GitHub Actions + EAS | Source map uploads to Sentry |
 
 ## Notes
 

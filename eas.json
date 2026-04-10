@@ -27,7 +27,9 @@
         "EXPO_PUBLIC_API_URL": "https://api.loamlogger.app",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "22899107125-up6tfvkciit2n1tvs1v9mugrdgue15ui.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "22899107125-us6eeju0mptqq569qq6achnbq3u7c44d.apps.googleusercontent.com",
-        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_PCpaBxHHtSUMtzvrbyupJifgBgD"
+        "EXPO_PUBLIC_REVENUECAT_API_KEY": "appl_PCpaBxHHtSUMtzvrbyupJifgBgD",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://0ad9c17c591e635075bb02e3b2c96292@o4511192644911104.ingest.us.sentry.io/4511193701679104",
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     }
   },

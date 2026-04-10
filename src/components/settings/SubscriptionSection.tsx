@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../hooks/useUserTier';
 import { useMeQuery, useCreateBillingPortalSessionMutation, CheckoutPlatform } from '../../graphql/generated';
+import { restorePurchases } from '../../lib/revenuecat';
 import { colors } from '../../constants/theme';
 
 export function SubscriptionSection() {
@@ -13,6 +14,7 @@ export function SubscriptionSection() {
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
   const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
   const [opening, setOpening] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const loading = portalLoading || opening;
 
   const handleManage = async () => {
@@ -33,6 +35,23 @@ export function SubscriptionSection() {
       } finally {
         setOpening(false);
       }
+    }
+  };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      const hasPro = await restorePurchases();
+      if (hasPro) {
+        await refetch();
+        Alert.alert('Restored', 'Your Pro subscription has been restored.');
+      } else {
+        Alert.alert('No Subscription Found', 'No active subscription was found for this account.');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to restore purchases. Please try again.');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -61,13 +80,26 @@ export function SubscriptionSection() {
         </View>
 
         {!isPro && (
-          <TouchableOpacity
-            style={styles.upgradeButton}
-            onPress={() => router.push('/settings-detail/pricing' as Href)}
-          >
-            <Ionicons name="arrow-up-circle-outline" size={18} color={colors.textPrimary} />
-            <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={styles.upgradeButton}
+              onPress={() => router.push('/settings-detail/pricing' as Href)}
+            >
+              <Ionicons name="arrow-up-circle-outline" size={18} color={colors.textPrimary} />
+              <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.restoreButton, restoring && styles.buttonDisabled]}
+              onPress={handleRestore}
+              disabled={restoring}
+            >
+              {restoring ? (
+                <ActivityIndicator size="small" color={colors.textSecondary} />
+              ) : (
+                <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+              )}
+            </TouchableOpacity>
+          </>
         )}
 
         {isPro && !isFoundingRider && (
@@ -144,6 +176,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.textPrimary,
+  },
+  restoreButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   manageButton: {
     flexDirection: 'row',
