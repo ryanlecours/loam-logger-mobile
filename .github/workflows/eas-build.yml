@@ -1,0 +1,68 @@
+name: EAS Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        required: false
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: 'Platform to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+
+jobs:
+  build:
+    name: EAS Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.18.0
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Determine build parameters
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "profile=${{ inputs.profile }}" >> $GITHUB_OUTPUT
+            echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
+          else
+            echo "profile=preview" >> $GITHUB_OUTPUT
+            echo "platform=all" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run EAS Build
+        run: |
+          eas build \
+            --profile ${{ steps.params.outputs.profile }} \
+            --platform ${{ steps.params.outputs.platform }} \
+            --non-interactive \
+            --no-wait
