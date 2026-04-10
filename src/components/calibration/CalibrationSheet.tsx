@@ -65,6 +65,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
   useEffect(() => {
     if (visible) {
       setCalibratedIds(new Set());
+      setExpandedBikeId(null);
       setBulkDates({});
       setSelectedComponents({});
       setPendingServiceLogs(new Map());
@@ -154,7 +155,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
   const handleComplete = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      // Submit pending service logs grouped by date
+      // Submit pending service logs grouped by date, clearing each batch on success
       if (pendingServiceLogs.size > 0) {
         const logsByDate = new Map<string, string[]>();
         pendingServiceLogs.forEach((performedAt, componentId) => {
@@ -166,6 +167,12 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
         for (const [performedAt, componentIds] of logsByDate) {
           await logBulkService({
             variables: { input: { componentIds, performedAt } },
+          });
+          // Clear submitted batch so retries don't duplicate
+          setPendingServiceLogs((prev) => {
+            const next = new Map(prev);
+            componentIds.forEach((id) => next.delete(id));
+            return next;
           });
         }
       }
@@ -239,7 +246,6 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
                   {bikes.map((bike) => (
                     <BikeCalibrationSection
                       key={bike.bikeId}
-                      bikeId={bike.bikeId}
                       bikeName={bike.bikeName}
                       components={bike.components}
                       isExpanded={expandedBikeId === bike.bikeId}

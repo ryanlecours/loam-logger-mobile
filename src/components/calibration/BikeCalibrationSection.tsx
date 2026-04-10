@@ -7,7 +7,6 @@ import { colors } from '../../constants/theme';
 import type { ComponentPrediction } from '../../graphql/generated';
 
 interface BikeCalibrationSectionProps {
-  bikeId: string;
   bikeName: string;
   components: ComponentPrediction[];
   isExpanded: boolean;
@@ -24,7 +23,6 @@ interface BikeCalibrationSectionProps {
 }
 
 export function BikeCalibrationSection({
-  bikeId: _bikeId,
   bikeName,
   components,
   isExpanded,
