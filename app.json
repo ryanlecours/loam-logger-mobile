@@ -58,7 +58,7 @@
       [
         "@sentry/react-native/expo",
         {
-          "organization": "loam-labs-gq",
+          "organization": "loam-labs-llc",
           "project": "loam-logger-mobile"
         }
       ]
