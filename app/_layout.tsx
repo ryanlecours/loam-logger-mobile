@@ -1,6 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { ApolloProvider } from '@apollo/client';
 import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 import { client } from '../src/lib/apolloClient';
 import { useEffect } from 'react';
@@ -11,6 +12,12 @@ import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
+
+Sentry.init({
+  dsn: 'https://0ad9c17c591e635075bb02e3b2c96292@o4511192644911104.ingest.us.sentry.io/4511193701679104',
+  tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+  enabled: !__DEV__,
+});
 
 // Configure foreground notification display at module level
 configureNotificationHandler();
@@ -103,13 +110,14 @@ function RootLayoutNav() {
     return () => subscription.remove();
   }, [isAuthenticated, onboardingCompleted, registerTokenIfGranted, router]);
 
-  // Initialize RevenueCat for IAP using stored user ID (available immediately, no network wait)
+  // Initialize RevenueCat and set Sentry user context
   useEffect(() => {
     if (!isAuthenticated || !onboardingCompleted) return;
 
     getStoredUser().then((user) => {
       if (user?.id) {
         initializeRevenueCat(user.id);
+        Sentry.setUser({ id: user.id, email: user.email });
       }
     });
   }, [isAuthenticated, onboardingCompleted]);
@@ -172,7 +180,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <ApolloProvider client={client}>
       <AuthProvider>
@@ -181,3 +189,5 @@ export default function RootLayout() {
     </ApolloProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

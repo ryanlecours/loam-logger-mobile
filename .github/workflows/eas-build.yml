@@ -68,6 +68,8 @@ jobs:
           fi
 
       - name: Run EAS Build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           eas build \
             --profile ${{ steps.params.outputs.profile }} \

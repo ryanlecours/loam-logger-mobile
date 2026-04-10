@@ -54,6 +54,13 @@
           "icon": "./assets/icon.png",
           "color": "#4f7a5a"
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "loam-labs-gq",
+          "project": "loam-logger-mobile"
+        }
       ]
     ],
     "experiments": {
