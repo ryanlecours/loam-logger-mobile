@@ -1193,6 +1193,28 @@ export type CreateBillingPortalSessionMutationVariables = Exact<{
 
 export type CreateBillingPortalSessionMutation = { __typename?: 'Mutation', createBillingPortalSession: { __typename?: 'BillingPortalResult', url: string } };
 
+export type CalibrationStateQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CalibrationStateQuery = { __typename?: 'Query', calibrationState?: { __typename?: 'CalibrationState', showOverlay: boolean, overdueCount: number, totalComponentCount: number, bikes: Array<{ __typename?: 'BikeCalibrationInfo', bikeId: string, bikeName: string, thumbnailUrl?: string | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> }> } | null };
+
+export type LogBulkComponentServiceMutationVariables = Exact<{
+  input: BulkServiceLogInput;
+}>;
+
+
+export type LogBulkComponentServiceMutation = { __typename?: 'Mutation', logBulkComponentService: { __typename?: 'BulkServiceResult', success: boolean, updatedCount: number } };
+
+export type DismissCalibrationMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type DismissCalibrationMutation = { __typename?: 'Mutation', dismissCalibration: { __typename?: 'User', id: string } };
+
+export type CompleteCalibrationMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CompleteCalibrationMutation = { __typename?: 'Mutation', completeCalibration: { __typename?: 'User', id: string } };
+
 export type DeleteRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
@@ -1657,6 +1679,167 @@ export function useCreateBillingPortalSessionMutation(baseOptions?: Apollo.Mutat
 export type CreateBillingPortalSessionMutationHookResult = ReturnType<typeof useCreateBillingPortalSessionMutation>;
 export type CreateBillingPortalSessionMutationResult = Apollo.MutationResult<CreateBillingPortalSessionMutation>;
 export type CreateBillingPortalSessionMutationOptions = Apollo.BaseMutationOptions<CreateBillingPortalSessionMutation, CreateBillingPortalSessionMutationVariables>;
+export const CalibrationStateDocument = gql`
+    query CalibrationState {
+  calibrationState {
+    showOverlay
+    overdueCount
+    totalComponentCount
+    bikes {
+      bikeId
+      bikeName
+      thumbnailUrl
+      components {
+        componentId
+        componentType
+        location
+        brand
+        model
+        status
+        hoursRemaining
+        ridesRemainingEstimate
+        confidence
+        currentHours
+        serviceIntervalHours
+        hoursSinceService
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useCalibrationStateQuery__
+ *
+ * To run a query within a React component, call `useCalibrationStateQuery` and pass it any options that fit your needs.
+ * When your component renders, `useCalibrationStateQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useCalibrationStateQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useCalibrationStateQuery(baseOptions?: Apollo.QueryHookOptions<CalibrationStateQuery, CalibrationStateQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CalibrationStateQuery, CalibrationStateQueryVariables>(CalibrationStateDocument, options);
+      }
+export function useCalibrationStateLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CalibrationStateQuery, CalibrationStateQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CalibrationStateQuery, CalibrationStateQueryVariables>(CalibrationStateDocument, options);
+        }
+// @ts-ignore
+export function useCalibrationStateSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<CalibrationStateQuery, CalibrationStateQueryVariables>): Apollo.UseSuspenseQueryResult<CalibrationStateQuery, CalibrationStateQueryVariables>;
+export function useCalibrationStateSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CalibrationStateQuery, CalibrationStateQueryVariables>): Apollo.UseSuspenseQueryResult<CalibrationStateQuery | undefined, CalibrationStateQueryVariables>;
+export function useCalibrationStateSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CalibrationStateQuery, CalibrationStateQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<CalibrationStateQuery, CalibrationStateQueryVariables>(CalibrationStateDocument, options);
+        }
+export type CalibrationStateQueryHookResult = ReturnType<typeof useCalibrationStateQuery>;
+export type CalibrationStateLazyQueryHookResult = ReturnType<typeof useCalibrationStateLazyQuery>;
+export type CalibrationStateSuspenseQueryHookResult = ReturnType<typeof useCalibrationStateSuspenseQuery>;
+export type CalibrationStateQueryResult = Apollo.QueryResult<CalibrationStateQuery, CalibrationStateQueryVariables>;
+export const LogBulkComponentServiceDocument = gql`
+    mutation LogBulkComponentService($input: BulkServiceLogInput!) {
+  logBulkComponentService(input: $input) {
+    success
+    updatedCount
+  }
+}
+    `;
+export type LogBulkComponentServiceMutationFn = Apollo.MutationFunction<LogBulkComponentServiceMutation, LogBulkComponentServiceMutationVariables>;
+
+/**
+ * __useLogBulkComponentServiceMutation__
+ *
+ * To run a mutation, you first call `useLogBulkComponentServiceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useLogBulkComponentServiceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [logBulkComponentServiceMutation, { data, loading, error }] = useLogBulkComponentServiceMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useLogBulkComponentServiceMutation(baseOptions?: Apollo.MutationHookOptions<LogBulkComponentServiceMutation, LogBulkComponentServiceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<LogBulkComponentServiceMutation, LogBulkComponentServiceMutationVariables>(LogBulkComponentServiceDocument, options);
+      }
+export type LogBulkComponentServiceMutationHookResult = ReturnType<typeof useLogBulkComponentServiceMutation>;
+export type LogBulkComponentServiceMutationResult = Apollo.MutationResult<LogBulkComponentServiceMutation>;
+export type LogBulkComponentServiceMutationOptions = Apollo.BaseMutationOptions<LogBulkComponentServiceMutation, LogBulkComponentServiceMutationVariables>;
+export const DismissCalibrationDocument = gql`
+    mutation DismissCalibration {
+  dismissCalibration {
+    id
+  }
+}
+    `;
+export type DismissCalibrationMutationFn = Apollo.MutationFunction<DismissCalibrationMutation, DismissCalibrationMutationVariables>;
+
+/**
+ * __useDismissCalibrationMutation__
+ *
+ * To run a mutation, you first call `useDismissCalibrationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDismissCalibrationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [dismissCalibrationMutation, { data, loading, error }] = useDismissCalibrationMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useDismissCalibrationMutation(baseOptions?: Apollo.MutationHookOptions<DismissCalibrationMutation, DismissCalibrationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DismissCalibrationMutation, DismissCalibrationMutationVariables>(DismissCalibrationDocument, options);
+      }
+export type DismissCalibrationMutationHookResult = ReturnType<typeof useDismissCalibrationMutation>;
+export type DismissCalibrationMutationResult = Apollo.MutationResult<DismissCalibrationMutation>;
+export type DismissCalibrationMutationOptions = Apollo.BaseMutationOptions<DismissCalibrationMutation, DismissCalibrationMutationVariables>;
+export const CompleteCalibrationDocument = gql`
+    mutation CompleteCalibration {
+  completeCalibration {
+    id
+  }
+}
+    `;
+export type CompleteCalibrationMutationFn = Apollo.MutationFunction<CompleteCalibrationMutation, CompleteCalibrationMutationVariables>;
+
+/**
+ * __useCompleteCalibrationMutation__
+ *
+ * To run a mutation, you first call `useCompleteCalibrationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCompleteCalibrationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [completeCalibrationMutation, { data, loading, error }] = useCompleteCalibrationMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useCompleteCalibrationMutation(baseOptions?: Apollo.MutationHookOptions<CompleteCalibrationMutation, CompleteCalibrationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CompleteCalibrationMutation, CompleteCalibrationMutationVariables>(CompleteCalibrationDocument, options);
+      }
+export type CompleteCalibrationMutationHookResult = ReturnType<typeof useCompleteCalibrationMutation>;
+export type CompleteCalibrationMutationResult = Apollo.MutationResult<CompleteCalibrationMutation>;
+export type CompleteCalibrationMutationOptions = Apollo.BaseMutationOptions<CompleteCalibrationMutation, CompleteCalibrationMutationVariables>;
 export const DeleteRideDocument = gql`
     mutation DeleteRide($id: ID!) {
   deleteRide(id: $id) {

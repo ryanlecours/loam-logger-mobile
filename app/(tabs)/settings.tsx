@@ -6,7 +6,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
-import { useMeQuery, useUpdateUserPreferencesMutation } from '../../src/graphql/generated';
+import { useMeQuery, useUpdateUserPreferencesMutation, useCalibrationStateLazyQuery } from '../../src/graphql/generated';
 import { setDataSourcePreference } from '../../src/api/backfill';
 import { deleteAccount } from '../../src/lib/auth';
 import { DataSourceSelector } from '../../src/components/settings/DataSourceSelector';
@@ -14,6 +14,7 @@ import { NotificationPreferences } from '../../src/components/settings/Notificat
 import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
 import { ReferralSection } from '../../src/components/settings/ReferralSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
+import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
 import { colors } from '../../src/constants/theme';
 
@@ -132,6 +133,8 @@ export default function SettingsScreen() {
   const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
   const [dataSourceLoading, setDataSourceLoading] = useState(false);
   const [connectedProviders, setConnectedProviders] = useState<Set<IntegrationProvider>>(new Set());
+  const [showCalibration, setShowCalibration] = useState(false);
+  const [fetchCalibrationState] = useCalibrationStateLazyQuery({ fetchPolicy: 'network-only' });
 
   const activeDataSource = meData?.me?.activeDataSource ?? null;
 
@@ -161,9 +164,14 @@ export default function SettingsScreen() {
     setImportProvider(null);
   }, []);
 
-  const handleImportSuccess = useCallback(() => {
+  const handleImportSuccess = useCallback(async () => {
     refetchMe();
-  }, [refetchMe]);
+    // Check if calibration is needed after import
+    const { data } = await fetchCalibrationState();
+    if (data?.calibrationState?.showOverlay) {
+      setTimeout(() => setShowCalibration(true), 500);
+    }
+  }, [refetchMe, fetchCalibrationState]);
 
   const handleDataSourceSelect = useCallback(async (provider: string) => {
     setDataSourceLoading(true);
@@ -424,6 +432,11 @@ export default function SettingsScreen() {
           onSuccess={handleImportSuccess}
         />
       )}
+
+      <CalibrationSheet
+        visible={showCalibration}
+        onClose={() => setShowCalibration(false)}
+      />
     </ScrollView>
   );
 }
