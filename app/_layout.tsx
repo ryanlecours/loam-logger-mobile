@@ -14,7 +14,7 @@ import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
 
 Sentry.init({
-  dsn: 'https://0ad9c17c591e635075bb02e3b2c96292@o4511192644911104.ingest.us.sentry.io/4511193701679104',
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,
   enabled: !__DEV__,
 });

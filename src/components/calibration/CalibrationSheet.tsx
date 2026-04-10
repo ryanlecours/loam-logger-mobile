@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeCalibrationSection } from './BikeCalibrationSection';
@@ -135,7 +136,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
         await snoozeComponent({ variables: { id: componentId } });
         setCalibratedIds((prev) => new Set([...prev, componentId]));
       } catch {
-        // Snooze failed silently — user can retry
+        Alert.alert('Error', 'Failed to snooze component. Please try again.');
       }
     },
     [snoozeComponent]
@@ -144,10 +145,10 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
   const handleDismiss = useCallback(async () => {
     try {
       await dismissCalibration();
+      onClose();
     } catch {
-      // Dismiss failed silently
+      Alert.alert('Error', 'Failed to dismiss. Please try again.');
     }
-    onClose();
   }, [dismissCalibration, onClose]);
 
   const handleComplete = useCallback(async () => {
@@ -172,6 +173,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
       await completeCalibration();
       onClose();
     } catch {
+      Alert.alert('Error', 'Failed to save calibration. Please try again.');
       setIsSubmitting(false);
     }
   }, [pendingServiceLogs, logBulkService, completeCalibration, onClose]);

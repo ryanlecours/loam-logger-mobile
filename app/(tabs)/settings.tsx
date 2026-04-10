@@ -166,10 +166,13 @@ export default function SettingsScreen() {
 
   const handleImportSuccess = useCallback(async () => {
     refetchMe();
-    // Check if calibration is needed after import
-    const { data } = await fetchCalibrationState();
-    if (data?.calibrationState?.showOverlay) {
-      setTimeout(() => setShowCalibration(true), 500);
+    try {
+      const { data } = await fetchCalibrationState();
+      if (data?.calibrationState?.showOverlay) {
+        setShowCalibration(true);
+      }
+    } catch {
+      // Calibration check failed — not critical, user can trigger from dashboard
     }
   }, [refetchMe, fetchCalibrationState]);
 
