@@ -117,7 +117,7 @@ function RootLayoutNav() {
     getStoredUser().then((user) => {
       if (user?.id) {
         initializeRevenueCat(user.id);
-        Sentry.setUser({ id: user.id, email: user.email });
+        Sentry.setUser({ id: user.id });
       }
     });
   }, [isAuthenticated, onboardingCompleted]);
