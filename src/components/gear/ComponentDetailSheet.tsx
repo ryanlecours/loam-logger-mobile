@@ -10,7 +10,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
@@ -85,6 +84,8 @@ export function ComponentDetailSheet({
   const [preSnoozeInterval, setPreSnoozeInterval] = useState<number | null>(null);
   const [savingInterval, setSavingInterval] = useState(false);
   const [optimisticInterval, setOptimisticInterval] = useState<number | null>(null);
+  const [editingInterval, setEditingInterval] = useState(false);
+  const [intervalInput, setIntervalInput] = useState('');
   const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
   const [showRidesInfo, setShowRidesInfo] = useState(false);
 
@@ -104,6 +105,8 @@ export function ComponentDetailSheet({
     setShowConfidenceInfo(false);
     setShowRidesInfo(false);
     setOptimisticInterval(null);
+    setEditingInterval(false);
+    setIntervalInput('');
     onClose();
   }, [onClose]);
 
@@ -122,46 +125,35 @@ export function ComponentDetailSheet({
 
   const handleEditInterval = useCallback(() => {
     if (!component) return;
-    const componentId = component.id;
     const currentInterval = String(
       optimisticInterval ?? prediction?.serviceIntervalHours ?? component.serviceDueAtHours ?? ''
     );
+    setIntervalInput(currentInterval);
+    setEditingInterval(true);
+  }, [component, optimisticInterval, prediction?.serviceIntervalHours]);
 
-    if (Platform.OS === 'ios') {
-      Alert.prompt(
-        'Service Interval',
-        'How many hours between services for this component?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save',
-            onPress: (value?: string) => {
-              const parsed = parseFloat(value || '');
-              if (isNaN(parsed) || parsed < 1 || parsed > 1000) return;
-              setSavingInterval(true);
-              setOptimisticInterval(parsed);
-              updateComponent({
-                variables: { id: componentId, input: { serviceDueAtHours: parsed } },
-                awaitRefetchQueries: true,
-              }).then(() => {
-                setOptimisticInterval(null);
-              }).catch(() => {
-                setOptimisticInterval(null);
-                Alert.alert('Error', 'Failed to update interval.');
-              }).finally(() => {
-                setSavingInterval(false);
-              });
-            },
-          },
-        ],
-        'plain-text',
-        currentInterval,
-        'number-pad'
-      );
-    } else {
-      Alert.alert('Service Interval', `Current interval: ${currentInterval}h. Use the web app to edit service intervals on Android.`);
+  const handleSaveInterval = useCallback(() => {
+    if (!component) return;
+    const parsed = parseFloat(intervalInput);
+    if (isNaN(parsed) || parsed < 1 || parsed > 1000) {
+      Alert.alert('Invalid Value', 'Enter a number between 1 and 1000.');
+      return;
     }
-  }, [component, optimisticInterval, prediction?.serviceIntervalHours, updateComponent]);
+    setEditingInterval(false);
+    setSavingInterval(true);
+    setOptimisticInterval(parsed);
+    updateComponent({
+      variables: { id: component.id, input: { serviceDueAtHours: parsed } },
+      awaitRefetchQueries: true,
+    }).then(() => {
+      setOptimisticInterval(null);
+    }).catch(() => {
+      setOptimisticInterval(null);
+      Alert.alert('Error', 'Failed to update interval.');
+    }).finally(() => {
+      setSavingInterval(false);
+    });
+  }, [component, intervalInput, updateComponent]);
 
   const handleUndoSnooze = useCallback(async () => {
     if (!component || preSnoozeInterval === null) return;
@@ -303,23 +295,48 @@ export function ComponentDetailSheet({
                   )}
 
                   {serviceInterval && (
-                    <TouchableOpacity
-                      style={[styles.statItem, styles.statItemTappable]}
-                      onPress={handleEditInterval}
-                      activeOpacity={0.7}
-                      disabled={savingInterval}
-                    >
-                      <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
-                      {savingInterval ? (
-                        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
-                      ) : (
-                        <Text style={styles.statValue}>{serviceInterval}h</Text>
-                      )}
-                      <Text style={styles.statLabel}>Interval</Text>
-                      {!savingInterval && (
-                        <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
-                      )}
-                    </TouchableOpacity>
+                    editingInterval ? (
+                      <View style={[styles.statItem, styles.statItemTappable]}>
+                        <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
+                        <TextInput
+                          style={styles.intervalInput}
+                          value={intervalInput}
+                          onChangeText={setIntervalInput}
+                          keyboardType="number-pad"
+                          autoFocus
+                          selectTextOnFocus
+                          returnKeyType="done"
+                          onSubmitEditing={handleSaveInterval}
+                        />
+                        <Text style={styles.statLabel}>hours</Text>
+                        <View style={styles.intervalActions}>
+                          <TouchableOpacity onPress={() => setEditingInterval(false)} style={styles.intervalActionButton}>
+                            <Ionicons name="close" size={18} color={colors.textMuted} />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={handleSaveInterval} style={styles.intervalActionButton}>
+                            <Ionicons name="checkmark" size={18} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={[styles.statItem, styles.statItemTappable]}
+                        onPress={handleEditInterval}
+                        activeOpacity={0.7}
+                        disabled={savingInterval}
+                      >
+                        <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
+                        {savingInterval ? (
+                          <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+                        ) : (
+                          <Text style={styles.statValue}>{serviceInterval}h</Text>
+                        )}
+                        <Text style={styles.statLabel}>Interval</Text>
+                        {!savingInterval && (
+                          <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
+                        )}
+                      </TouchableOpacity>
+                    )
                   )}
 
                   {hoursSinceService !== null && hoursSinceService !== undefined && (
@@ -777,6 +794,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderStyle: 'dashed',
+  },
+  intervalInput: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    minWidth: 60,
+  },
+  intervalActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  intervalActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editIcon: {
     position: 'absolute',
