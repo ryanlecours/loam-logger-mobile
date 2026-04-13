@@ -161,93 +161,93 @@ export default function RideDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header Card */}
-      <View style={styles.card}>
-        <View style={styles.headerRow}>
-          <View style={styles.typeContainer}>
-            <Ionicons
-              name={getRideTypeIcon(ride.rideType)}
-              size={24}
-              color={colors.primary}
-            />
-            <Text style={styles.typeLabel}>{getRideTypeLabel(ride.rideType)}</Text>
+      <TouchableOpacity activeOpacity={0.7} onPress={handleEdit}>
+        {/* Header Card */}
+        <View style={styles.card}>
+          <View style={styles.headerRow}>
+            <View style={styles.typeContainer}>
+              <Ionicons
+                name={getRideTypeIcon(ride.rideType)}
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={styles.typeLabel}>{getRideTypeLabel(ride.rideType)}</Text>
+            </View>
+            {sourceInfo && (
+              <View style={[styles.sourceBadge, { backgroundColor: sourceInfo.color }]}>
+                <Text style={styles.sourceBadgeText}>{sourceInfo.label}</Text>
+              </View>
+            )}
           </View>
-          {sourceInfo && (
-            <View style={[styles.sourceBadge, { backgroundColor: sourceInfo.color }]}>
-              <Text style={styles.sourceBadgeText}>{sourceInfo.label}</Text>
+
+          <Text style={styles.date}>{formattedDate}</Text>
+          <Text style={styles.time}>{formattedTime}</Text>
+
+          {ride.location && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={16} color={colors.textMuted} />
+              <Text style={styles.location}>{ride.location}</Text>
             </View>
           )}
         </View>
 
-        <Text style={styles.date}>{formattedDate}</Text>
-        <Text style={styles.time}>{formattedTime}</Text>
+        {/* Stats Card */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Stats</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={20} color={colors.textMuted} />
+              <Text style={styles.statValue}>{formatDuration(ride.durationSeconds)}</Text>
+              <Text style={styles.statLabel}>Duration</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="navigate-outline" size={20} color={colors.textMuted} />
+              <Text style={styles.statValue}>{formatDistance(ride.distanceMeters)}</Text>
+              <Text style={styles.statLabel}>Distance</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="trending-up-outline" size={20} color={colors.textMuted} />
+              <Text style={styles.statValue}>{formatElevation(ride.elevationGainMeters, distanceUnit)}</Text>
+              <Text style={styles.statLabel}>Elevation</Text>
+            </View>
+            {ride.averageHr && (
+              <View style={styles.statItem}>
+                <Ionicons name="heart-outline" size={20} color={colors.textMuted} />
+                <Text style={styles.statValue}>{ride.averageHr} bpm</Text>
+                <Text style={styles.statLabel}>Avg HR</Text>
+              </View>
+            )}
+          </View>
+        </View>
 
-        {ride.location && (
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={16} color={colors.textMuted} />
-            <Text style={styles.location}>{ride.location}</Text>
+        {/* Bike Card */}
+        {bikeName && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Bike</Text>
+            <View style={styles.bikeRow}>
+              <Ionicons name="bicycle" size={20} color={colors.textMuted} />
+              <Text style={styles.bikeName}>{bikeName}</Text>
+            </View>
           </View>
         )}
-      </View>
 
-      {/* Stats Card */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Stats</Text>
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Ionicons name="time-outline" size={20} color={colors.textMuted} />
-            <Text style={styles.statValue}>{formatDuration(ride.durationSeconds)}</Text>
-            <Text style={styles.statLabel}>Duration</Text>
+        {/* Notes Card */}
+        {ride.notes && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.notes}>{ride.notes}</Text>
           </View>
-          <View style={styles.statItem}>
-            <Ionicons name="navigate-outline" size={20} color={colors.textMuted} />
-            <Text style={styles.statValue}>{formatDistance(ride.distanceMeters)}</Text>
-            <Text style={styles.statLabel}>Distance</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="trending-up-outline" size={20} color={colors.textMuted} />
-            <Text style={styles.statValue}>{formatElevation(ride.elevationGainMeters, distanceUnit)}</Text>
-            <Text style={styles.statLabel}>Elevation</Text>
-          </View>
-          {ride.averageHr && (
-            <View style={styles.statItem}>
-              <Ionicons name="heart-outline" size={20} color={colors.textMuted} />
-              <Text style={styles.statValue}>{ride.averageHr} bpm</Text>
-              <Text style={styles.statLabel}>Avg HR</Text>
-            </View>
-          )}
+        )}
+
+        {/* Tap to edit hint */}
+        <View style={styles.editHint}>
+          <Ionicons name="pencil-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.editHintText}>Tap anywhere to edit</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
-      {/* Bike Card */}
-      {bikeName && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Bike</Text>
-          <View style={styles.bikeRow}>
-            <Ionicons name="bicycle" size={20} color={colors.textMuted} />
-            <Text style={styles.bikeName}>{bikeName}</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Notes Card */}
-      {ride.notes && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Notes</Text>
-          <Text style={styles.notes}>{ride.notes}</Text>
-        </View>
-      )}
-
-      {/* Action Buttons */}
+      {/* Delete Button */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={handleEdit}
-          disabled={deleting}
-        >
-          <Ionicons name="pencil-outline" size={18} color={colors.primary} />
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -403,27 +403,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 22,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  editButton: {
-    flex: 1,
+  editHint: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.primary,
     paddingVertical: 12,
-    borderRadius: 8,
   },
-  editButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary,
+  editHintText: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
   },
   deleteButton: {
     flex: 1,

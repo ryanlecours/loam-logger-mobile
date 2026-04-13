@@ -18,6 +18,7 @@ import {
   DashboardComponentCard,
   ComponentActionSheet,
   RideStatsCard,
+  RecentRidesList,
 } from '../../src/components/dashboard';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
@@ -125,6 +126,14 @@ export default function DashboardScreen() {
       </SafeAreaView>
     );
   }
+
+  const handleRidePress = (ride: { id: string }) => {
+    router.push(`/ride/${ride.id}` as Href);
+  };
+
+  const handleSeeAllRides = () => {
+    router.push('/(tabs)/rides' as Href);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -342,6 +351,15 @@ export default function DashboardScreen() {
       <CalibrationSheet
         visible={showCalibration}
         onClose={() => setShowCalibration(false)}
+        />
+      <RideStatsCard />
+
+      <RecentRidesList
+        rides={ridesData?.rides || []}
+        bikes={bikes}
+        loading={ridesLoading && !ridesData}
+        onRidePress={handleRidePress}
+        onSeeAll={handleSeeAllRides}
       />
     </SafeAreaView>
   );
