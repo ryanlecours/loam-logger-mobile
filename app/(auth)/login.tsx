@@ -17,6 +17,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { GoogleSignInButton } from '../../src/components/GoogleSignInButton';
 import { AppleSignInButton } from '../../src/components/AppleSignInButton';
 import {
+  declineBiometricEnrollment,
   getBiometricCapability,
   getBiometricLabel,
   setBiometricEnabled,
@@ -51,7 +52,16 @@ export default function LoginScreen() {
       `Enable ${label}?`,
       `Use ${label} to sign in faster on this device. You can change this anytime in Settings.`,
       [
-        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Not now',
+          style: 'cancel',
+          // Persist the decline so we don't re-prompt on every login.
+          // The user can still enable it later from Settings, which clears
+          // this flag (see setBiometricEnabled in src/lib/biometric.ts).
+          onPress: async () => {
+            await declineBiometricEnrollment();
+          },
+        },
         {
           text: 'Enable',
           onPress: async () => {

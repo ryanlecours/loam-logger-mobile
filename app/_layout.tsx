@@ -115,7 +115,7 @@ function RootLayoutNav() {
     if (inOnboardingGroup || onIndex) {
       router.replace('/(tabs)');
     }
-  }, [loading, isAuthenticated, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
+  }, [loading, isAuthenticated, locked, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
 
   // Register push token and set up notification tap handler when fully authenticated
   const { registerTokenIfGranted } = useNotifications();

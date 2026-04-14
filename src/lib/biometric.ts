@@ -17,6 +17,10 @@ import * as SecureStore from 'expo-secure-store';
  */
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_unlock_enabled';
+// Tracks "user explicitly declined the post-login enrollment prompt" — separate
+// from the enabled flag so we don't keep nagging on every login. Cleared if
+// the user later opts in via Settings (then re-prompted only after a future opt-out).
+const BIOMETRIC_ENROLLMENT_DECLINED_KEY = 'biometric_enrollment_declined';
 
 export type BiometricCapability = {
   /** Device has biometric hardware (Face ID sensor, fingerprint reader, etc.). */
@@ -65,9 +69,20 @@ export async function isBiometricEnabled(): Promise<boolean> {
 export async function setBiometricEnabled(enabled: boolean): Promise<void> {
   if (enabled) {
     await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+    // Opting in clears the prior "declined" mark — if the user later disables
+    // and we want to re-prompt them at some future login, that's a fresh decision.
+    await SecureStore.deleteItemAsync(BIOMETRIC_ENROLLMENT_DECLINED_KEY);
   } else {
     await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
   }
+}
+
+/**
+ * Mark the post-login enrollment prompt as dismissed. Called when the user
+ * taps "Not now" so we don't re-prompt on every subsequent login.
+ */
+export async function declineBiometricEnrollment(): Promise<void> {
+  await SecureStore.setItemAsync(BIOMETRIC_ENROLLMENT_DECLINED_KEY, 'true');
 }
 
 export type AuthenticateResult =
@@ -121,16 +136,20 @@ export async function authenticateWithBiometric(
 
 /**
  * Whether we should offer this user the biometric opt-in. Returns true only
- * if the device supports biometrics, the user has enrolled at least one,
- * and they haven't already opted in. Used by the login screen to gate the
- * first-time enrollment prompt.
+ * if the device supports biometrics, the user has enrolled at least one, AND
+ * they haven't already opted in OR explicitly declined.
+ *
+ * Without the declined-flag check, tapping "Not now" wouldn't be sticky and
+ * the prompt would re-fire on every login. Users can still opt in later via
+ * Settings — that path clears the declined flag.
  */
 export async function shouldPromptForEnrollment(): Promise<boolean> {
-  const [available, alreadyEnabled] = await Promise.all([
+  const [available, alreadyEnabled, declined] = await Promise.all([
     isBiometricAvailable(),
     isBiometricEnabled(),
+    SecureStore.getItemAsync(BIOMETRIC_ENROLLMENT_DECLINED_KEY).then((v) => v === 'true'),
   ]);
-  return available && !alreadyEnabled;
+  return available && !alreadyEnabled && !declined;
 }
 
 /**

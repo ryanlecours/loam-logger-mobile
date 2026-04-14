@@ -73,7 +73,13 @@ export function AppleSignInButton({ onSuccess, onError, disabled }: Props) {
   }
 
   return (
-    <View style={[styles.wrapper, disabled && styles.disabled]} pointerEvents={disabled ? 'none' : 'auto'}>
+    <View
+      style={[
+        styles.wrapper,
+        disabled && styles.disabled,
+        { pointerEvents: disabled ? 'none' : 'auto' },
+      ]}
+    >
       <AppleAuthentication.AppleAuthenticationButton
         buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
         buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
