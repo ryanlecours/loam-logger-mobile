@@ -32,13 +32,16 @@ export function useViewer(options: UseViewerOptions = {}) {
     return refetch();
   }, [refetch]);
 
-  // `resolved` flips true once the query has completed (success or null result),
-  // so callers can distinguish "query hasn't returned yet" (data === undefined)
-  // from "query returned and `me` was null" (data exists, data.me === null).
-  // The latter means the token was accepted network-wise but the server
-  // couldn't identify a user — usually a deleted account or a token that
-  // failed version validation — and the caller should log out.
-  const resolved = data !== undefined;
+  // `resolved` flips true once the query has settled in ANY terminal state:
+  // success (data populated), null-result (data.me === null), or network
+  // error (error populated). This makes `resolved` a trustworthy
+  // "query has finished" signal regardless of outcome — callers can then
+  // inspect `viewer` / `error` to decide what to do next.
+  //
+  // Tempting to define this as just `data !== undefined`, but under
+  // `network-only`, Apollo leaves `data === undefined` on error — so callers
+  // gating on `resolved` alone would miss error states entirely.
+  const resolved = data !== undefined || error !== undefined;
 
   return {
     viewer: data?.me ?? null,

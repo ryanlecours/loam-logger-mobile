@@ -82,7 +82,13 @@ export function AppleSignInButton({ onSuccess, onError, disabled }: Props) {
     >
       <AppleAuthentication.AppleAuthenticationButton
         buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+        // WHITE_OUTLINE is one of Apple's three approved styles (alongside
+        // BLACK and WHITE). It renders a white button with Apple's own
+        // outline, which gives natural separation on dark backgrounds —
+        // zero custom styling needed, fully App Store review compliant.
+        // Also visually matches the white Google Sign-In button for
+        // consistency across the two SSO options.
+        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
         cornerRadius={8}
         style={styles.button}
         onPress={handlePress}
