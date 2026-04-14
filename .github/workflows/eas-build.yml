@@ -69,7 +69,13 @@ jobs:
 
       - name: Run EAS Build
         env:
+          # SENTRY_AUTH_TOKEN enables the @sentry/react-native/expo plugin
+          # to upload debug symbols. EXPO_PUBLIC_SENTRY_RELEASE tags the
+          # runtime Sentry.init with the same SHA so crash reports bind to
+          # the uploaded symbols. Uses the full commit SHA to match Railway's
+          # and the web's release format, keeping all three projects aligned.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          EXPO_PUBLIC_SENTRY_RELEASE: ${{ github.sha }}
         run: |
           eas build \
             --profile ${{ steps.params.outputs.profile }} \

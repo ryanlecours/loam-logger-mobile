@@ -12,11 +12,21 @@ import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
+import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  // Tag every event with the build SHA so Sentry can group errors by release.
+  // EAS injects EXPO_PUBLIC_SENTRY_RELEASE at build time; local dev falls back
+  // to 'unknown' (inert since enabled: !__DEV__).
+  release: process.env.EXPO_PUBLIC_SENTRY_RELEASE || 'unknown',
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,
   enabled: !__DEV__,
+  // Strip secret-looking keys (password, token, cookie, etc.) from every
+  // event before it leaves the device.
+  beforeSend(event) {
+    return scrubKnownSecrets(event);
+  },
 });
 
 // Configure foreground notification display at module level
@@ -57,8 +67,13 @@ function RootLayoutNav() {
       return;
     }
 
-    // User IS authenticated - don't let them stay in auth group
-    if (inAuthGroup) {
+    // User IS authenticated - don't let them stay in auth group, EXCEPT for
+    // /reset-password. A user can be logged in on their phone and still tap a
+    // reset link from email (e.g. they remembered their password mid-reset, or
+    // an admin sent them one). Bouncing them to /(tabs) would discard the
+    // token and break the reset flow. The reset screen handles its own
+    // session invalidation when the new password is saved.
+    if (inAuthGroup && secondSegment !== 'reset-password') {
       // Determine where they should go based on flags
       if (!hasAcceptedCurrentTerms) {
         router.replace('/(onboarding)/terms');

@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.loamlabs.loamlogger",
+      "associatedDomains": ["applinks:loamlogger.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -59,7 +60,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "loam-labs-llc",
-          "project": "loam-logger-mobile"
+          "project": "react-native"
         }
       ]
     ],
