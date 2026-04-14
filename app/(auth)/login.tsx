@@ -151,6 +151,16 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={styles.linkButton}
+            onPress={() => router.push('/(auth)/forgot-password' as Href)}
+            disabled={isLoading}
+          >
+            <Text style={styles.linkText}>
+              Forgot password?
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
             onPress={() => router.push('/(auth)/signup')}
             disabled={isLoading}
           >
