@@ -22,7 +22,7 @@ export function LockScreen() {
   const { unlock, logout } = useAuth();
   const [biometricLabel, setBiometricLabel] = useState<string>('Biometric');
   const [unlocking, setUnlocking] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const autoPromptedRef = useRef(false);
 
   useEffect(() => {
@@ -43,10 +43,37 @@ export function LockScreen() {
 
   async function handleUnlock() {
     setUnlocking(true);
-    setFailed(false);
-    const ok = await unlock();
+    setErrorMessage(null);
+    const result = await unlock();
     setUnlocking(false);
-    if (!ok) setFailed(true);
+    if (result.ok) return;
+
+    // Branch on the failure mode so we don't show misleading error copy.
+    // User-cancellation is an intentional dismiss, not a failure — render
+    // the retry button silently. Lockout needs distinct copy because the
+    // retry button won't actually work until the OS releases the lock.
+    switch (result.reason) {
+      case 'cancelled':
+        // Silent. The retry button is still visible for re-prompting.
+        return;
+      case 'lockout':
+        setErrorMessage(
+          `${biometricLabel} is temporarily locked. Sign in with your password to continue.`,
+        );
+        return;
+      case 'unavailable':
+        // Shouldn't reach here normally — checkAuth gates on availability
+        // before setting locked=true — but if the user disabled biometrics
+        // between then and now, fall back to password.
+        setErrorMessage(
+          `${biometricLabel} isn't available. Sign in with your password to continue.`,
+        );
+        return;
+      case 'failed':
+      default:
+        setErrorMessage('Unlock failed. Tap to try again or use your password.');
+        return;
+    }
   }
 
   async function handleUsePassword() {
@@ -80,10 +107,8 @@ export function LockScreen() {
           )}
         </TouchableOpacity>
 
-        {failed && (
-          <Text style={styles.failedText}>
-            Unlock failed. Tap to try again or use your password.
-          </Text>
+        {errorMessage && (
+          <Text style={styles.failedText}>{errorMessage}</Text>
         )}
 
         <TouchableOpacity

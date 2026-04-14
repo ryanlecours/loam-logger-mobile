@@ -17,6 +17,7 @@ import {
   authenticateWithBiometric,
   isBiometricAvailable,
   isBiometricEnabled,
+  type AuthenticateResult,
 } from '../lib/biometric';
 import { useViewer } from './useViewer';
 
@@ -39,7 +40,11 @@ interface AuthContextType {
   // Actions
   setUser: (user: User | null) => void;
   setAuthenticated: (authenticated: boolean) => void;
-  unlock: () => Promise<boolean>;
+  /**
+   * Run the biometric prompt; returns the structured result so callers can
+   * distinguish user-cancellation (silent UX) from a real failure (error UX).
+   */
+  unlock: () => Promise<AuthenticateResult>;
   logout: () => Promise<void>;
   refetchUser: () => Promise<void>;
 }
@@ -92,16 +97,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Run the biometric prompt and flip locked→authenticated on success.
    * Called by the lock screen UI when the user taps the unlock button.
-   * Returns true if the unlock succeeded.
+   *
+   * Returns the structured AuthenticateResult so the caller can render
+   * different UX for cancellation vs lockout vs actual failure — e.g. a
+   * tap-Cancel on the Face ID sheet should NOT render a red "failed" error.
    */
-  const unlock = useCallback(async (): Promise<boolean> => {
+  const unlock = useCallback(async (): Promise<AuthenticateResult> => {
     const result = await authenticateWithBiometric('Unlock Loam Logger');
     if (result.ok) {
       setLocked(false);
       setIsAuthenticated(true);
-      return true;
     }
-    return false;
+    return result;
   }, []);
 
   // When viewer data arrives from ME query, update user state

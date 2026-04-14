@@ -58,14 +58,33 @@ export default function LoginScreen() {
           // Persist the decline so we don't re-prompt on every login.
           // The user can still enable it later from Settings, which clears
           // this flag (see setBiometricEnabled in src/lib/biometric.ts).
+          //
+          // Failure here is benign (worst case: they get re-prompted next
+          // login), so log but don't nag the user about it.
           onPress: async () => {
-            await declineBiometricEnrollment();
+            try {
+              await declineBiometricEnrollment();
+            } catch (err) {
+              console.error('[login] declineBiometricEnrollment failed', err);
+            }
           },
         },
         {
           text: 'Enable',
           onPress: async () => {
-            await setBiometricEnabled(true);
+            try {
+              await setBiometricEnabled(true);
+            } catch (err) {
+              // SecureStore can fail in rare states (Keychain unavailable).
+              // Alert the user — a silent failure here would leave them
+              // thinking biometric unlock is on when it isn't, and they'd
+              // be confused next cold boot when it doesn't prompt.
+              console.error('[login] setBiometricEnabled failed', err);
+              Alert.alert(
+                'Unable to save setting',
+                `We couldn't enable ${label} unlock. You can try again from Settings.`,
+              );
+            }
           },
         },
       ],
