@@ -13,6 +13,7 @@ import { DataSourceSelector } from '../../src/components/settings/DataSourceSele
 import { NotificationPreferences } from '../../src/components/settings/NotificationPreferences';
 import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
 import { ReferralSection } from '../../src/components/settings/ReferralSection';
+import { BiometricUnlockSection } from '../../src/components/settings/BiometricUnlockSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
@@ -384,6 +385,8 @@ export default function SettingsScreen() {
       <View style={{ marginHorizontal: 16 }}>
         <NotificationPreferences />
       </View>
+
+      <BiometricUnlockSection />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Legal</Text>

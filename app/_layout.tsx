@@ -12,6 +12,7 @@ import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
+import { LockScreen } from '../src/components/LockScreen';
 import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 
 Sentry.init({
@@ -44,6 +45,7 @@ function RootLayoutNav() {
   const {
     loading,
     isAuthenticated,
+    locked,
     hasAcceptedCurrentTerms,
     onboardingCompleted,
   } = useAuth();
@@ -105,8 +107,12 @@ function RootLayoutNav() {
       return;
     }
 
-    // 4. Fully gated user - redirect to tabs if in onboarding
-    if (inOnboardingGroup) {
+    // 4. Fully gated user - redirect to tabs from onboarding OR from the
+    //    landing index route (firstSegment undefined). Without this clause,
+    //    a logged-in, fully-onboarded user landing on `/` would see the
+    //    loading spinner forever because none of gates 1–3 fire for them.
+    const onIndex = firstSegment === undefined;
+    if (inOnboardingGroup || onIndex) {
       router.replace('/(tabs)');
     }
   }, [loading, isAuthenticated, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
@@ -142,10 +148,20 @@ function RootLayoutNav() {
     return <LoadingScreen />;
   }
 
+  // Biometric-unlock opt-in: user has a stored session token but hasn't
+  // passed Face ID / Touch ID yet this launch. Show the unlock screen
+  // instead of letting the router navigate into the app.
+  if (locked) {
+    return <LockScreen />;
+  }
+
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <Stack
+        // `index` is a transient landing route (spinner only) so cold-boot
+        // navigation is deterministic — see app/index.tsx.
+        initialRouteName="index"
         screenOptions={{
           headerShown: false,
           headerStyle: { backgroundColor: colors.background },
@@ -153,6 +169,7 @@ function RootLayoutNav() {
           contentStyle: { backgroundColor: colors.background },
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />

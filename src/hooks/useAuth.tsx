@@ -13,12 +13,24 @@ import {
   setTokenRefreshCallback,
   type User,
 } from '../lib/auth';
+import {
+  authenticateWithBiometric,
+  isBiometricAvailable,
+  isBiometricEnabled,
+} from '../lib/biometric';
 import { useViewer } from './useViewer';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  /**
+   * True when the user has a stored session token but hasn't passed the
+   * biometric unlock prompt yet. Distinct from `!isAuthenticated`, which
+   * means "no session at all, send to login." Locked means "session exists,
+   * show biometric prompt screen."
+   */
+  locked: boolean;
   // Gating flags (derived from user for convenience)
   hasAcceptedCurrentTerms: boolean;
   onboardingCompleted: boolean;
@@ -27,6 +39,7 @@ interface AuthContextType {
   // Actions
   setUser: (user: User | null) => void;
   setAuthenticated: (authenticated: boolean) => void;
+  unlock: () => Promise<boolean>;
   logout: () => Promise<void>;
   refetchUser: () => Promise<void>;
 }
@@ -37,10 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const client = useApolloClient();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
   // Use ME query to fetch full user data when authenticated
-  const { viewer, loading: viewerLoading, error: viewerError, refetchViewer } = useViewer({
+  const { viewer, loading: viewerLoading, error: viewerError, resolved: viewerResolved, refetchViewer } = useViewer({
     skip: !isAuthenticated,
   });
 
@@ -52,7 +66,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function checkAuth() {
     try {
       const token = await getAccessToken();
-      if (token) {
+      if (!token) return; // Unauthenticated — leave isAuthenticated=false
+
+      // Stored token exists. If the user has opted into biometric unlock AND
+      // the device still supports it, require a biometric pass before we
+      // trust the token. Otherwise (opt-out, or biometrics no longer
+      // available on the device), skip straight to authenticated.
+      const [enabled, available] = await Promise.all([
+        isBiometricEnabled(),
+        isBiometricAvailable(),
+      ]);
+
+      if (enabled && available) {
+        setLocked(true);
+      } else {
         setIsAuthenticated(true);
       }
     } catch (error) {
@@ -61,6 +88,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setInitializing(false);
     }
   }
+
+  /**
+   * Run the biometric prompt and flip locked→authenticated on success.
+   * Called by the lock screen UI when the user taps the unlock button.
+   * Returns true if the unlock succeeded.
+   */
+  const unlock = useCallback(async (): Promise<boolean> => {
+    const result = await authenticateWithBiometric('Unlock Loam Logger');
+    if (result.ok) {
+      setLocked(false);
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  }, []);
 
   // When viewer data arrives from ME query, update user state
   useEffect(() => {
@@ -106,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await client.clearStore(); // Clear Apollo cache
     setUser(null);
     setIsAuthenticated(false);
+    setLocked(false);
     if (__DEV__) {
       // eslint-disable-next-line no-console
       console.log('[useAuth] Logged out, cleared tokens and Apollo cache');
@@ -113,12 +156,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [client]);
 
   useEffect(() => {
-    if (viewerError && !viewerLoading && isAuthenticated) {
+    if (!isAuthenticated) return;
+
+    if (viewerError && !viewerLoading) {
       console.error('[useAuth] ME query error:', viewerError.message);
       // Token is likely invalid - clear auth state
       logout();
+      return;
     }
-  }, [viewerError, viewerLoading, isAuthenticated, logout]);
+
+    // Resolved but no user: token was accepted network-wise but the server
+    // couldn't identify a user (deleted account or token version mismatch).
+    // Treat the same as an auth failure so the user lands on login instead
+    // of getting stuck on a loading screen or flashed through gates with
+    // default-false flags.
+    if (viewerResolved && !viewer && !viewerLoading) {
+      console.warn('[useAuth] ME query resolved with no user — logging out');
+      logout();
+    }
+  }, [viewerError, viewerLoading, viewerResolved, viewer, isAuthenticated, logout]);
 
   // Register token refresh callback to refetch user when token is refreshed
   const refetchUser = useCallback(async () => {
@@ -140,9 +196,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => setTokenRefreshCallback(null);
   }, [refetchUser]);
 
-  // Loading while initializing (checking SecureStore), or while authenticated and
-  // the viewer query is still in flight with no data or error yet.
-  const loading = initializing || (isAuthenticated && viewerLoading && !viewer && !viewerError);
+  // Loading while initializing (checking SecureStore), or while authenticated
+  // and the ME query hasn't resolved yet.
+  //
+  // Deliberately NOT gating on `viewerLoading` alone. Apollo has a one-render
+  // window between `skip: true → false` where the hook returns
+  // `{ loading: false, data: undefined }` before the query actually fires.
+  // If we consulted only `viewerLoading`, the gate in app/_layout.tsx would
+  // run during that window with `hasAcceptedCurrentTerms = false` (no viewer
+  // yet, so the fallback wins) and redirect the user to the Terms screen.
+  //
+  // Using `!viewerResolved && !viewerError` closes that window. Once the
+  // query either produces data (success) OR produces an error, we unblock.
+  // The null-viewer case (`resolved: true, viewer: null`) unblocks loading
+  // and lets the effect above trigger logout, which flips `isAuthenticated`
+  // back to false and re-gates appropriately.
+  const loading = initializing || (isAuthenticated && !viewerResolved && !viewerError);
 
   // Derive gating flags from viewer first (available immediately when query resolves),
   // then user state (set one render later via useEffect). This prevents a flash to
@@ -163,12 +232,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         loading,
         isAuthenticated,
+        locked,
         hasAcceptedCurrentTerms,
         onboardingCompleted,
         role,
         mustChangePassword,
         setUser,
         setAuthenticated,
+        unlock,
         logout,
         refetchUser,
       }}
