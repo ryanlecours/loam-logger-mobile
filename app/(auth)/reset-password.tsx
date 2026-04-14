@@ -12,7 +12,11 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
-import { colors } from '../src/constants/theme';
+import { colors } from '../../src/constants/theme';
+import {
+  PasswordRequirements,
+  checkPasswordRequirements,
+} from '../../src/components/PasswordRequirements';
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -28,6 +32,13 @@ export default function ResetPasswordScreen() {
     if (!token) return; // Defensive: the form shouldn't render when token is missing.
     if (!password || !confirmPassword) {
       Alert.alert('Error', 'Please enter and confirm your new password.');
+      return;
+    }
+    // Mirror signup's gate so a too-weak password fails fast on-device instead
+    // of round-tripping to the server (which validates the same rules and would
+    // otherwise return a generic "password does not meet requirements" error).
+    if (!checkPasswordRequirements(password).isValid) {
+      Alert.alert('Error', 'Please meet all password requirements.');
       return;
     }
     if (password !== confirmPassword) {
@@ -104,8 +115,9 @@ export default function ResetPasswordScreen() {
               autoCapitalize="none"
               editable={!submitting}
             />
+            {password.length > 0 && <PasswordRequirements password={password} />}
             <TextInput
-              style={styles.input}
+              style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
               placeholder="Confirm new password"
               placeholderTextColor={colors.textMuted}
               value={confirmPassword}

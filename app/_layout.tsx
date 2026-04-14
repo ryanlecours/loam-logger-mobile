@@ -67,8 +67,13 @@ function RootLayoutNav() {
       return;
     }
 
-    // User IS authenticated - don't let them stay in auth group
-    if (inAuthGroup) {
+    // User IS authenticated - don't let them stay in auth group, EXCEPT for
+    // /reset-password. A user can be logged in on their phone and still tap a
+    // reset link from email (e.g. they remembered their password mid-reset, or
+    // an admin sent them one). Bouncing them to /(tabs) would discard the
+    // token and break the reset flow. The reset screen handles its own
+    // session invalidation when the new password is saved.
+    if (inAuthGroup && secondSegment !== 'reset-password') {
       // Determine where they should go based on flags
       if (!hasAcceptedCurrentTerms) {
         router.replace('/(onboarding)/terms');

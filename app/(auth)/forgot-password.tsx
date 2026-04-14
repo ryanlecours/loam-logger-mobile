@@ -21,8 +21,16 @@ export default function ForgotPasswordScreen() {
   const [submitted, setSubmitted] = useState(false);
 
   async function handleSubmit() {
-    if (!email.trim()) {
+    const trimmed = email.trim();
+    if (!trimmed) {
       Alert.alert('Error', 'Please enter your email.');
+      return;
+    }
+    // Cheap shape check — catches typos like "a" or "alex" before we round-trip
+    // to the server. The API still validates and (for enumeration resistance)
+    // returns 200 regardless, so this is purely UX, not a security boundary.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      Alert.alert('Error', 'Please enter a valid email address.');
       return;
     }
 
