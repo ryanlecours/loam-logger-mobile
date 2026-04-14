@@ -12,23 +12,19 @@ interface UseViewerOptions {
  * Wrapper hook around the ME query for fetching the current viewer.
  * Used by useAuth to fetch full user data after login.
  *
- * Uses `cache-and-network` so that flipping `skip: false` (e.g. right after
- * a successful biometric unlock) returns any cached viewer synchronously —
- * the auth gate unblocks on the first render instead of waiting for the
- * network roundtrip to complete. A background refresh still fires so any
- * server-side changes (terms version bump, onboarding flag flip, etc.)
- * arrive within a beat. `nextFetchPolicy: 'cache-first'` prevents repeated
- * network-hitting on subsequent re-renders within the same session.
+ * Uses `network-only` deliberately. We previously tried `cache-and-network`
+ * to eliminate the post-biometric-unlock spinner, but it caused a login
+ * redirect loop: Apollo's intermediate render state (data === undefined →
+ * resolved=false one tick, then data === {me:null} transiently before the
+ * network response lands) made the logout-effect in useAuth fire and
+ * immediately bounce freshly-signed-in users back to the login screen.
  *
- * Trade-off: cold boot (no cache yet) behaves identically to network-only.
- * Persistent cache across app launches would require apollo3-cache-persist;
- * that's a separate, larger change.
+ * Post-unlock latency deferred to the persistent-cache TODO item instead.
  */
 export function useViewer(options: UseViewerOptions = {}) {
   const { data, loading, error, refetch } = useMeQuery({
     skip: options.skip,
-    fetchPolicy: 'cache-and-network',
-    nextFetchPolicy: 'cache-first',
+    fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,
   });
 
