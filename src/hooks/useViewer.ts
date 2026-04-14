@@ -12,23 +12,19 @@ interface UseViewerOptions {
  * Wrapper hook around the ME query for fetching the current viewer.
  * Used by useAuth to fetch full user data after login.
  *
- * Uses `cache-and-network` so that flipping `skip: false` (e.g. right after
- * a successful biometric unlock) returns any cached viewer synchronously —
- * the auth gate unblocks on the first render instead of waiting for the
- * network roundtrip to complete. A background refresh still fires so any
- * server-side changes (terms version bump, onboarding flag flip, etc.)
- * arrive within a beat. `nextFetchPolicy: 'cache-first'` prevents repeated
- * network-hitting on subsequent re-renders within the same session.
+ * Uses `network-only` deliberately. We previously tried `cache-and-network`
+ * to eliminate the post-biometric-unlock spinner, but it caused a login
+ * redirect loop: Apollo's intermediate render state (data === undefined →
+ * resolved=false one tick, then data === {me:null} transiently before the
+ * network response lands) made the logout-effect in useAuth fire and
+ * immediately bounce freshly-signed-in users back to the login screen.
  *
- * Trade-off: cold boot (no cache yet) behaves identically to network-only.
- * Persistent cache across app launches would require apollo3-cache-persist;
- * that's a separate, larger change.
+ * Post-unlock latency deferred to the persistent-cache TODO item instead.
  */
 export function useViewer(options: UseViewerOptions = {}) {
   const { data, loading, error, refetch } = useMeQuery({
     skip: options.skip,
-    fetchPolicy: 'cache-and-network',
-    nextFetchPolicy: 'cache-first',
+    fetchPolicy: 'network-only',
     notifyOnNetworkStatusChange: true,
   });
 
@@ -36,13 +32,16 @@ export function useViewer(options: UseViewerOptions = {}) {
     return refetch();
   }, [refetch]);
 
-  // `resolved` flips true once the query has completed (success or null result),
-  // so callers can distinguish "query hasn't returned yet" (data === undefined)
-  // from "query returned and `me` was null" (data exists, data.me === null).
-  // The latter means the token was accepted network-wise but the server
-  // couldn't identify a user — usually a deleted account or a token that
-  // failed version validation — and the caller should log out.
-  const resolved = data !== undefined;
+  // `resolved` flips true once the query has settled in ANY terminal state:
+  // success (data populated), null-result (data.me === null), or network
+  // error (error populated). This makes `resolved` a trustworthy
+  // "query has finished" signal regardless of outcome — callers can then
+  // inspect `viewer` / `error` to decide what to do next.
+  //
+  // Tempting to define this as just `data !== undefined`, but under
+  // `network-only`, Apollo leaves `data === undefined` on error — so callers
+  // gating on `resolved` alone would miss error states entirely.
+  const resolved = data !== undefined || error !== undefined;
 
   return {
     viewer: data?.me ?? null,

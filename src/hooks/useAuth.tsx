@@ -204,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refetchUser]);
 
   // Loading while initializing (checking SecureStore), or while authenticated
-  // and the ME query hasn't resolved yet.
+  // and the ME query hasn't settled yet.
   //
   // Deliberately NOT gating on `viewerLoading` alone. Apollo has a one-render
   // window between `skip: true → false` where the hook returns
@@ -213,12 +213,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // run during that window with `hasAcceptedCurrentTerms = false` (no viewer
   // yet, so the fallback wins) and redirect the user to the Terms screen.
   //
-  // Using `!viewerResolved && !viewerError` closes that window. Once the
-  // query either produces data (success) OR produces an error, we unblock.
-  // The null-viewer case (`resolved: true, viewer: null`) unblocks loading
-  // and lets the effect above trigger logout, which flips `isAuthenticated`
-  // back to false and re-gates appropriately.
-  const loading = initializing || (isAuthenticated && !viewerResolved && !viewerError);
+  // `viewerResolved` flips true on any terminal state (data, null, or error)
+  // — see useViewer.ts — so we only need the single check here. Error + null
+  // cases unblock loading and let the logout-effect above run, which flips
+  // `isAuthenticated` back to false and re-routes to login.
+  const loading = initializing || (isAuthenticated && !viewerResolved);
 
   // Derive gating flags from viewer first (available immediately when query resolves),
   // then user state (set one render later via useEffect). This prevents a flash to
