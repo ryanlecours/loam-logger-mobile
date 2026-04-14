@@ -16,6 +16,7 @@ import { colors } from '../src/constants/theme';
 export default function IndexScreen() {
   return (
     <ImageBackground
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       source={require('../assets/loam-logger-vertical.png')}
       style={styles.container}
       // "cover" scales the image to fill the screen while preserving aspect

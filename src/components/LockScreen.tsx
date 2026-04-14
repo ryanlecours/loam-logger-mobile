@@ -57,6 +57,7 @@ export function LockScreen() {
 
   return (
     <ImageBackground
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       source={require('../../assets/loam-logger-vertical.png')}
       style={styles.container}
       resizeMode="cover"
