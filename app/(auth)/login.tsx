@@ -12,9 +12,17 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { loginWithEmail, loginWithGoogle } from '../../src/lib/auth';
+import { loginWithApple, loginWithEmail, loginWithGoogle } from '../../src/lib/auth';
 import { useAuth } from '../../src/hooks/useAuth';
 import { GoogleSignInButton } from '../../src/components/GoogleSignInButton';
+import { AppleSignInButton } from '../../src/components/AppleSignInButton';
+import {
+  declineBiometricEnrollment,
+  getBiometricCapability,
+  getBiometricLabel,
+  setBiometricEnabled,
+  shouldPromptForEnrollment,
+} from '../../src/lib/biometric';
 import { colors } from '../../src/constants/theme';
 
 export default function LoginScreen() {
@@ -22,11 +30,66 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   const router = useRouter();
   const { setAuthenticated } = useAuth();
 
-  const isLoading = loading || googleLoading;
+  const isLoading = loading || googleLoading || appleLoading;
+
+  /**
+   * After any successful sign-in, offer to enable biometric unlock so the
+   * next launch can skip the login screen entirely. One-time prompt — only
+   * shows if the device supports it and the user hasn't already opted in
+   * or out.
+   */
+  async function maybePromptBiometricEnrollment() {
+    const should = await shouldPromptForEnrollment();
+    if (!should) return;
+    const cap = await getBiometricCapability();
+    const label = getBiometricLabel(cap);
+    Alert.alert(
+      `Enable ${label}?`,
+      `Use ${label} to sign in faster on this device. You can change this anytime in Settings.`,
+      [
+        {
+          text: 'Not now',
+          style: 'cancel',
+          // Persist the decline so we don't re-prompt on every login.
+          // The user can still enable it later from Settings, which clears
+          // this flag (see setBiometricEnabled in src/lib/biometric.ts).
+          //
+          // Failure here is benign (worst case: they get re-prompted next
+          // login), so log but don't nag the user about it.
+          onPress: async () => {
+            try {
+              await declineBiometricEnrollment();
+            } catch (err) {
+              console.error('[login] declineBiometricEnrollment failed', err);
+            }
+          },
+        },
+        {
+          text: 'Enable',
+          onPress: async () => {
+            try {
+              await setBiometricEnabled(true);
+            } catch (err) {
+              // SecureStore can fail in rare states (Keychain unavailable).
+              // Alert the user — a silent failure here would leave them
+              // thinking biometric unlock is on when it isn't, and they'd
+              // be confused next cold boot when it doesn't prompt.
+              console.error('[login] setBiometricEnabled failed', err);
+              Alert.alert(
+                'Unable to save setting',
+                `We couldn't enable ${label} unlock. You can try again from Settings.`,
+              );
+            }
+          },
+        },
+      ],
+    );
+  }
 
   async function handleLogin() {
     if (!email || !password) {
@@ -40,6 +103,7 @@ export default function LoginScreen() {
 
     if (result.success) {
       setAuthenticated(true);
+      void maybePromptBiometricEnrollment();
       return;
     }
 
@@ -63,6 +127,7 @@ export default function LoginScreen() {
 
     if (result.success) {
       setAuthenticated(true);
+      void maybePromptBiometricEnrollment();
       return;
     }
 
@@ -83,6 +148,36 @@ export default function LoginScreen() {
     Alert.alert('Google Sign-In Failed', error);
   }
 
+  async function handleAppleSuccess(
+    identityToken: string,
+    user?: { email?: string; name?: { firstName?: string; lastName?: string } }
+  ) {
+    setAppleLoading(true);
+    const result = await loginWithApple(identityToken, user);
+    setAppleLoading(false);
+
+    if (result.success) {
+      setAuthenticated(true);
+      void maybePromptBiometricEnrollment();
+      return;
+    }
+
+    if (result.errorCode === 'CLOSED_BETA') {
+      router.replace('/closed-beta' as Href);
+      return;
+    }
+    if (result.errorCode === 'ALREADY_ON_WAITLIST') {
+      router.replace('/waitlist' as Href);
+      return;
+    }
+
+    Alert.alert('Login Failed', result.error || 'Please try again');
+  }
+
+  function handleAppleError(error: string) {
+    Alert.alert('Apple Sign-In Failed', error);
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -96,6 +191,15 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Track your mountain bike rides</Text>
 
         <View style={styles.form}>
+          {/* Apple Sign-In (iOS only; renders null on Android / unsupported) */}
+          <View style={styles.ssoButton}>
+            <AppleSignInButton
+              onSuccess={handleAppleSuccess}
+              onError={handleAppleError}
+              disabled={isLoading}
+            />
+          </View>
+
           {/* Google Sign-In */}
           <GoogleSignInButton
             onSuccess={handleGoogleSuccess}
@@ -199,6 +303,9 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
+  },
+  ssoButton: {
+    marginBottom: 12,
   },
   divider: {
     flexDirection: 'row',

@@ -16,21 +16,18 @@ on:
       profile:
         description: 'EAS build profile'
         required: false
-        default: 'preview'
+        default: 'production'
         type: choice
         options:
-          - development
           - preview
           - production
       platform:
         description: 'Platform to build'
         required: false
-        default: 'all'
+        default: 'ios'
         type: choice
         options:
-          - all
           - ios
-          - android
 
 jobs:
   build:
@@ -63,8 +60,11 @@ jobs:
             echo "profile=${{ inputs.profile }}" >> $GITHUB_OUTPUT
             echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
           else
-            echo "profile=preview" >> $GITHUB_OUTPUT
-            echo "platform=all" >> $GITHUB_OUTPUT
+            # Default for push-to-main: build production iOS and auto-submit to
+            # TestFlight. Every merge to main becomes a release candidate, so
+            # only land changes on main when you're ready to ship them.
+            echo "profile=production" >> $GITHUB_OUTPUT
+            echo "platform=ios" >> $GITHUB_OUTPUT
           fi
 
       - name: Run EAS Build
@@ -80,5 +80,6 @@ jobs:
           eas build \
             --profile ${{ steps.params.outputs.profile }} \
             --platform ${{ steps.params.outputs.platform }} \
+            --auto-submit \
             --non-interactive \
             --no-wait

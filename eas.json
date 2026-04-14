@@ -22,7 +22,7 @@
     },
     "production": {
       "extends": "base",
-      "autoIncrement": true,
+      "autoIncrement": "buildNumber",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.loamlogger.app",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "22899107125-up6tfvkciit2n1tvs1v9mugrdgue15ui.apps.googleusercontent.com",
