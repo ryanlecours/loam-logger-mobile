@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
+import { Alert, View, Text, Switch, StyleSheet } from 'react-native';
 import {
   authenticateWithBiometric,
   getBiometricCapability,
@@ -51,6 +51,16 @@ export function BiometricUnlockSection() {
       }
       await setBiometricEnabled(next);
       setEnabled(next);
+    } catch (err) {
+      // SecureStore can fail (e.g. Keychain unavailable in rare states).
+      // The Switch in our render is controlled by `enabled`, so leaving it
+      // unchanged is already correct — the toggle visually snaps back.
+      // But without an alert the user has no signal that anything went wrong.
+      console.error('[BiometricUnlockSection] setBiometricEnabled failed', err);
+      Alert.alert(
+        'Unable to save setting',
+        `We couldn't ${next ? 'enable' : 'disable'} ${label} unlock. Please try again.`,
+      );
     } finally {
       setBusy(false);
     }
