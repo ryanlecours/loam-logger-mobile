@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useRidesPageQuery, useWeatherBreakdownQuery } from '../graphql/generated';
 import { useBikesWithPredictions } from './useBikesWithPredictions';
+import type { WeatherCondition } from '../lib/weather';
 
 export type TimeframeOption = '7d' | '30d' | '90d' | 'YTD' | `year:${number}`;
 
@@ -24,16 +25,7 @@ export interface BikeTimeData {
   percentage: number;
 }
 
-export type WeatherConditionKey =
-  | 'SUNNY'
-  | 'CLOUDY'
-  | 'RAINY'
-  | 'SNOWY'
-  | 'WINDY'
-  | 'FOGGY'
-  | 'UNKNOWN';
-
-export type WeatherBreakdown = Record<WeatherConditionKey, number>;
+export type WeatherBreakdown = Record<WeatherCondition, number>;
 
 export interface RideStats {
   // Primary metrics
@@ -71,7 +63,15 @@ export interface RideStats {
   // Rides in this timeframe that have no weather row yet (pending fetch
   // or permanently unfetchable, e.g. no coordinates).
   weatherPendingCount: number;
+
+  // True when the ride list was truncated at the fetch cap (currently 500).
+  // Stats derived client-side (streaks, PRs, totals) are computed over the
+  // capped dataset, so the UI should disclose this. Weather breakdown uses
+  // a server-side aggregation and is not affected by the cap.
+  truncated: boolean;
 }
+
+const RIDES_FETCH_CAP = 500;
 
 const DAYS_MS = 24 * 60 * 60 * 1000;
 
@@ -189,7 +189,7 @@ const emptyWeatherBreakdown = (): WeatherBreakdown => ({
 
 export function useRideStats(timeframe: TimeframeOption = '30d') {
   const { data, loading, refetch } = useRidesPageQuery({
-    variables: { take: 500 },
+    variables: { take: RIDES_FETCH_CAP },
     fetchPolicy: 'cache-and-network',
   });
 
@@ -243,6 +243,7 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       bikeTime: [],
       weatherBreakdown: emptyWeatherBreakdown(),
       weatherPendingCount: 0,
+      truncated: false,
     };
 
     if (!data?.rides) return emptyStats;
@@ -426,6 +427,10 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       // render before the weather query resolves.
       weatherBreakdown: emptyWeatherBreakdown(),
       weatherPendingCount: 0,
+      // If the server returned a full page of rides, the user has ≥ the cap
+      // and client-side stats (streaks, PRs, totals) may be incomplete.
+      // Weather breakdown is unaffected (server-side aggregation).
+      truncated: allRides.length >= RIDES_FETCH_CAP,
     };
   }, [data?.rides, timeframe, bikeNameMap]);
 

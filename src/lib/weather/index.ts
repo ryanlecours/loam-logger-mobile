@@ -1,15 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import { WeatherCondition as WeatherConditionEnum } from '../../graphql/generated';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-export type WeatherCondition =
-  | 'SUNNY'
-  | 'CLOUDY'
-  | 'RAINY'
-  | 'SNOWY'
-  | 'WINDY'
-  | 'FOGGY'
-  | 'UNKNOWN';
+// Derive the string-literal union from the codegen'd enum so callsites can
+// keep writing 'SUNNY' | 'CLOUDY' | ... while the type stays in sync with
+// the GraphQL schema. Adding a new condition on the API side only requires
+// re-running codegen — this union widens automatically.
+export type WeatherCondition = `${WeatherConditionEnum}`;
 
 export const conditionLabel = (c: WeatherCondition): string => {
   switch (c) {
@@ -29,7 +27,9 @@ export const conditionIcon = (c: WeatherCondition): IconName => {
     case 'CLOUDY': return 'cloudy-outline';
     case 'RAINY': return 'rainy-outline';
     case 'SNOWY': return 'snow-outline';
-    case 'WINDY': return 'swap-horizontal-outline';
+    // Ionicons has no dedicated wind glyph. `flag-outline` reads as "flag
+    // in wind" — the most universally recognizable proxy in the set.
+    case 'WINDY': return 'flag-outline';
     case 'FOGGY': return 'cloud-outline';
     default: return 'help-circle-outline';
   }

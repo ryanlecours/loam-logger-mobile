@@ -9,7 +9,7 @@ import {
   celsiusToFahrenheit,
   mmToInches,
   kphToMph,
-} from '../../lib/weather/icon';
+} from '../../lib/weather';
 
 type Props = {
   weather: {
@@ -20,7 +20,7 @@ type Props = {
     humidity?: number | null;
     condition: WeatherCondition;
   };
-  distanceUnit?: string; // 'mi' | 'km'
+  distanceUnit?: 'mi' | 'km';
 };
 
 export function WeatherCard({ weather, distanceUnit = 'mi' }: Props) {
