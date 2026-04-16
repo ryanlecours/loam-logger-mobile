@@ -24,6 +24,17 @@ export interface BikeTimeData {
   percentage: number;
 }
 
+export type WeatherConditionKey =
+  | 'SUNNY'
+  | 'CLOUDY'
+  | 'RAINY'
+  | 'SNOWY'
+  | 'WINDY'
+  | 'FOGGY'
+  | 'UNKNOWN';
+
+export type WeatherBreakdown = Record<WeatherConditionKey, number>;
+
 export interface RideStats {
   // Primary metrics
   totalRides: number;
@@ -53,6 +64,13 @@ export interface RideStats {
 
   // Bike usage
   bikeTime: BikeTimeData[];
+
+  // Weather breakdown — counts only rides with fetched weather. UNKNOWN
+  // is reserved for rides whose WMO code didn't map to a known condition.
+  weatherBreakdown: WeatherBreakdown;
+  // Rides in this timeframe that have no weather row yet (pending fetch
+  // or permanently unfetchable, e.g. no coordinates).
+  weatherPendingCount: number;
 }
 
 const DAYS_MS = 24 * 60 * 60 * 1000;
@@ -157,7 +175,18 @@ type RideData = {
   averageHr?: number | null;
   bikeId?: string | null;
   location?: string | null;
+  weather?: { condition: WeatherConditionKey } | null;
 };
+
+const emptyWeatherBreakdown = (): WeatherBreakdown => ({
+  SUNNY: 0,
+  CLOUDY: 0,
+  RAINY: 0,
+  SNOWY: 0,
+  WINDY: 0,
+  FOGGY: 0,
+  UNKNOWN: 0,
+});
 
 export function useRideStats(timeframe: TimeframeOption = '30d') {
   const { data, loading, refetch } = useRidesPageQuery({
@@ -196,6 +225,8 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       ridesWithHr: 0,
       topLocations: [],
       bikeTime: [],
+      weatherBreakdown: emptyWeatherBreakdown(),
+      weatherPendingCount: 0,
     };
 
     if (!data?.rides) return emptyStats;
@@ -227,6 +258,10 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
     // Heart rate tracking
     const hrValues: number[] = [];
 
+    // Weather breakdown
+    const weatherBreakdown = emptyWeatherBreakdown();
+    let weatherPendingCount = 0;
+
     // Personal records tracking
     let longestDistanceRide: RideData | null = null;
     let mostElevationRide: RideData | null = null;
@@ -256,6 +291,15 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       // Heart rate
       if (ride.averageHr && ride.averageHr > 0) {
         hrValues.push(ride.averageHr);
+      }
+
+      // Weather bucket — only count rides that have fetched weather.
+      // Rides still pending a fetch go into weatherPendingCount.
+      if (ride.weather) {
+        const condition = ride.weather.condition;
+        weatherBreakdown[condition] = (weatherBreakdown[condition] ?? 0) + 1;
+      } else {
+        weatherPendingCount += 1;
       }
 
       // Personal records
@@ -374,6 +418,8 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       ridesWithHr: hrValues.length,
       topLocations,
       bikeTime,
+      weatherBreakdown,
+      weatherPendingCount,
     };
   }, [data?.rides, timeframe, bikeNameMap]);
 

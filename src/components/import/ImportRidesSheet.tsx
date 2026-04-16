@@ -147,7 +147,7 @@ export function ImportRidesSheet({
               {/* Header */}
               <View style={styles.header}>
                 <View style={[styles.headerAccent, { backgroundColor: config.color }]} />
-                <Text style={styles.title}>Import {config.label} Rides</Text>
+                <Text style={styles.title}>Sync {config.label} Rides</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
@@ -156,7 +156,7 @@ export function ImportRidesSheet({
               {step === 'select' && (
                 <>
                   <Text style={styles.subtitle}>
-                    Select a time period to import rides from {config.label}
+                    Select a time period to sync rides from {config.label}
                   </Text>
 
                   {historyLoading ? (
@@ -201,11 +201,11 @@ export function ImportRidesSheet({
                               </Text>
                               {isCompleted && request?.ridesFound != null && (
                                 <Text style={styles.yearMeta}>
-                                  {request.ridesFound} ride{request.ridesFound !== 1 ? 's' : ''} imported
+                                  {request.ridesFound} ride{request.ridesFound !== 1 ? 's' : ''} synced
                                 </Text>
                               )}
                               {isInProgress && (
-                                <Text style={styles.yearMeta}>Import in progress...</Text>
+                                <Text style={styles.yearMeta}>Sync in progress...</Text>
                               )}
                             </View>
                           </TouchableOpacity>
@@ -220,6 +220,10 @@ export function ImportRidesSheet({
                     </Text>
                   )}
 
+                  {/* WHOOP doesn't use this sheet (IntegrationProvider only
+                      covers garmin + strava), so the WHOOP GPS disclaimer
+                      lives in the WHOOP-specific sync UI instead. */}
+
                   <View style={styles.footer}>
                     <TouchableOpacity
                       style={[
@@ -231,7 +235,7 @@ export function ImportRidesSheet({
                       disabled={!selectedYear}
                     >
                       <Ionicons name="download-outline" size={20} color="#fff" />
-                      <Text style={styles.importButtonText}>Import Rides</Text>
+                      <Text style={styles.importButtonText}>Sync Rides</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -241,12 +245,12 @@ export function ImportRidesSheet({
                 <View style={styles.processingContainer}>
                   <ActivityIndicator size="large" color={config.color} />
                   <Text style={styles.processingTitle}>
-                    Importing rides from {config.label}...
+                    Syncing rides from {config.label}...
                   </Text>
                   <Text style={styles.processingSubtitle}>
                     {provider === 'strava'
                       ? 'This may take a minute or two.'
-                      : 'Queuing your import request...'}
+                      : 'Queuing your sync request...'}
                   </Text>
                 </View>
               )}
@@ -259,22 +263,22 @@ export function ImportRidesSheet({
 
                   {provider === 'strava' && 'imported' in result ? (
                     <>
-                      <Text style={styles.completeTitle}>Import Complete</Text>
+                      <Text style={styles.completeTitle}>Sync Complete</Text>
                       <Text style={styles.completeMessage}>{result.message}</Text>
                       <View style={styles.statsRow}>
                         <View style={styles.stat}>
                           <Text style={styles.statValue}>{result.imported}</Text>
-                          <Text style={styles.statLabel}>Imported</Text>
+                          <Text style={styles.statLabel}>New</Text>
                         </View>
                         <View style={styles.stat}>
-                          <Text style={styles.statValue}>{result.skipped}</Text>
-                          <Text style={styles.statLabel}>Skipped</Text>
+                          <Text style={styles.statValue}>{result.updated ?? result.skipped ?? 0}</Text>
+                          <Text style={styles.statLabel}>Updated</Text>
                         </View>
                       </View>
                     </>
                   ) : (
                     <>
-                      <Text style={styles.completeTitle}>Import Queued</Text>
+                      <Text style={styles.completeTitle}>Sync Queued</Text>
                       <Text style={styles.completeMessage}>
                         Your rides will sync in the background. Check back in a few minutes to see them appear.
                       </Text>

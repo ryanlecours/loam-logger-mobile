@@ -1,0 +1,14 @@
+mutation BackfillWeatherForMyRides {
+  backfillWeatherForMyRides {
+    enqueuedCount
+    ridesWithoutCoords
+    remainingAfterBatch
+  }
+}
+
+query RidesMissingWeather {
+  me {
+    id
+    ridesMissingWeather
+  }
+}
