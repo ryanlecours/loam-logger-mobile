@@ -68,7 +68,6 @@ export function ImportRidesSheet({
   const [history, setHistory] = useState<BackfillRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [result, setResult] = useState<StravaBackfillResult | GarminBackfillResult | null>(null);
-  const [_error, setError] = useState<string | null>(null);
 
   const config = PROVIDER_CONFIG[provider];
 
@@ -78,7 +77,6 @@ export function ImportRidesSheet({
       setStep('select');
       setSelectedYear(null);
       setResult(null);
-      setError(null);
       setHistoryLoading(true);
       getBackfillHistory(provider)
         .then(setHistory)
@@ -100,7 +98,6 @@ export function ImportRidesSheet({
     if (!selectedYear) return;
 
     setStep('importing');
-    setError(null);
 
     try {
       let importResult: StravaBackfillResult | GarminBackfillResult;
@@ -115,7 +112,6 @@ export function ImportRidesSheet({
       setStep('complete');
       onSuccess?.();
     } catch (err) {
-      setError((err as Error).message);
       setStep('select');
       Alert.alert('Import Failed', (err as Error).message);
     }
@@ -125,7 +121,6 @@ export function ImportRidesSheet({
     setStep('select');
     setSelectedYear(null);
     setResult(null);
-    setError(null);
     onClose();
   }, [onClose]);
 

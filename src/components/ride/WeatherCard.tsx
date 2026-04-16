@@ -66,7 +66,7 @@ export function WeatherCard({ weather, distanceUnit = 'mi' }: Props) {
           <Text style={styles.label}>Precip</Text>
         </View>
         <View style={styles.item}>
-          <Ionicons name="speedometer-outline" size={24} color={colors.textMuted} />
+          <Ionicons name="flag-outline" size={24} color={colors.textMuted} />
           <Text style={styles.value}>{windValue}</Text>
           <Text style={styles.label}>Wind</Text>
         </View>
