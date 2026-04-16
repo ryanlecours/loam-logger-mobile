@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useRidesPageQuery } from '../graphql/generated';
+import { useRidesPageQuery, useWeatherBreakdownQuery } from '../graphql/generated';
 import { useBikesWithPredictions } from './useBikesWithPredictions';
 
 export type TimeframeOption = '7d' | '30d' | '90d' | 'YTD' | `year:${number}`;
@@ -175,7 +175,6 @@ type RideData = {
   averageHr?: number | null;
   bikeId?: string | null;
   location?: string | null;
-  weather?: { condition: WeatherConditionKey } | null;
 };
 
 const emptyWeatherBreakdown = (): WeatherBreakdown => ({
@@ -191,6 +190,23 @@ const emptyWeatherBreakdown = (): WeatherBreakdown => ({
 export function useRideStats(timeframe: TimeframeOption = '30d') {
   const { data, loading, refetch } = useRidesPageQuery({
     variables: { take: 500 },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  // Server-side aggregation for weather counts — avoids iterating the
+  // 500-ride list client-side just to bucket by condition. Scoped to the
+  // same timeframe the stats page is showing.
+  const weatherFilter = useMemo(() => {
+    const startDate = getStartDateForTimeframe(timeframe);
+    const yearMatch = timeframe.match(/^year:(\d{4})$/);
+    const endDate = yearMatch ? new Date(Number(yearMatch[1]) + 1, 0, 1) : undefined;
+    return {
+      startDate: startDate.toISOString(),
+      ...(endDate ? { endDate: endDate.toISOString() } : {}),
+    };
+  }, [timeframe]);
+  const { data: weatherData } = useWeatherBreakdownQuery({
+    variables: { filter: weatherFilter },
     fetchPolicy: 'cache-and-network',
   });
 
@@ -258,10 +274,6 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
     // Heart rate tracking
     const hrValues: number[] = [];
 
-    // Weather breakdown
-    const weatherBreakdown = emptyWeatherBreakdown();
-    let weatherPendingCount = 0;
-
     // Personal records tracking
     let longestDistanceRide: RideData | null = null;
     let mostElevationRide: RideData | null = null;
@@ -291,15 +303,6 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       // Heart rate
       if (ride.averageHr && ride.averageHr > 0) {
         hrValues.push(ride.averageHr);
-      }
-
-      // Weather bucket — only count rides that have fetched weather.
-      // Rides still pending a fetch go into weatherPendingCount.
-      if (ride.weather) {
-        const condition = ride.weather.condition;
-        weatherBreakdown[condition] = (weatherBreakdown[condition] ?? 0) + 1;
-      } else {
-        weatherPendingCount += 1;
       }
 
       // Personal records
@@ -418,13 +421,35 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       ridesWithHr: hrValues.length,
       topLocations,
       bikeTime,
-      weatherBreakdown,
-      weatherPendingCount,
+      // Populated from the dedicated WeatherBreakdown query below; kept
+      // zeroed here so the object shape is always valid during the first
+      // render before the weather query resolves.
+      weatherBreakdown: emptyWeatherBreakdown(),
+      weatherPendingCount: 0,
     };
   }, [data?.rides, timeframe, bikeNameMap]);
 
+  // Merge the server-computed weather breakdown into the stats object.
+  const statsWithWeather = useMemo<RideStats>(() => {
+    const wb = weatherData?.me?.weatherBreakdown;
+    if (!wb) return stats;
+    return {
+      ...stats,
+      weatherBreakdown: {
+        SUNNY: wb.sunny,
+        CLOUDY: wb.cloudy,
+        RAINY: wb.rainy,
+        SNOWY: wb.snowy,
+        WINDY: wb.windy,
+        FOGGY: wb.foggy,
+        UNKNOWN: wb.unknown,
+      },
+      weatherPendingCount: wb.pending,
+    };
+  }, [stats, weatherData]);
+
   return {
-    stats,
+    stats: statsWithWeather,
     loading,
     refetch,
   };

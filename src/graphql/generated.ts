@@ -1166,6 +1166,12 @@ export type User = {
   subscriptionProvider?: Maybe<SubscriptionProvider>;
   subscriptionTier: SubscriptionTier;
   tierLimits: TierLimits;
+  weatherBreakdown: WeatherBreakdown;
+};
+
+
+export type UserWeatherBreakdownArgs = {
+  filter?: InputMaybe<RidesFilterInput>;
 };
 
 export enum UserRole {
@@ -1188,6 +1194,19 @@ export type WearDriver = {
   contribution: Scalars['Int']['output'];
   factor: Scalars['String']['output'];
   label: Scalars['String']['output'];
+};
+
+export type WeatherBreakdown = {
+  __typename?: 'WeatherBreakdown';
+  cloudy: Scalars['Int']['output'];
+  foggy: Scalars['Int']['output'];
+  pending: Scalars['Int']['output'];
+  rainy: Scalars['Int']['output'];
+  snowy: Scalars['Int']['output'];
+  sunny: Scalars['Int']['output'];
+  totalRides: Scalars['Int']['output'];
+  unknown: Scalars['Int']['output'];
+  windy: Scalars['Int']['output'];
 };
 
 export enum WeatherCondition {
@@ -1427,6 +1446,13 @@ export type UpdateUserPreferencesMutationVariables = Exact<{
 
 
 export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean } };
+
+export type WeatherBreakdownQueryVariables = Exact<{
+  filter?: InputMaybe<RidesFilterInput>;
+}>;
+
+
+export type WeatherBreakdownQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, weatherBreakdown: { __typename?: 'WeatherBreakdown', sunny: number, cloudy: number, rainy: number, snowy: number, windy: number, foggy: number, unknown: number, pending: number, totalRides: number } } | null };
 
 export const ComponentFieldsFragmentDoc = gql`
     fragment ComponentFields on Component {
@@ -2915,3 +2941,57 @@ export function useUpdateUserPreferencesMutation(baseOptions?: Apollo.MutationHo
 export type UpdateUserPreferencesMutationHookResult = ReturnType<typeof useUpdateUserPreferencesMutation>;
 export type UpdateUserPreferencesMutationResult = Apollo.MutationResult<UpdateUserPreferencesMutation>;
 export type UpdateUserPreferencesMutationOptions = Apollo.BaseMutationOptions<UpdateUserPreferencesMutation, UpdateUserPreferencesMutationVariables>;
+export const WeatherBreakdownDocument = gql`
+    query WeatherBreakdown($filter: RidesFilterInput) {
+  me {
+    id
+    weatherBreakdown(filter: $filter) {
+      sunny
+      cloudy
+      rainy
+      snowy
+      windy
+      foggy
+      unknown
+      pending
+      totalRides
+    }
+  }
+}
+    `;
+
+/**
+ * __useWeatherBreakdownQuery__
+ *
+ * To run a query within a React component, call `useWeatherBreakdownQuery` and pass it any options that fit your needs.
+ * When your component renders, `useWeatherBreakdownQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useWeatherBreakdownQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *   },
+ * });
+ */
+export function useWeatherBreakdownQuery(baseOptions?: Apollo.QueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>(WeatherBreakdownDocument, options);
+      }
+export function useWeatherBreakdownLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>(WeatherBreakdownDocument, options);
+        }
+// @ts-ignore
+export function useWeatherBreakdownSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>): Apollo.UseSuspenseQueryResult<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>;
+export function useWeatherBreakdownSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>): Apollo.UseSuspenseQueryResult<WeatherBreakdownQuery | undefined, WeatherBreakdownQueryVariables>;
+export function useWeatherBreakdownSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>(WeatherBreakdownDocument, options);
+        }
+export type WeatherBreakdownQueryHookResult = ReturnType<typeof useWeatherBreakdownQuery>;
+export type WeatherBreakdownLazyQueryHookResult = ReturnType<typeof useWeatherBreakdownLazyQuery>;
+export type WeatherBreakdownSuspenseQueryHookResult = ReturnType<typeof useWeatherBreakdownSuspenseQuery>;
+export type WeatherBreakdownQueryResult = Apollo.QueryResult<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>;
