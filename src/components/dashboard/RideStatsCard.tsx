@@ -166,7 +166,7 @@ export function RideStatsCard() {
 
       {stats.truncated && (
         <Text style={styles.truncationNote}>
-          Showing stats based on your most recent 500 rides. Weather totals cover your full history.
+          Showing stats based on your most recent 500 rides. Weather totals cover the full selected timeframe.
         </Text>
       )}
 

@@ -9,6 +9,7 @@ import {
   useRidesMissingWeatherQuery,
   useBackfillWeatherForMyRidesMutation,
   RidesPageDocument,
+  RidesMissingWeatherDocument,
 } from '../../graphql/generated';
 
 // Workers drain asynchronously after a backfill returns, so we wait this long
@@ -60,7 +61,7 @@ export function WeatherBackfillSection() {
       return;
     }
     try {
-      const res = await backfill({ refetchQueries: ['RidesMissingWeather'] });
+      const res = await backfill({ refetchQueries: [{ query: RidesMissingWeatherDocument }] });
       const r = res.data?.backfillWeatherForMyRides;
       const enqueued = r?.enqueuedCount ?? 0;
       setLastResult({
