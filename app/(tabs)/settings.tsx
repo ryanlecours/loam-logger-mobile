@@ -13,6 +13,7 @@ import { DataSourceSelector } from '../../src/components/settings/DataSourceSele
 import { NotificationPreferences } from '../../src/components/settings/NotificationPreferences';
 import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
 import { ReferralSection } from '../../src/components/settings/ReferralSection';
+import { WeatherBackfillSection } from '../../src/components/settings/WeatherBackfillSection';
 import { BiometricUnlockSection } from '../../src/components/settings/BiometricUnlockSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
@@ -72,7 +73,7 @@ function IntegrationRow({
             onPress={onImportPress}
           >
             <Ionicons name="download-outline" size={16} color={brandColor} />
-            <Text style={[styles.importButtonText, { color: brandColor }]}>Import</Text>
+            <Text style={[styles.importButtonText, { color: brandColor }]}>Sync</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.disconnectButton}
@@ -292,6 +293,8 @@ export default function SettingsScreen() {
           />
         </View>
       )}
+
+      <WeatherBackfillSection />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences</Text>

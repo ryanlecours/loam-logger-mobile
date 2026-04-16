@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { colors } from '../constants/theme';
 
 interface Props {
   onSuccess: (
@@ -93,6 +94,18 @@ export function AppleSignInButton({ onSuccess, onError, disabled }: Props) {
         style={styles.button}
         onPress={handlePress}
       />
+      {/*
+        If the user has signed in before with Google / email, Apple's "Hide My
+        Email" option (enabled by default in its sheet) gives us a private-relay
+        address that doesn't match their existing account — creating a duplicate.
+        Nudging them to "Share My Email" sidesteps the whole merge problem.
+        Lives inside the button component so it hides automatically on Android
+        and on iOS devices that don't support Apple Sign-In.
+      */}
+      <Text style={styles.helper}>
+        If you already signed in with Google or email, choose{' '}
+        <Text style={styles.helperEmphasis}>Share My Email</Text> to keep a single account.
+      </Text>
     </View>
   );
 }
@@ -107,5 +120,16 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 52, // matches GoogleSignInButton padding (16 * 2 + text line) roughly
+  },
+  helper: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 16,
+  },
+  helperEmphasis: {
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
 });

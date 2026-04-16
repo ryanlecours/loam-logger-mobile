@@ -22,6 +22,8 @@ export interface StravaBackfillResult {
   totalActivities: number;
   cyclingActivities: number;
   imported: number;
+  updated: number;
+  /** @deprecated Legacy alias for `updated`. Prefer `updated` on new code. */
   skipped: number;
   geocoded: number;
   unmappedGears: { gearId: string; rideCount: number }[];

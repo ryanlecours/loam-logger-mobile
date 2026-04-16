@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useRidesPageQuery } from '../graphql/generated';
+import { useRidesPageQuery, useWeatherBreakdownQuery } from '../graphql/generated';
 import { useBikesWithPredictions } from './useBikesWithPredictions';
+import type { WeatherCondition } from '../lib/weather';
 
 export type TimeframeOption = '7d' | '30d' | '90d' | 'YTD' | `year:${number}`;
 
@@ -23,6 +24,8 @@ export interface BikeTimeData {
   hours: number;
   percentage: number;
 }
+
+export type WeatherBreakdown = Record<WeatherCondition, number>;
 
 export interface RideStats {
   // Primary metrics
@@ -53,7 +56,22 @@ export interface RideStats {
 
   // Bike usage
   bikeTime: BikeTimeData[];
+
+  // Weather breakdown — counts only rides with fetched weather. UNKNOWN
+  // is reserved for rides whose WMO code didn't map to a known condition.
+  weatherBreakdown: WeatherBreakdown;
+  // Rides in this timeframe that have no weather row yet (pending fetch
+  // or permanently unfetchable, e.g. no coordinates).
+  weatherPendingCount: number;
+
+  // True when the ride list was truncated at the fetch cap (currently 500).
+  // Stats derived client-side (streaks, PRs, totals) are computed over the
+  // capped dataset, so the UI should disclose this. Weather breakdown uses
+  // a server-side aggregation and is not affected by the cap.
+  truncated: boolean;
 }
+
+const RIDES_FETCH_CAP = 500;
 
 const DAYS_MS = 24 * 60 * 60 * 1000;
 
@@ -159,9 +177,36 @@ type RideData = {
   location?: string | null;
 };
 
+const emptyWeatherBreakdown = (): WeatherBreakdown => ({
+  SUNNY: 0,
+  CLOUDY: 0,
+  RAINY: 0,
+  SNOWY: 0,
+  WINDY: 0,
+  FOGGY: 0,
+  UNKNOWN: 0,
+});
+
 export function useRideStats(timeframe: TimeframeOption = '30d') {
   const { data, loading, refetch } = useRidesPageQuery({
-    variables: { take: 500 },
+    variables: { take: RIDES_FETCH_CAP },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  // Server-side aggregation for weather counts — avoids iterating the
+  // 500-ride list client-side just to bucket by condition. Scoped to the
+  // same timeframe the stats page is showing.
+  const weatherFilter = useMemo(() => {
+    const startDate = getStartDateForTimeframe(timeframe);
+    const yearMatch = timeframe.match(/^year:(\d{4})$/);
+    const endDate = yearMatch ? new Date(Number(yearMatch[1]) + 1, 0, 1) : undefined;
+    return {
+      startDate: startDate.toISOString(),
+      ...(endDate ? { endDate: endDate.toISOString() } : {}),
+    };
+  }, [timeframe]);
+  const { data: weatherData } = useWeatherBreakdownQuery({
+    variables: { filter: weatherFilter },
     fetchPolicy: 'cache-and-network',
   });
 
@@ -196,6 +241,9 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       ridesWithHr: 0,
       topLocations: [],
       bikeTime: [],
+      weatherBreakdown: emptyWeatherBreakdown(),
+      weatherPendingCount: 0,
+      truncated: false,
     };
 
     if (!data?.rides) return emptyStats;
@@ -374,11 +422,39 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       ridesWithHr: hrValues.length,
       topLocations,
       bikeTime,
+      // Populated from the dedicated WeatherBreakdown query below; kept
+      // zeroed here so the object shape is always valid during the first
+      // render before the weather query resolves.
+      weatherBreakdown: emptyWeatherBreakdown(),
+      weatherPendingCount: 0,
+      // If the server returned a full page of rides, the user has ≥ the cap
+      // and client-side stats (streaks, PRs, totals) may be incomplete.
+      // Weather breakdown is unaffected (server-side aggregation).
+      truncated: allRides.length >= RIDES_FETCH_CAP,
     };
   }, [data?.rides, timeframe, bikeNameMap]);
 
+  // Merge the server-computed weather breakdown into the stats object.
+  const statsWithWeather = useMemo<RideStats>(() => {
+    const wb = weatherData?.me?.weatherBreakdown;
+    if (!wb) return stats;
+    return {
+      ...stats,
+      weatherBreakdown: {
+        SUNNY: wb.sunny,
+        CLOUDY: wb.cloudy,
+        RAINY: wb.rainy,
+        SNOWY: wb.snowy,
+        WINDY: wb.windy,
+        FOGGY: wb.foggy,
+        UNKNOWN: wb.unknown,
+      },
+      weatherPendingCount: wb.pending,
+    };
+  }, [stats, weatherData]);
+
   return {
-    stats,
+    stats: statsWithWeather,
     loading,
     refetch,
   };

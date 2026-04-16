@@ -102,6 +102,13 @@ export type AddRideInput = {
   trailSystem?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type BackfillWeatherResult = {
+  __typename?: 'BackfillWeatherResult';
+  enqueuedCount: Scalars['Int']['output'];
+  remainingAfterBatch: Scalars['Int']['output'];
+  ridesWithoutCoords: Scalars['Int']['output'];
+};
+
 export enum BaselineConfidence {
   High = 'HIGH',
   Low = 'LOW',
@@ -493,6 +500,7 @@ export type Mutation = {
   addComponent: Component;
   addRide: Ride;
   assignBikeToRides: BulkAssignResult;
+  backfillWeatherForMyRides: BackfillWeatherResult;
   bulkUpdateComponentBaselines: Array<Component>;
   completeCalibration: User;
   createBillingPortalSession: BillingPortalResult;
@@ -833,6 +841,7 @@ export type Ride = {
   trailSystem?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['String']['output'];
   userId: Scalars['ID']['output'];
+  weather?: Maybe<RideWeather>;
   whoopWorkoutId?: Maybe<Scalars['String']['output']>;
 };
 
@@ -844,6 +853,22 @@ export enum RideType {
   Trail = 'TRAIL',
   Trainer = 'TRAINER'
 }
+
+export type RideWeather = {
+  __typename?: 'RideWeather';
+  condition: WeatherCondition;
+  feelsLikeC?: Maybe<Scalars['Float']['output']>;
+  fetchedAt: Scalars['String']['output'];
+  humidity?: Maybe<Scalars['Float']['output']>;
+  id: Scalars['ID']['output'];
+  lat: Scalars['Float']['output'];
+  lng: Scalars['Float']['output'];
+  precipitationMm: Scalars['Float']['output'];
+  source: Scalars['String']['output'];
+  tempC: Scalars['Float']['output'];
+  windSpeedKph: Scalars['Float']['output'];
+  wmoCode: Scalars['Int']['output'];
+};
 
 export type RidesFilterInput = {
   bikeId?: InputMaybe<Scalars['ID']['input']>;
@@ -1135,11 +1160,18 @@ export type User = {
   predictionMode?: Maybe<Scalars['String']['output']>;
   referralCode?: Maybe<Scalars['String']['output']>;
   rides: Array<Ride>;
+  ridesMissingWeather: Scalars['Int']['output'];
   role: UserRole;
   servicePreferences: Array<UserServicePreference>;
   subscriptionProvider?: Maybe<SubscriptionProvider>;
   subscriptionTier: SubscriptionTier;
   tierLimits: TierLimits;
+  weatherBreakdown: WeatherBreakdown;
+};
+
+
+export type UserWeatherBreakdownArgs = {
+  filter?: InputMaybe<RidesFilterInput>;
 };
 
 export enum UserRole {
@@ -1164,6 +1196,29 @@ export type WearDriver = {
   label: Scalars['String']['output'];
 };
 
+export type WeatherBreakdown = {
+  __typename?: 'WeatherBreakdown';
+  cloudy: Scalars['Int']['output'];
+  foggy: Scalars['Int']['output'];
+  pending: Scalars['Int']['output'];
+  rainy: Scalars['Int']['output'];
+  snowy: Scalars['Int']['output'];
+  sunny: Scalars['Int']['output'];
+  totalRides: Scalars['Int']['output'];
+  unknown: Scalars['Int']['output'];
+  windy: Scalars['Int']['output'];
+};
+
+export enum WeatherCondition {
+  Cloudy = 'CLOUDY',
+  Foggy = 'FOGGY',
+  Rainy = 'RAINY',
+  Snowy = 'SNOWY',
+  Sunny = 'SUNNY',
+  Unknown = 'UNKNOWN',
+  Windy = 'WINDY'
+}
+
 export type AcceptTermsMutationVariables = Exact<{
   input: AcceptTermsInput;
 }>;
@@ -1177,6 +1232,16 @@ export type AddRideMutationVariables = Exact<{
 
 
 export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+
+export type BackfillWeatherForMyRidesMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type BackfillWeatherForMyRidesMutation = { __typename?: 'Mutation', backfillWeatherForMyRides: { __typename?: 'BackfillWeatherResult', enqueuedCount: number, ridesWithoutCoords: number, remainingAfterBatch: number } };
+
+export type RidesMissingWeatherQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type RidesMissingWeatherQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, ridesMissingWeather: number } | null };
 
 export type CreateCheckoutSessionMutationVariables = Exact<{
   plan: StripePlan;
@@ -1341,7 +1406,7 @@ export type RidesPageQueryVariables = Exact<{
 }>;
 
 
-export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null }> };
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
 
 export type UnmappedStravaGearsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1381,6 +1446,13 @@ export type UpdateUserPreferencesMutationVariables = Exact<{
 
 
 export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean } };
+
+export type WeatherBreakdownQueryVariables = Exact<{
+  filter?: InputMaybe<RidesFilterInput>;
+}>;
+
+
+export type WeatherBreakdownQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, weatherBreakdown: { __typename?: 'WeatherBreakdown', sunny: number, cloudy: number, rainy: number, snowy: number, windy: number, foggy: number, unknown: number, pending: number, totalRides: number } } | null };
 
 export const ComponentFieldsFragmentDoc = gql`
     fragment ComponentFields on Component {
@@ -1611,6 +1683,83 @@ export function useAddRideMutation(baseOptions?: Apollo.MutationHookOptions<AddR
 export type AddRideMutationHookResult = ReturnType<typeof useAddRideMutation>;
 export type AddRideMutationResult = Apollo.MutationResult<AddRideMutation>;
 export type AddRideMutationOptions = Apollo.BaseMutationOptions<AddRideMutation, AddRideMutationVariables>;
+export const BackfillWeatherForMyRidesDocument = gql`
+    mutation BackfillWeatherForMyRides {
+  backfillWeatherForMyRides {
+    enqueuedCount
+    ridesWithoutCoords
+    remainingAfterBatch
+  }
+}
+    `;
+export type BackfillWeatherForMyRidesMutationFn = Apollo.MutationFunction<BackfillWeatherForMyRidesMutation, BackfillWeatherForMyRidesMutationVariables>;
+
+/**
+ * __useBackfillWeatherForMyRidesMutation__
+ *
+ * To run a mutation, you first call `useBackfillWeatherForMyRidesMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useBackfillWeatherForMyRidesMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [backfillWeatherForMyRidesMutation, { data, loading, error }] = useBackfillWeatherForMyRidesMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useBackfillWeatherForMyRidesMutation(baseOptions?: Apollo.MutationHookOptions<BackfillWeatherForMyRidesMutation, BackfillWeatherForMyRidesMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<BackfillWeatherForMyRidesMutation, BackfillWeatherForMyRidesMutationVariables>(BackfillWeatherForMyRidesDocument, options);
+      }
+export type BackfillWeatherForMyRidesMutationHookResult = ReturnType<typeof useBackfillWeatherForMyRidesMutation>;
+export type BackfillWeatherForMyRidesMutationResult = Apollo.MutationResult<BackfillWeatherForMyRidesMutation>;
+export type BackfillWeatherForMyRidesMutationOptions = Apollo.BaseMutationOptions<BackfillWeatherForMyRidesMutation, BackfillWeatherForMyRidesMutationVariables>;
+export const RidesMissingWeatherDocument = gql`
+    query RidesMissingWeather {
+  me {
+    id
+    ridesMissingWeather
+  }
+}
+    `;
+
+/**
+ * __useRidesMissingWeatherQuery__
+ *
+ * To run a query within a React component, call `useRidesMissingWeatherQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRidesMissingWeatherQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRidesMissingWeatherQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useRidesMissingWeatherQuery(baseOptions?: Apollo.QueryHookOptions<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>(RidesMissingWeatherDocument, options);
+      }
+export function useRidesMissingWeatherLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>(RidesMissingWeatherDocument, options);
+        }
+// @ts-ignore
+export function useRidesMissingWeatherSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>): Apollo.UseSuspenseQueryResult<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>;
+export function useRidesMissingWeatherSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>): Apollo.UseSuspenseQueryResult<RidesMissingWeatherQuery | undefined, RidesMissingWeatherQueryVariables>;
+export function useRidesMissingWeatherSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>(RidesMissingWeatherDocument, options);
+        }
+export type RidesMissingWeatherQueryHookResult = ReturnType<typeof useRidesMissingWeatherQuery>;
+export type RidesMissingWeatherLazyQueryHookResult = ReturnType<typeof useRidesMissingWeatherLazyQuery>;
+export type RidesMissingWeatherSuspenseQueryHookResult = ReturnType<typeof useRidesMissingWeatherSuspenseQuery>;
+export type RidesMissingWeatherQueryResult = Apollo.QueryResult<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>;
 export const CreateCheckoutSessionDocument = gql`
     mutation CreateCheckoutSession($plan: StripePlan!, $platform: CheckoutPlatform) {
   createCheckoutSession(plan: $plan, platform: $platform) {
@@ -2495,6 +2644,16 @@ export const RidesPageDocument = gql`
     garminActivityId
     stravaActivityId
     whoopWorkoutId
+    weather {
+      id
+      tempC
+      feelsLikeC
+      precipitationMm
+      windSpeedKph
+      humidity
+      wmoCode
+      condition
+    }
   }
 }
     `;
@@ -2782,3 +2941,57 @@ export function useUpdateUserPreferencesMutation(baseOptions?: Apollo.MutationHo
 export type UpdateUserPreferencesMutationHookResult = ReturnType<typeof useUpdateUserPreferencesMutation>;
 export type UpdateUserPreferencesMutationResult = Apollo.MutationResult<UpdateUserPreferencesMutation>;
 export type UpdateUserPreferencesMutationOptions = Apollo.BaseMutationOptions<UpdateUserPreferencesMutation, UpdateUserPreferencesMutationVariables>;
+export const WeatherBreakdownDocument = gql`
+    query WeatherBreakdown($filter: RidesFilterInput) {
+  me {
+    id
+    weatherBreakdown(filter: $filter) {
+      sunny
+      cloudy
+      rainy
+      snowy
+      windy
+      foggy
+      unknown
+      pending
+      totalRides
+    }
+  }
+}
+    `;
+
+/**
+ * __useWeatherBreakdownQuery__
+ *
+ * To run a query within a React component, call `useWeatherBreakdownQuery` and pass it any options that fit your needs.
+ * When your component renders, `useWeatherBreakdownQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useWeatherBreakdownQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *   },
+ * });
+ */
+export function useWeatherBreakdownQuery(baseOptions?: Apollo.QueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>(WeatherBreakdownDocument, options);
+      }
+export function useWeatherBreakdownLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>(WeatherBreakdownDocument, options);
+        }
+// @ts-ignore
+export function useWeatherBreakdownSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>): Apollo.UseSuspenseQueryResult<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>;
+export function useWeatherBreakdownSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>): Apollo.UseSuspenseQueryResult<WeatherBreakdownQuery | undefined, WeatherBreakdownQueryVariables>;
+export function useWeatherBreakdownSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>(WeatherBreakdownDocument, options);
+        }
+export type WeatherBreakdownQueryHookResult = ReturnType<typeof useWeatherBreakdownQuery>;
+export type WeatherBreakdownLazyQueryHookResult = ReturnType<typeof useWeatherBreakdownLazyQuery>;
+export type WeatherBreakdownSuspenseQueryHookResult = ReturnType<typeof useWeatherBreakdownSuspenseQuery>;
+export type WeatherBreakdownQueryResult = Apollo.QueryResult<WeatherBreakdownQuery, WeatherBreakdownQueryVariables>;

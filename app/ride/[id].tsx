@@ -18,6 +18,7 @@ import {
   formatElevation,
 } from '../../src/utils/greetingMessages';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
+import { WeatherCard } from '../../src/components/ride/WeatherCard';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -219,6 +220,11 @@ export default function RideDetailScreen() {
             )}
           </View>
         </View>
+
+        {/* Weather Card */}
+        {ride.weather && (
+          <WeatherCard weather={ride.weather} distanceUnit={distanceUnit} />
+        )}
 
         {/* Bike Card */}
         {bikeName && (

@@ -12,6 +12,18 @@ import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors } from '../../constants/theme';
+import { conditionIcon, conditionLabel, conditionTint } from '../../lib/weather';
+import type { WeatherCondition } from '../../lib/weather';
+
+const WEATHER_ORDER: WeatherCondition[] = [
+  'SUNNY',
+  'CLOUDY',
+  'RAINY',
+  'SNOWY',
+  'WINDY',
+  'FOGGY',
+  'UNKNOWN',
+];
 
 function buildTimeframeOptions(): { value: TimeframeOption; label: string }[] {
   const currentYear = new Date().getFullYear();
@@ -30,7 +42,7 @@ function buildTimeframeOptions(): { value: TimeframeOption; label: string }[] {
 
 const TIMEFRAME_OPTIONS = buildTimeframeOptions();
 
-type SectionKey = 'summary' | 'trends' | 'heartRate' | 'locations' | 'bikes';
+type SectionKey = 'summary' | 'trends' | 'heartRate' | 'locations' | 'bikes' | 'weather';
 
 export function RideStatsCard() {
   const { formatDistance, distanceUnit } = useDistanceUnit();
@@ -91,6 +103,53 @@ export function RideStatsCard() {
   const distanceTrend = formatTrend(stats.weekOverWeekDistance);
   const ridesTrend = formatTrend(stats.weekOverWeekRides);
 
+  const hasAnyWeather = WEATHER_ORDER.some((k) => stats.weatherBreakdown[k] > 0);
+  const weatherSection = !hasAnyWeather ? null : (
+    <>
+      <TouchableOpacity
+        style={styles.sectionHeader}
+        onPress={() => toggleSection('weather')}
+      >
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="partly-sunny-outline" size={18} color={colors.primary} />
+          <Text style={styles.sectionTitle}>Weather</Text>
+        </View>
+        <Ionicons
+          name={expandedSections.has('weather') ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.textMuted}
+        />
+      </TouchableOpacity>
+      {expandedSections.has('weather') && (
+        <View style={styles.sectionContent}>
+          <View style={styles.weatherGrid}>
+            {WEATHER_ORDER.map((cond) => {
+              const count = stats.weatherBreakdown[cond];
+              if (count === 0) return null;
+              return (
+                <View key={cond} style={styles.weatherTile}>
+                  <Ionicons
+                    name={conditionIcon(cond)}
+                    size={22}
+                    color={cond === 'UNKNOWN' ? colors.textMuted : conditionTint(cond)}
+                  />
+                  <Text style={styles.weatherCount}>{count}</Text>
+                  <Text style={styles.weatherLabel}>{conditionLabel(cond)}</Text>
+                </View>
+              );
+            })}
+          </View>
+          {stats.weatherPendingCount > 0 && (
+            <Text style={styles.weatherPendingText}>
+              {stats.weatherPendingCount} ride
+              {stats.weatherPendingCount === 1 ? '' : 's'} still pending weather fetch.
+            </Text>
+          )}
+        </View>
+      )}
+    </>
+  );
+
   return (
     <View style={styles.card}>
       {/* Header with dropdown */}
@@ -104,6 +163,12 @@ export function RideStatsCard() {
           <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
+
+      {stats.truncated && (
+        <Text style={styles.truncationNote}>
+          Showing stats based on your most recent 500 rides. Weather totals cover the full selected timeframe.
+        </Text>
+      )}
 
       {/* Summary Section */}
       <TouchableOpacity
@@ -331,6 +396,9 @@ export function RideStatsCard() {
           )}
         </>
       )}
+
+      {/* Weather Section */}
+      {weatherSection}
 
       {/* Timeframe Picker Modal */}
       <Modal
@@ -634,6 +702,38 @@ const styles = StyleSheet.create({
   bikePercent: {
     fontSize: 11,
     color: colors.textMuted,
+  },
+  weatherGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  weatherTile: {
+    width: '25%',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  weatherCount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: 4,
+  },
+  weatherLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  weatherPendingText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 8,
+  },
+  truncationNote: {
+    fontSize: 11,
+    color: colors.textMuted,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    fontStyle: 'italic',
   },
   modalOverlay: {
     flex: 1,
