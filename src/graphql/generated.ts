@@ -1397,7 +1397,7 @@ export type RecentRidesQueryVariables = Exact<{
 }>;
 
 
-export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null }> };
+export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
 
 export type RidesPageQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -2589,6 +2589,11 @@ export const RecentRidesDocument = gql`
     rideType
     bikeId
     location
+    weather {
+      id
+      tempC
+      condition
+    }
   }
 }
     `;

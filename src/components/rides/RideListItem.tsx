@@ -8,6 +8,7 @@ import {
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors } from '../../constants/theme';
+import { WeatherBadge } from '../weather/WeatherBadge';
 
 interface RideListItemProps {
   ride: RideItem;
@@ -90,6 +91,7 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
             <Ionicons name="trending-up-outline" size={14} color={colors.textMuted} />
             <Text style={styles.statText}>{elevationStr}</Text>
           </View>
+          <WeatherBadge weather={ride.weather} distanceUnit={distanceUnit as 'mi' | 'km'} />
         </View>
 
         {(ride.location || bikeName) && (
