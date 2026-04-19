@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
+import { EditServiceSheet, type EditableServiceLog } from './EditServiceSheet';
 
 /** User-facing hints for what "service" means for specific component types */
 const SERVICE_HINTS: Record<string, string> = {
@@ -88,6 +89,7 @@ export function ComponentDetailSheet({
   const [intervalInput, setIntervalInput] = useState('');
   const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
   const [showRidesInfo, setShowRidesInfo] = useState(false);
+  const [editingServiceLog, setEditingServiceLog] = useState<EditableServiceLog | null>(null);
 
   const [snoozeComponent, { loading: snoozing }] = useSnoozeComponentMutation({
     refetchQueries: ['Gear', 'GearLight'],
@@ -405,11 +407,24 @@ export function ComponentDetailSheet({
                       <View style={styles.serviceHistorySection}>
                         <Text style={styles.serviceHistoryTitle}>Service History</Text>
                         {realServiceLogs.slice(0, 5).map((log) => (
-                          <View key={log.id} style={styles.serviceLogRow}>
+                          <TouchableOpacity
+                            key={log.id}
+                            style={styles.serviceLogRow}
+                            onPress={() =>
+                              setEditingServiceLog({
+                                id: log.id,
+                                performedAt: log.performedAt,
+                                notes: log.notes,
+                                hoursAtService: log.hoursAtService,
+                              })
+                            }
+                            activeOpacity={0.6}
+                          >
                             <Ionicons name="build-outline" size={14} color={colors.textMuted} />
                             <Text style={styles.serviceLogDate}>{formatDate(log.performedAt)}</Text>
                             <Text style={styles.serviceLogHours}>{log.hoursAtService.toFixed(0)}h at service</Text>
-                          </View>
+                            <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
+                          </TouchableOpacity>
                         ))}
                         {realServiceLogs.length > 5 && (
                           <Text style={styles.serviceLogMore}>
@@ -559,6 +574,21 @@ export function ComponentDetailSheet({
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
+
+      <EditServiceSheet
+        visible={editingServiceLog !== null}
+        log={editingServiceLog}
+        componentLabel={
+          component
+            ? (() => {
+                const t = formatComponentType(component.type);
+                const l = formatLocation(component.location);
+                return l ? `${l} ${t}` : t;
+              })()
+            : ''
+        }
+        onClose={() => setEditingServiceLog(null)}
+      />
     </Modal>
 
   );

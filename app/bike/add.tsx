@@ -65,6 +65,9 @@ export default function AddBikeScreen() {
 
   // Wear start step state
   const [acquisitionCondition, setAcquisitionCondition] = useState<'NEW' | 'USED'>('NEW');
+  // Optional: when the user acquired the bike. Drives the installedAt for
+  // every auto-created component + BikeComponentInstall row.
+  const [acquisitionDate, setAcquisitionDate] = useState<Date | null>(null);
 
   const [addBike, { loading: adding }] = useAddBikeMutation();
   const { refetch: refetchGear } = useGearLightQuery();
@@ -214,6 +217,7 @@ export default function AddBikeScreen() {
             nickname: nickname.trim() || undefined,
             notes: notes.trim() || undefined,
             acquisitionCondition: acquisitionCondition as AcquisitionCondition,
+            acquisitionDate: acquisitionDate ? acquisitionDate.toISOString() : undefined,
             spokesComponents: isManual ? undefined : buildSpokesComponentsInput(selectedBike.components),
           },
         },
@@ -246,7 +250,7 @@ export default function AddBikeScreen() {
         Alert.alert('Failed to Add Bike', err.message);
       }
     }
-  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, addBike, refetchGear, router, stravaConnected, fetchUnmappedGears]);
+  }, [selectedBike, selectedImageUrl, nickname, notes, acquisitionCondition, acquisitionDate, addBike, refetchGear, router, stravaConnected, fetchUnmappedGears]);
 
   // --- Step: Wear Start ---
 
@@ -268,6 +272,8 @@ export default function AddBikeScreen() {
           <WearStartStep
             selected={acquisitionCondition}
             onSelect={setAcquisitionCondition}
+            acquisitionDate={acquisitionDate}
+            onAcquisitionDateChange={setAcquisitionDate}
           />
         </ScrollView>
 

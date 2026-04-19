@@ -1,5 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { colors } from '../../constants/theme';
 
 type AcquisitionCondition = 'NEW' | 'USED';
@@ -7,6 +9,8 @@ type AcquisitionCondition = 'NEW' | 'USED';
 interface WearStartStepProps {
   selected: AcquisitionCondition;
   onSelect: (condition: AcquisitionCondition) => void;
+  acquisitionDate?: Date | null;
+  onAcquisitionDateChange?: (date: Date | null) => void;
 }
 
 interface StockOption {
@@ -36,7 +40,19 @@ const STOCK_OPTIONS: StockOption[] = [
   },
 ];
 
-export function WearStartStep({ selected, onSelect }: WearStartStepProps) {
+export function WearStartStep({
+  selected,
+  onSelect,
+  acquisitionDate,
+  onAcquisitionDateChange,
+}: WearStartStepProps) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const onDateChange = (_event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (date && onAcquisitionDateChange) onAcquisitionDateChange(date);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -92,6 +108,43 @@ export function WearStartStep({ selected, onSelect }: WearStartStepProps) {
           );
         })}
       </View>
+
+      {onAcquisitionDateChange && (
+        <View style={styles.acquisitionSection}>
+          <Text style={styles.acquisitionLabel}>When did you get this bike?</Text>
+          <Text style={styles.acquisitionHint}>
+            Sets the installed date for every stock component. Leave blank to use today.
+          </Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(!showDatePicker)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+            <Text style={styles.dateButtonText}>
+              {acquisitionDate ? acquisitionDate.toLocaleDateString() : 'Use today'}
+            </Text>
+            {acquisitionDate && (
+              <TouchableOpacity
+                onPress={() => onAcquisitionDateChange(null)}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+              >
+                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={acquisitionDate ?? new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              maximumDate={new Date()}
+              onChange={onDateChange}
+              themeVariant="dark"
+            />
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -172,5 +225,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textMuted,
     marginTop: 4,
+  },
+  acquisitionSection: {
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
+  acquisitionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  acquisitionHint: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primaryMuted,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+  },
+  dateButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.primary,
   },
 });

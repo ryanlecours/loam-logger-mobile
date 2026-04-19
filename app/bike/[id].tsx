@@ -417,6 +417,14 @@ export default function BikeDetailScreen() {
           <Text style={styles.actionButtonText}>Log Service</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push(`/bike/history/${id}`)}
+        >
+          <Ionicons name="time-outline" size={20} color={colors.primary} />
+          <Text style={styles.actionButtonText}>View Full History</Text>
+        </TouchableOpacity>
+
         {isInactive ? (
           <TouchableOpacity
             style={styles.actionButton}
