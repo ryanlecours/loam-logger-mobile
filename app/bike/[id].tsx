@@ -483,7 +483,12 @@ export default function BikeDetailScreen() {
       />
 
       <ComponentDetailSheet
-        visible={!!selectedComponent && !showReplaceSheet && !editingServiceLog}
+        visible={
+          !!selectedComponent &&
+          !showReplaceSheet &&
+          !editingServiceLog &&
+          !showAcquisitionSheet
+        }
         component={selectedComponent}
         prediction={selectedComponent ? predictionMap.get(selectedComponent.id) : null}
         onClose={() => setSelectedComponent(null)}

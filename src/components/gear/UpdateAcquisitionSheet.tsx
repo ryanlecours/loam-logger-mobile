@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -43,6 +43,11 @@ export function UpdateAcquisitionSheet({
     refetchQueries: ['Gear', 'GearLight', 'BikeHistory'],
   });
 
+  // Stable reference for the picker's maximum. A fresh `new Date()` per
+  // render prop-invalidates the inline iOS picker on every state tick.
+  // Sheet lifetime is short enough that midnight drift is irrelevant.
+  const maxDate = useMemo(() => new Date(), []);
+
   useEffect(() => {
     if (visible) {
       // Seed with the current acquisitionDate if already set; otherwise today.
@@ -64,6 +69,15 @@ export function UpdateAcquisitionSheet({
     if (Platform.OS === 'android') setShowDatePicker(false);
     if (next) setDate(next);
   }, []);
+
+  // Block every dismissal path (header X, overlay tap, Android back button,
+  // Cancel) while the mutation is in flight. Otherwise a user can close
+  // mid-flight: the request still lands but the success result is dropped,
+  // and the sheet reopens with stale initial state.
+  const handleClose = useCallback(() => {
+    if (loading) return;
+    onClose();
+  }, [loading, onClose]);
 
   const handleConfirm = async () => {
     // Noon-anchor so the selected calendar date doesn't shift under
@@ -92,8 +106,8 @@ export function UpdateAcquisitionSheet({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+      <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <View style={styles.sheet}>
@@ -101,7 +115,11 @@ export function UpdateAcquisitionSheet({
 
               <View style={styles.header}>
                 <Text style={styles.title}>Update acquisition date</Text>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  disabled={loading}
+                >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -149,7 +167,7 @@ export function UpdateAcquisitionSheet({
                       value={date}
                       mode="date"
                       display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                      maximumDate={new Date()}
+                      maximumDate={maxDate}
                       onChange={onDateChange}
                       themeVariant="dark"
                     />
@@ -173,14 +191,14 @@ export function UpdateAcquisitionSheet({
 
               <View style={styles.footer}>
                 {result ? (
-                  <TouchableOpacity style={styles.saveButton} onPress={onClose}>
+                  <TouchableOpacity style={styles.saveButton} onPress={handleClose}>
                     <Text style={styles.saveButtonText}>Done</Text>
                   </TouchableOpacity>
                 ) : (
                   <>
                     <TouchableOpacity
                       style={styles.cancelButton}
-                      onPress={onClose}
+                      onPress={handleClose}
                       disabled={loading}
                     >
                       <Text style={styles.cancelButtonText}>Cancel</Text>

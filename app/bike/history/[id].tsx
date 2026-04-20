@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import {
   bikeName,
   componentDisplay,
   computeTimeframeRange,
+  getBaseInstallId,
   mergeAndGroupByYear,
   TIMEFRAME_LABEL,
   TIMEFRAME_SHORT_LABEL,
@@ -90,13 +91,9 @@ export default function BikeHistoryScreen() {
   // events" when only one exists.
   const pairedBaseIds = useMemo(() => {
     if (!payload) return new Set<string>();
-    const baseOf = (id: string) => {
-      const i = id.lastIndexOf(':');
-      return i > 0 ? id.slice(0, i) : id;
-    };
     const seen = new Map<string, number>();
     for (const ev of payload.installs) {
-      const base = baseOf(ev.id);
+      const base = getBaseInstallId(ev.id);
       seen.set(base, (seen.get(base) ?? 0) + 1);
     }
     return new Set(Array.from(seen).filter(([, n]) => n >= 2).map(([b]) => b));
@@ -258,12 +255,7 @@ export default function BikeHistoryScreen() {
           )}
           renderItem={({ item }) => {
             const installBaseId =
-              item.kind === 'install'
-                ? (() => {
-                    const idx = item.install.id.lastIndexOf(':');
-                    return idx > 0 ? item.install.id.slice(0, idx) : item.install.id;
-                  })()
-                : null;
+              item.kind === 'install' ? getBaseInstallId(item.install.id) : null;
             const isSelectable =
               selectionMode && item.kind === 'install' && item.install.eventType === 'INSTALLED';
             const isSelected = !!installBaseId && selectedInstallIds.has(installBaseId);
@@ -282,12 +274,10 @@ export default function BikeHistoryScreen() {
                     if (isSelectable && installBaseId) toggleInstallSelection(installBaseId);
                     return;
                   }
-                  const baseIdx = event.id.lastIndexOf(':');
-                  const baseId = baseIdx > 0 ? event.id.slice(0, baseIdx) : event.id;
                   setEditingInstall({
                     event,
                     componentLabel: label,
-                    hasPairedEvent: pairedBaseIds.has(baseId),
+                    hasPairedEvent: pairedBaseIds.has(getBaseInstallId(event.id)),
                   });
                 }}
               />
@@ -374,6 +364,20 @@ function BulkDateSheet({
   const [showPicker, setShowPicker] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Stable reference for the picker's maximum so the inline iOS picker
+  // doesn't see a fresh prop on every render tick.
+  const maxDate = useMemo(() => new Date(), []);
+
+  // Reset to today on each open so a cancelled-then-reopened sheet doesn't
+  // silently pre-fill with the user's last pick (which may be stale if the
+  // selection changed between openings). Mirrors UpdateAcquisitionSheet.
+  useEffect(() => {
+    if (visible) {
+      setDate(new Date());
+      setShowPicker(false);
+    }
+  }, [visible]);
+
   const handleConfirm = async () => {
     setBusy(true);
     // Noon-anchor to keep the calendar date stable across timezone round-trips.
@@ -412,7 +416,7 @@ function BulkDateSheet({
                 value={date}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                maximumDate={new Date()}
+                maximumDate={maxDate}
                 onChange={(_e: DateTimePickerEvent, d?: Date) => {
                   if (Platform.OS === 'android') setShowPicker(false);
                   if (d) setDate(d);
