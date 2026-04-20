@@ -8,6 +8,7 @@ import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthB
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
+import { EditServiceSheet, type EditableServiceLog } from '../../src/components/gear/EditServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
@@ -39,6 +40,12 @@ export default function BikeDetailScreen() {
   const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
   const [showReplaceSheet, setShowReplaceSheet] = useState(false);
+  // Service-log edit state lives here (not inside ComponentDetailSheet)
+  // because nesting one Modal inside another doesn't stack correctly on
+  // Android — the inner sheet ends up behind the outer backdrop. Rendering
+  // both as siblings of this component avoids that.
+  const [editingServiceLog, setEditingServiceLog] = useState<EditableServiceLog | null>(null);
+  const [editingServiceLogLabel, setEditingServiceLogLabel] = useState('');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const { data, loading, error, refetch } = useGearQuery({
@@ -466,12 +473,39 @@ export default function BikeDetailScreen() {
       />
 
       <ComponentDetailSheet
-        visible={!!selectedComponent && !showReplaceSheet}
+        visible={!!selectedComponent && !showReplaceSheet && !editingServiceLog}
         component={selectedComponent}
         prediction={selectedComponent ? predictionMap.get(selectedComponent.id) : null}
         onClose={() => setSelectedComponent(null)}
         onLogService={handleLogServiceFromDetail}
         onReplace={handleReplaceFromDetail}
+        onEditServiceLog={(log) => {
+          if (!selectedComponent) return;
+          // Build a human-readable label for the component, matching the
+          // old in-sheet logic. Kept here (rather than recomputing inside
+          // EditServiceSheet) so the sheet's props stay purely string-typed.
+          const typeLabel = selectedComponent.type
+            .replace(/_/g, ' ')
+            .toLowerCase()
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+          const loc = selectedComponent.location;
+          const locLabel =
+            loc && loc !== 'NONE'
+              ? loc
+                  .replace(/_/g, ' ')
+                  .toLowerCase()
+                  .replace(/\b\w/g, (l) => l.toUpperCase())
+              : '';
+          setEditingServiceLogLabel(locLabel ? `${locLabel} ${typeLabel}` : typeLabel);
+          setEditingServiceLog(log);
+        }}
+      />
+
+      <EditServiceSheet
+        visible={editingServiceLog !== null}
+        log={editingServiceLog}
+        componentLabel={editingServiceLogLabel}
+        onClose={() => setEditingServiceLog(null)}
       />
 
       <ReplaceComponentSheet

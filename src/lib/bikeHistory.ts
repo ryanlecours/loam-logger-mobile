@@ -64,6 +64,14 @@ export const TIMEFRAME_LABEL: Record<Timeframe, string> = {
   '30d': 'Past 30 days',
 };
 
+/** Compact labels for timeframe chips / segmented controls. */
+export const TIMEFRAME_SHORT_LABEL: Record<Timeframe, string> = {
+  all: 'All',
+  '1y': '1Y',
+  '90d': '90D',
+  '30d': '30D',
+};
+
 export function computeTimeframeRange(
   tf: Timeframe,
   now = new Date()

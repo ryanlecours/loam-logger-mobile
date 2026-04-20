@@ -115,24 +115,37 @@ export function WearStartStep({
           <Text style={styles.acquisitionHint}>
             Sets the installed date for every stock component. Leave blank to use today.
           </Text>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(!showDatePicker)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-            <Text style={styles.dateButtonText}>
-              {acquisitionDate ? acquisitionDate.toLocaleDateString() : 'Use today'}
-            </Text>
+          {/* Row container — the "toggle picker" button and the clear "X"
+              are siblings, not nested. Nested TouchableOpacity on Android
+              fires both onPress handlers, which would reopen the picker
+              the instant the user cleared the date. */}
+          <View style={styles.dateButtonRow}>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker(!showDatePicker)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+              <Text style={styles.dateButtonText}>
+                {acquisitionDate ? acquisitionDate.toLocaleDateString() : 'Use today'}
+              </Text>
+            </TouchableOpacity>
             {acquisitionDate && (
               <TouchableOpacity
-                onPress={() => onAcquisitionDateChange(null)}
+                style={styles.dateClearButton}
+                onPress={() => {
+                  // Close the picker alongside clearing the value — leaving
+                  // it open while the button flips back to "Use today"
+                  // produces a contradicting UI.
+                  onAcquisitionDateChange(null);
+                  setShowDatePicker(false);
+                }}
                 hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
               >
                 <Ionicons name="close-circle" size={16} color={colors.textMuted} />
               </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
           {showDatePicker && (
             <DateTimePicker
               value={acquisitionDate ?? new Date()}
@@ -243,6 +256,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 10,
   },
+  dateButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+  },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,11 +270,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    alignSelf: 'flex-start',
   },
   dateButtonText: {
     fontSize: 14,
     fontWeight: '500',
     color: colors.primary,
+  },
+  dateClearButton: {
+    padding: 4,
   },
 });

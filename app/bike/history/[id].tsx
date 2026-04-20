@@ -12,6 +12,7 @@ import {
   computeTimeframeRange,
   mergeAndGroupByYear,
   TIMEFRAME_LABEL,
+  TIMEFRAME_SHORT_LABEL,
   type HistoryInstallEvent,
   type HistoryRide,
   type HistoryServiceEvent,
@@ -181,7 +182,7 @@ export default function BikeHistoryScreen() {
             style={[styles.tfChip, timeframe === tf && styles.tfChipActive]}
           >
             <Text style={[styles.tfChipText, timeframe === tf && styles.tfChipTextActive]}>
-              {tf === 'all' ? 'All' : tf === '1y' ? '1Y' : tf === '90d' ? '90D' : '30D'}
+              {TIMEFRAME_SHORT_LABEL[tf]}
             </Text>
           </TouchableOpacity>
         ))}
