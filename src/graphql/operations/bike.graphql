@@ -1,0 +1,22 @@
+mutation UpdateBikeAcquisition(
+  $bikeId: ID!
+  $input: UpdateBikeAcquisitionInput!
+) {
+  updateBikeAcquisition(bikeId: $bikeId, input: $input) {
+    bike {
+      id
+      acquisitionDate
+    }
+    installsMoved
+    serviceLogsMoved
+  }
+}
+
+mutation BulkUpdateBikeComponentInstalls(
+  $input: BulkUpdateBikeComponentInstallsInput!
+) {
+  bulkUpdateBikeComponentInstalls(input: $input) {
+    updatedCount
+    serviceLogsMoved
+  }
+}

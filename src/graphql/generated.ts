@@ -319,6 +319,22 @@ export type BulkUpdateBaselinesInput = {
   updates: Array<ComponentBaselineInput>;
 };
 
+/**
+ * Apply the same installedAt to multiple BikeComponentInstall rows in a
+ * single mutation. All rows must belong to the viewer — the batch is
+ * all-or-nothing to avoid leaking which ids they don't own.
+ */
+export type BulkUpdateBikeComponentInstallsInput = {
+  ids: Array<Scalars['ID']['input']>;
+  installedAt: Scalars['String']['input'];
+};
+
+export type BulkUpdateBikeComponentInstallsResult = {
+  __typename?: 'BulkUpdateBikeComponentInstallsResult';
+  serviceLogsMoved: Scalars['Int']['output'];
+  updatedCount: Scalars['Int']['output'];
+};
+
 export type CalibrationState = {
   __typename?: 'CalibrationState';
   bikes: Array<BikeCalibrationInfo>;
@@ -353,6 +369,7 @@ export type Component = {
   isSpare: Scalars['Boolean']['output'];
   isStock: Scalars['Boolean']['output'];
   lastServicedAt?: Maybe<Scalars['String']['output']>;
+  latestServiceLog?: Maybe<ServiceLog>;
   location: ComponentLocation;
   model: Scalars['String']['output'];
   notes?: Maybe<Scalars['String']['output']>;
@@ -538,6 +555,7 @@ export type Mutation = {
   addRide: Ride;
   assignBikeToRides: BulkAssignResult;
   backfillWeatherForMyRides: BackfillWeatherResult;
+  bulkUpdateBikeComponentInstalls: BulkUpdateBikeComponentInstallsResult;
   bulkUpdateComponentBaselines: Array<Component>;
   completeCalibration: User;
   createBillingPortalSession: BillingPortalResult;
@@ -566,6 +584,7 @@ export type Mutation = {
   swapComponents: SwapComponentsResult;
   triggerProviderSync: TriggerSyncResult;
   updateBike: Bike;
+  updateBikeAcquisition: UpdateBikeAcquisitionResult;
   updateBikeComponentInstall: BikeComponentInstall;
   updateBikeNotificationPreference: BikeNotificationPreference;
   updateBikeServicePreferences: Array<BikeServicePreference>;
@@ -612,6 +631,11 @@ export type MutationAddRideArgs = {
 export type MutationAssignBikeToRidesArgs = {
   bikeId: Scalars['ID']['input'];
   rideIds: Array<Scalars['ID']['input']>;
+};
+
+
+export type MutationBulkUpdateBikeComponentInstallsArgs = {
+  input: BulkUpdateBikeComponentInstallsInput;
 };
 
 
@@ -732,6 +756,12 @@ export type MutationTriggerProviderSyncArgs = {
 export type MutationUpdateBikeArgs = {
   id: Scalars['ID']['input'];
   input: UpdateBikeInput;
+};
+
+
+export type MutationUpdateBikeAcquisitionArgs = {
+  bikeId: Scalars['ID']['input'];
+  input: UpdateBikeAcquisitionInput;
 };
 
 
@@ -1137,8 +1167,46 @@ export type UnassignedRidesPage = {
   totalCount: Scalars['Int']['output'];
 };
 
+/**
+ * Retroactively fix a bike's acquisition date and, when requested, the
+ * install dates of every stock component + any install whose date was
+ * auto-stamped at bike creation. Built for users who added bikes before
+ * the acquisition-date feature existed and now see every stock part
+ * installed on the same day on BikeHistory.
+ */
+export type UpdateBikeAcquisitionInput = {
+  acquisitionDate: Scalars['String']['input'];
+  /**
+   * When true (default), move the installedAt on every BikeComponentInstall
+   * matching the "buggy auto-date" predicate to the new acquisitionDate,
+   * and move the corresponding synthetic baseline ServiceLog alongside.
+   */
+  cascadeInstalls?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type UpdateBikeAcquisitionResult = {
+  __typename?: 'UpdateBikeAcquisitionResult';
+  bike: Bike;
+  installsMoved: Scalars['Int']['output'];
+  serviceLogsMoved: Scalars['Int']['output'];
+};
+
+/**
+ * Patch fields on a BikeComponentInstall row.
+ *
+ * **Null handling is asymmetric**, mirroring the underlying Prisma schema:
+ *
+ * - `installedAt`: an ISO date string updates the value. `null` or omitted
+ *   is a no-op. You cannot clear this field — `installedAt` is required at
+ *   the database level.
+ * - `removedAt`: an ISO date string updates the value. Explicit `null`
+ *   **clears** the field (the component is no longer marked as removed).
+ *   Omitting the key is a no-op.
+ */
 export type UpdateBikeComponentInstallInput = {
+  /** ISO date string. Pass to update; null or omitted is ignored (cannot be cleared). */
   installedAt?: InputMaybe<Scalars['String']['input']>;
+  /** ISO date string to set, or explicit null to clear. */
   removedAt?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1336,6 +1404,21 @@ export type RidesMissingWeatherQueryVariables = Exact<{ [key: string]: never; }>
 
 
 export type RidesMissingWeatherQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, ridesMissingWeather: number } | null };
+
+export type UpdateBikeAcquisitionMutationVariables = Exact<{
+  bikeId: Scalars['ID']['input'];
+  input: UpdateBikeAcquisitionInput;
+}>;
+
+
+export type UpdateBikeAcquisitionMutation = { __typename?: 'Mutation', updateBikeAcquisition: { __typename?: 'UpdateBikeAcquisitionResult', installsMoved: number, serviceLogsMoved: number, bike: { __typename?: 'Bike', id: string, acquisitionDate?: string | null } } };
+
+export type BulkUpdateBikeComponentInstallsMutationVariables = Exact<{
+  input: BulkUpdateBikeComponentInstallsInput;
+}>;
+
+
+export type BulkUpdateBikeComponentInstallsMutation = { __typename?: 'Mutation', bulkUpdateBikeComponentInstalls: { __typename?: 'BulkUpdateBikeComponentInstallsResult', updatedCount: number, serviceLogsMoved: number } };
 
 export type BikeHistoryQueryVariables = Exact<{
   bikeId: Scalars['ID']['input'];
@@ -1895,6 +1978,79 @@ export type RidesMissingWeatherQueryHookResult = ReturnType<typeof useRidesMissi
 export type RidesMissingWeatherLazyQueryHookResult = ReturnType<typeof useRidesMissingWeatherLazyQuery>;
 export type RidesMissingWeatherSuspenseQueryHookResult = ReturnType<typeof useRidesMissingWeatherSuspenseQuery>;
 export type RidesMissingWeatherQueryResult = Apollo.QueryResult<RidesMissingWeatherQuery, RidesMissingWeatherQueryVariables>;
+export const UpdateBikeAcquisitionDocument = gql`
+    mutation UpdateBikeAcquisition($bikeId: ID!, $input: UpdateBikeAcquisitionInput!) {
+  updateBikeAcquisition(bikeId: $bikeId, input: $input) {
+    bike {
+      id
+      acquisitionDate
+    }
+    installsMoved
+    serviceLogsMoved
+  }
+}
+    `;
+export type UpdateBikeAcquisitionMutationFn = Apollo.MutationFunction<UpdateBikeAcquisitionMutation, UpdateBikeAcquisitionMutationVariables>;
+
+/**
+ * __useUpdateBikeAcquisitionMutation__
+ *
+ * To run a mutation, you first call `useUpdateBikeAcquisitionMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateBikeAcquisitionMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateBikeAcquisitionMutation, { data, loading, error }] = useUpdateBikeAcquisitionMutation({
+ *   variables: {
+ *      bikeId: // value for 'bikeId'
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useUpdateBikeAcquisitionMutation(baseOptions?: Apollo.MutationHookOptions<UpdateBikeAcquisitionMutation, UpdateBikeAcquisitionMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateBikeAcquisitionMutation, UpdateBikeAcquisitionMutationVariables>(UpdateBikeAcquisitionDocument, options);
+      }
+export type UpdateBikeAcquisitionMutationHookResult = ReturnType<typeof useUpdateBikeAcquisitionMutation>;
+export type UpdateBikeAcquisitionMutationResult = Apollo.MutationResult<UpdateBikeAcquisitionMutation>;
+export type UpdateBikeAcquisitionMutationOptions = Apollo.BaseMutationOptions<UpdateBikeAcquisitionMutation, UpdateBikeAcquisitionMutationVariables>;
+export const BulkUpdateBikeComponentInstallsDocument = gql`
+    mutation BulkUpdateBikeComponentInstalls($input: BulkUpdateBikeComponentInstallsInput!) {
+  bulkUpdateBikeComponentInstalls(input: $input) {
+    updatedCount
+    serviceLogsMoved
+  }
+}
+    `;
+export type BulkUpdateBikeComponentInstallsMutationFn = Apollo.MutationFunction<BulkUpdateBikeComponentInstallsMutation, BulkUpdateBikeComponentInstallsMutationVariables>;
+
+/**
+ * __useBulkUpdateBikeComponentInstallsMutation__
+ *
+ * To run a mutation, you first call `useBulkUpdateBikeComponentInstallsMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useBulkUpdateBikeComponentInstallsMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [bulkUpdateBikeComponentInstallsMutation, { data, loading, error }] = useBulkUpdateBikeComponentInstallsMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useBulkUpdateBikeComponentInstallsMutation(baseOptions?: Apollo.MutationHookOptions<BulkUpdateBikeComponentInstallsMutation, BulkUpdateBikeComponentInstallsMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<BulkUpdateBikeComponentInstallsMutation, BulkUpdateBikeComponentInstallsMutationVariables>(BulkUpdateBikeComponentInstallsDocument, options);
+      }
+export type BulkUpdateBikeComponentInstallsMutationHookResult = ReturnType<typeof useBulkUpdateBikeComponentInstallsMutation>;
+export type BulkUpdateBikeComponentInstallsMutationResult = Apollo.MutationResult<BulkUpdateBikeComponentInstallsMutation>;
+export type BulkUpdateBikeComponentInstallsMutationOptions = Apollo.BaseMutationOptions<BulkUpdateBikeComponentInstallsMutation, BulkUpdateBikeComponentInstallsMutationVariables>;
 export const BikeHistoryDocument = gql`
     query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
   bikeHistory(bikeId: $bikeId, startDate: $startDate, endDate: $endDate) {
