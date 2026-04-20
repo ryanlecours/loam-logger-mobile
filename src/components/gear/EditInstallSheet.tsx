@@ -53,6 +53,17 @@ export function EditInstallSheet({
 }: EditInstallSheetProps) {
   const [eventDate, setEventDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // Mirror event-derived values into local state so the Modal render tree
+  // doesn't need `event` itself. When the parent sets event back to null
+  // during close (save/delete), we keep the last values around so the
+  // Modal's slide-down exit animation has real content to render. Matches
+  // EditServiceSheet's pattern.
+  const [isInstallEvent, setIsInstallEvent] = useState(true);
+  // True between "user taps Delete" and "user responds to the native Alert".
+  // The mutation's `loading` flag doesn't cover this window — without the
+  // guard, tapping Delete a second time before responding stacks a second
+  // Alert on top of the first.
+  const [confirming, setConfirming] = useState(false);
 
   const [updateInstall, { loading: updating }] = useUpdateBikeComponentInstallMutation({
     refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
@@ -60,13 +71,15 @@ export function EditInstallSheet({
   const [deleteInstall, { loading: deleting }] = useDeleteBikeComponentInstallMutation({
     refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
   });
-  const busy = updating || deleting;
+  const busy = updating || deleting || confirming;
 
   useEffect(() => {
     if (event) {
       const parsed = new Date(event.occurredAt);
       setEventDate(Number.isFinite(parsed.getTime()) ? parsed : new Date());
       setShowDatePicker(false);
+      setConfirming(false);
+      setIsInstallEvent(event.eventType === 'INSTALLED');
     }
   }, [event]);
 
@@ -75,12 +88,10 @@ export function EditInstallSheet({
     if (date) setEventDate(date);
   }, []);
 
-  if (!event) return null;
-
-  const isInstallEvent = event.eventType === 'INSTALLED';
   const fieldLabel = isInstallEvent ? 'Install date' : 'Removal date';
 
   const handleSave = async () => {
+    if (!event) return;
     // Noon to prevent timezone shifts moving the date to the previous day.
     const noon = new Date(eventDate);
     noon.setHours(12, 0, 0, 0);
@@ -95,17 +106,24 @@ export function EditInstallSheet({
   };
 
   const handleDelete = () => {
+    if (!event) return;
+    setConfirming(true);
     Alert.alert(
       hasPairedEvent ? 'Delete install and removal events?' : 'Delete install event?',
       hasPairedEvent
         ? 'This removes both the install and removal events for this component.'
         : 'This removes the install record for this component.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => setConfirming(false),
+        },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setConfirming(false);
             try {
               await deleteInstall({ variables: { id: baseInstallId(event.id) } });
               onClose();
@@ -114,7 +132,9 @@ export function EditInstallSheet({
             }
           },
         },
-      ]
+      ],
+      // Back-button / swipe-dismiss on Android also clears the flag.
+      { onDismiss: () => setConfirming(false) }
     );
   };
 

@@ -46,7 +46,16 @@ export function EditServiceSheet({
   const [serviceDate, setServiceDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
-  const [hours, setHours] = useState('0');
+  // Blank by default so users don't have to clear a "0" before typing when
+  // editing a zero-hours log. The "0" placeholder still hints at the
+  // default, and `Number('')` coerces to 0 in handleSave so submitting
+  // unchanged is a no-op.
+  const [hours, setHours] = useState('');
+  // True between "user taps Delete" and "user responds to the native Alert".
+  // The mutation's `loading` flag doesn't cover this window — without the
+  // guard, tapping Delete a second time before responding stacks a second
+  // Alert on top of the first.
+  const [confirming, setConfirming] = useState(false);
 
   const [updateServiceLog, { loading: updating }] = useUpdateServiceLogMutation({
     refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
@@ -54,15 +63,19 @@ export function EditServiceSheet({
   const [deleteServiceLog, { loading: deleting }] = useDeleteServiceLogMutation({
     refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
   });
-  const busy = updating || deleting;
+  const busy = updating || deleting || confirming;
 
   useEffect(() => {
     if (log) {
       const parsed = new Date(log.performedAt);
       setServiceDate(Number.isFinite(parsed.getTime()) ? parsed : new Date());
       setNotes(log.notes ?? '');
-      setHours(String(log.hoursAtService ?? 0));
+      // Show the actual value when non-zero; leave blank (with "0"
+      // placeholder) when zero/null so tap-and-type doesn't require
+      // manually clearing the field first.
+      setHours(log.hoursAtService ? String(log.hoursAtService) : '');
       setShowDatePicker(false);
+      setConfirming(false);
     }
   }, [log]);
 
@@ -101,15 +114,21 @@ export function EditServiceSheet({
 
   const handleDelete = () => {
     if (!log) return;
+    setConfirming(true);
     Alert.alert(
       'Delete service?',
       'This service entry will be permanently removed.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => setConfirming(false),
+        },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setConfirming(false);
             try {
               await deleteServiceLog({ variables: { id: log.id } });
               onChanged?.();
@@ -119,7 +138,9 @@ export function EditServiceSheet({
             }
           },
         },
-      ]
+      ],
+      // Back-button / swipe-dismiss on Android also clears the flag.
+      { onDismiss: () => setConfirming(false) }
     );
   };
 

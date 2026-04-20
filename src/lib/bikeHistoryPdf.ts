@@ -118,7 +118,17 @@ export function buildBikeHistoryHtml(params: {
   .title { font-size: 10pt; }
   .meta { color: ${MUTED}; font-size: 8.5pt; }
   .empty { color: ${MUTED}; font-size: 10pt; }
-  footer { position: fixed; bottom: 18px; left: 32px; right: 32px; display: flex; justify-content: space-between; font-size: 7pt; color: ${MUTED}; }
+  /*
+   * Footer is placed inline at the end of the document rather than fixed
+   * per-page. expo-print's WKWebView (iOS) / WebView (Android) print path
+   * does not honor "position: fixed" the way a desktop browser does — the
+   * footer would land on page 1 only, or not at all. @page margin boxes
+   * would give us true per-page footers, but support across the two
+   * render engines is inconsistent and hard to test in the simulator.
+   * Accepting a single end-of-document signature is the reliable choice
+   * for a typical 1–3 page bike history export.
+   */
+  footer { display: flex; justify-content: space-between; font-size: 7pt; color: ${MUTED}; margin-top: 32px; padding-top: 12px; border-top: 1px solid ${BORDER}; page-break-inside: avoid; }
 </style>
 </head>
 <body>
@@ -163,5 +173,12 @@ export async function exportBikeHistoryPdf(params: {
       dialogTitle: `${bikeName(params.bike)} history`,
       UTI: 'com.adobe.pdf',
     });
+    return;
   }
+  // Fallback when the share sheet isn't available (some Android configs,
+  // Expo Go, simulators). Open the OS print dialog instead — the user can
+  // still save-to-PDF or print a hard copy. Without this, the export
+  // silently succeeds but produces no visible output, leaving the user
+  // wondering whether the button worked.
+  await Print.printAsync({ uri });
 }

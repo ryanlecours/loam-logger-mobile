@@ -26,7 +26,7 @@ import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 import { isTierError, getTierErrorMessage } from '../../src/utils/tierErrors';
 import type { ApolloError } from '@apollo/client';
 
-type Step = 'search' | 'details' | 'wearStart' | 'confirm';
+type Step = 'search' | 'details' | 'wearStart';
 
 interface ManualForm {
   manufacturer: string;
@@ -164,7 +164,6 @@ export default function AddBikeScreen() {
 
   const handleBack = useCallback(() => {
     switch (step) {
-      case 'confirm':
       case 'wearStart':
         setStep('details');
         break;
