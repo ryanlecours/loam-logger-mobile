@@ -8,5 +8,10 @@ query RecentRides($take: Int) {
     rideType
     bikeId
     location
+    weather {
+      id
+      tempC
+      condition
+    }
   }
 }

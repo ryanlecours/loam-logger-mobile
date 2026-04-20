@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
+import type { EditableServiceLog } from './EditServiceSheet';
 
 /** User-facing hints for what "service" means for specific component types */
 const SERVICE_HINTS: Record<string, string> = {
@@ -28,6 +29,13 @@ interface ComponentDetailSheetProps {
   onClose: () => void;
   onLogService: () => void;
   onReplace: () => void;
+  /**
+   * Fires when a user taps a service log row in the embedded history list.
+   * Parent should render an EditServiceSheet as a sibling to this one —
+   * rendering it inside this Modal causes nested-Modal rendering bugs on
+   * Android (inner sheet renders behind the outer backdrop).
+   */
+  onEditServiceLog?: (log: EditableServiceLog) => void;
 }
 
 function formatComponentType(type: string): string {
@@ -76,6 +84,7 @@ export function ComponentDetailSheet({
   onClose,
   onLogService,
   onReplace,
+  onEditServiceLog,
 }: ComponentDetailSheetProps) {
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -405,11 +414,25 @@ export function ComponentDetailSheet({
                       <View style={styles.serviceHistorySection}>
                         <Text style={styles.serviceHistoryTitle}>Service History</Text>
                         {realServiceLogs.slice(0, 5).map((log) => (
-                          <View key={log.id} style={styles.serviceLogRow}>
+                          <TouchableOpacity
+                            key={log.id}
+                            style={styles.serviceLogRow}
+                            onPress={() =>
+                              onEditServiceLog?.({
+                                id: log.id,
+                                performedAt: log.performedAt,
+                                notes: log.notes,
+                                hoursAtService: log.hoursAtService,
+                              })
+                            }
+                            disabled={!onEditServiceLog}
+                            activeOpacity={0.6}
+                          >
                             <Ionicons name="build-outline" size={14} color={colors.textMuted} />
                             <Text style={styles.serviceLogDate}>{formatDate(log.performedAt)}</Text>
                             <Text style={styles.serviceLogHours}>{log.hoursAtService.toFixed(0)}h at service</Text>
-                          </View>
+                            <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
+                          </TouchableOpacity>
                         ))}
                         {realServiceLogs.length > 5 && (
                           <Text style={styles.serviceLogMore}>
@@ -560,7 +583,6 @@ export function ComponentDetailSheet({
         </View>
       </TouchableWithoutFeedback>
     </Modal>
-
   );
 }
 

@@ -87,6 +87,7 @@ fragment BikeFieldsLight on Bike {
   motorTorqueNm
   batteryWh
   acquisitionCondition
+  acquisitionDate
   status
   retiredAt
   components {
@@ -130,6 +131,7 @@ fragment BikeFields on Bike {
   motorTorqueNm
   batteryWh
   acquisitionCondition
+  acquisitionDate
   status
   retiredAt
   components {

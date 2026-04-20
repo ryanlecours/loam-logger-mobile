@@ -6,6 +6,7 @@ import {
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors } from '../../constants/theme';
+import { WeatherBadge } from '../weather/WeatherBadge';
 
 type Ride = RecentRidesQuery['rides'][0];
 
@@ -27,7 +28,7 @@ const RIDE_TYPE_EMOJI: Record<string, string> = {
 };
 
 export function RideCard({ ride, bikeName: _bikeName, onPress }: RideCardProps) {
-  const { formatDistance } = useDistanceUnit();
+  const { formatDistance, distanceUnit } = useDistanceUnit();
   const _dateStr = formatRideDate(ride.startTime);
   const durationHours = ride.durationSeconds ? (ride.durationSeconds / 3600).toFixed(1) : null;
   const distanceDisplay = ride.distanceMeters ? formatDistance(ride.distanceMeters) : null;
@@ -66,6 +67,7 @@ export function RideCard({ ride, bikeName: _bikeName, onPress }: RideCardProps) 
               <Text style={styles.statText}>{distanceDisplay}</Text>
             </View>
           )}
+          <WeatherBadge weather={ride.weather} distanceUnit={distanceUnit as 'mi' | 'km'} />
         </View>
       </View>
 

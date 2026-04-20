@@ -10,7 +10,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ComponentFieldsFragment,
@@ -51,6 +53,8 @@ export function ReplaceComponentSheet({
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [note, setNote] = useState('');
+  const [installedAt, setInstalledAt] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [installComponent, { loading }] = useInstallComponentMutation();
 
@@ -65,6 +69,13 @@ export function ReplaceComponentSheet({
     setBrand('');
     setModel('');
     setNote('');
+    setInstalledAt(new Date());
+    setShowDatePicker(false);
+  }, []);
+
+  const onDateChange = useCallback((_event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (date) setInstalledAt(date);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -80,6 +91,11 @@ export function ReplaceComponentSheet({
       ? `${component.type}_${component.location}`
       : component.type;
 
+    // Noon to prevent timezone shifts moving the date to the previous day.
+    const noon = new Date(installedAt);
+    noon.setHours(12, 0, 0, 0);
+    const installedAtIso = noon.toISOString();
+
     try {
       if (activeTab === 'spare' && selectedSpareId) {
         await installComponent({
@@ -89,9 +105,10 @@ export function ReplaceComponentSheet({
               slotKey,
               existingComponentId: selectedSpareId,
               noteText: note || undefined,
+              installedAt: installedAtIso,
             },
           },
-          refetchQueries: ['Gear'],
+          refetchQueries: ['Gear', 'BikeHistory'],
         });
       } else if (activeTab === 'new' && brand.trim() && model.trim()) {
         await installComponent({
@@ -104,9 +121,10 @@ export function ReplaceComponentSheet({
                 model: model.trim(),
               },
               noteText: note || undefined,
+              installedAt: installedAtIso,
             },
           },
-          refetchQueries: ['Gear'],
+          refetchQueries: ['Gear', 'BikeHistory'],
         });
       } else {
         Alert.alert('Validation Error', 'Please fill in all required fields.');
@@ -137,6 +155,7 @@ export function ReplaceComponentSheet({
     brand,
     model,
     note,
+    installedAt,
     bikeId,
     installComponent,
     resetForm,
@@ -260,6 +279,32 @@ export function ReplaceComponentSheet({
                     </View>
                   </View>
                 )}
+
+                {/* Install date */}
+                <View style={styles.dateSection}>
+                  <Text style={styles.inputLabel}>Installed on</Text>
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowDatePicker(!showDatePicker)}
+                  >
+                    <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                    <Text style={styles.dateButtonText}>
+                      {installedAt.toDateString() === new Date().toDateString()
+                        ? 'Today'
+                        : installedAt.toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={installedAt}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      maximumDate={new Date()}
+                      onChange={onDateChange}
+                      themeVariant="dark"
+                    />
+                  )}
+                </View>
 
                 {/* Note Field */}
                 <View style={styles.noteSection}>
@@ -427,6 +472,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     color: colors.textPrimary,
+  },
+  dateSection: {
+    marginTop: 20,
+    gap: 6,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primaryMuted,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+  },
+  dateButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.primary,
   },
   noteSection: {
     marginTop: 20,

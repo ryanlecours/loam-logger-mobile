@@ -1,0 +1,11 @@
+mutation UpdateBikeComponentInstall($id: ID!, $input: UpdateBikeComponentInstallInput!) {
+  updateBikeComponentInstall(id: $id, input: $input) {
+    id
+    installedAt
+    removedAt
+  }
+}
+
+mutation DeleteBikeComponentInstall($id: ID!) {
+  deleteBikeComponentInstall(id: $id)
+}

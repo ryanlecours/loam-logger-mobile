@@ -1,0 +1,12 @@
+mutation UpdateServiceLog($id: ID!, $input: UpdateServiceLogInput!) {
+  updateServiceLog(id: $id, input: $input) {
+    id
+    performedAt
+    notes
+    hoursAtService
+  }
+}
+
+mutation DeleteServiceLog($id: ID!) {
+  deleteServiceLog(id: $id)
+}
