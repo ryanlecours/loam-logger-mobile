@@ -72,6 +72,17 @@ export const TIMEFRAME_SHORT_LABEL: Record<Timeframe, string> = {
   '30d': '30D',
 };
 
+/**
+ * Strip the ":installed" / ":removed" suffix from a history install event id
+ * to get the underlying BikeComponentInstall id. Install timeline rows are
+ * emitted by the backend as two composite rows per install (one per
+ * lifecycle event), but bulk mutations and selection sets key off the base.
+ */
+export function getBaseInstallId(compositeId: string): string {
+  const idx = compositeId.lastIndexOf(':');
+  return idx > 0 ? compositeId.slice(0, idx) : compositeId;
+}
+
 export function computeTimeframeRange(
   tf: Timeframe,
   now = new Date()

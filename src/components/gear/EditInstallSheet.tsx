@@ -18,6 +18,7 @@ import {
   useDeleteBikeComponentInstallMutation,
 } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
+import { getBaseInstallId } from '../../lib/bikeHistory';
 
 export interface EditableInstallEvent {
   /** Composite id from BikeHistory (e.g. "abc:installed" or "abc:removed"). */
@@ -37,11 +38,6 @@ interface EditInstallSheetProps {
    */
   hasPairedEvent?: boolean;
   onClose: () => void;
-}
-
-function baseInstallId(compositeId: string): string {
-  const idx = compositeId.lastIndexOf(':');
-  return idx > 0 ? compositeId.slice(0, idx) : compositeId;
 }
 
 export function EditInstallSheet({
@@ -98,7 +94,7 @@ export function EditInstallSheet({
     const iso = noon.toISOString();
     const input = isInstallEvent ? { installedAt: iso } : { removedAt: iso };
     try {
-      await updateInstall({ variables: { id: baseInstallId(event.id), input } });
+      await updateInstall({ variables: { id: getBaseInstallId(event.id), input } });
       onClose();
     } catch (err) {
       Alert.alert('Error', (err as Error).message);
@@ -125,7 +121,7 @@ export function EditInstallSheet({
           onPress: async () => {
             setConfirming(false);
             try {
-              await deleteInstall({ variables: { id: baseInstallId(event.id) } });
+              await deleteInstall({ variables: { id: getBaseInstallId(event.id) } });
               onClose();
             } catch (err) {
               Alert.alert('Error', (err as Error).message);

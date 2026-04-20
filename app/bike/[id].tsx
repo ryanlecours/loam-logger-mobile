@@ -9,6 +9,7 @@ import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
 import { EditServiceSheet, type EditableServiceLog } from '../../src/components/gear/EditServiceSheet';
+import { UpdateAcquisitionSheet } from '../../src/components/gear/UpdateAcquisitionSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
@@ -46,6 +47,7 @@ export default function BikeDetailScreen() {
   // both as siblings of this component avoids that.
   const [editingServiceLog, setEditingServiceLog] = useState<EditableServiceLog | null>(null);
   const [editingServiceLogLabel, setEditingServiceLogLabel] = useState('');
+  const [showAcquisitionSheet, setShowAcquisitionSheet] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const { data, loading, error, refetch } = useGearQuery({
@@ -432,6 +434,14 @@ export default function BikeDetailScreen() {
           <Text style={styles.actionButtonText}>View Full History</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowAcquisitionSheet(true)}
+        >
+          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+          <Text style={styles.actionButtonText}>Update Acquisition Date</Text>
+        </TouchableOpacity>
+
         {isInactive ? (
           <TouchableOpacity
             style={styles.actionButton}
@@ -473,7 +483,12 @@ export default function BikeDetailScreen() {
       />
 
       <ComponentDetailSheet
-        visible={!!selectedComponent && !showReplaceSheet && !editingServiceLog}
+        visible={
+          !!selectedComponent &&
+          !showReplaceSheet &&
+          !editingServiceLog &&
+          !showAcquisitionSheet
+        }
         component={selectedComponent}
         prediction={selectedComponent ? predictionMap.get(selectedComponent.id) : null}
         onClose={() => setSelectedComponent(null)}
@@ -506,6 +521,14 @@ export default function BikeDetailScreen() {
         log={editingServiceLog}
         componentLabel={editingServiceLogLabel}
         onClose={() => setEditingServiceLog(null)}
+      />
+
+      <UpdateAcquisitionSheet
+        visible={showAcquisitionSheet}
+        bikeId={bike.id}
+        bikeName={displayName}
+        currentAcquisitionDate={bike.acquisitionDate ?? null}
+        onClose={() => setShowAcquisitionSheet(false)}
       />
 
       <ReplaceComponentSheet
