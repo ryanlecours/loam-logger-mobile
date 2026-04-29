@@ -15,9 +15,12 @@ import {
   getBackfillHistory,
   triggerStravaBackfill,
   triggerGarminBackfill,
+  triggerSuuntoBackfill,
+  triggerWhoopBackfill,
   type BackfillRequest,
   type StravaBackfillResult,
   type GarminBackfillResult,
+  type WorkoutBackfillResult,
 } from '../../api/backfill';
 import type { IntegrationProvider } from '../../api/integrations';
 import { colors } from '../../constants/theme';
@@ -31,9 +34,11 @@ interface ImportRidesSheetProps {
 
 type Step = 'select' | 'importing' | 'complete';
 
-const PROVIDER_CONFIG = {
+const PROVIDER_CONFIG: Record<IntegrationProvider, { label: string; color: string }> = {
   garmin: { label: 'Garmin', color: '#007dc3' },
   strava: { label: 'Strava', color: '#fc4c02' },
+  whoop: { label: 'WHOOP', color: '#00a651' },
+  suunto: { label: 'Suunto', color: '#0072CE' },
 };
 
 function getStravaYearOptions(): string[] {
@@ -67,7 +72,9 @@ export function ImportRidesSheet({
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [history, setHistory] = useState<BackfillRequest[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [result, setResult] = useState<StravaBackfillResult | GarminBackfillResult | null>(null);
+  const [result, setResult] = useState<
+    StravaBackfillResult | GarminBackfillResult | WorkoutBackfillResult | null
+  >(null);
 
   const config = PROVIDER_CONFIG[provider];
 
@@ -100,12 +107,24 @@ export function ImportRidesSheet({
     setStep('importing');
 
     try {
-      let importResult: StravaBackfillResult | GarminBackfillResult;
+      let importResult:
+        | StravaBackfillResult
+        | GarminBackfillResult
+        | WorkoutBackfillResult;
 
-      if (provider === 'strava') {
-        importResult = await triggerStravaBackfill(selectedYear);
-      } else {
-        importResult = await triggerGarminBackfill(selectedYear);
+      switch (provider) {
+        case 'strava':
+          importResult = await triggerStravaBackfill(selectedYear);
+          break;
+        case 'garmin':
+          importResult = await triggerGarminBackfill(selectedYear);
+          break;
+        case 'suunto':
+          importResult = await triggerSuuntoBackfill(selectedYear);
+          break;
+        case 'whoop':
+          importResult = await triggerWhoopBackfill(selectedYear);
+          break;
       }
 
       setResult(importResult);
@@ -215,9 +234,17 @@ export function ImportRidesSheet({
                     </Text>
                   )}
 
-                  {/* WHOOP doesn't use this sheet (IntegrationProvider only
-                      covers garmin + strava), so the WHOOP GPS disclaimer
-                      lives in the WHOOP-specific sync UI instead. */}
+                  {provider === 'whoop' && (
+                    <Text style={styles.garminNote}>
+                      WHOOP doesn&apos;t share GPS coordinates, so location and weather data won&apos;t be available for WHOOP rides.
+                    </Text>
+                  )}
+
+                  {provider === 'suunto' && (
+                    <Text style={styles.garminNote}>
+                      Suunto doesn&apos;t provide gear mapping, so rides will be auto-assigned to your bike if you only have one.
+                    </Text>
+                  )}
 
                   <View style={styles.footer}>
                     <TouchableOpacity
@@ -243,9 +270,9 @@ export function ImportRidesSheet({
                     Syncing rides from {config.label}...
                   </Text>
                   <Text style={styles.processingSubtitle}>
-                    {provider === 'strava'
-                      ? 'This may take a minute or two.'
-                      : 'Queuing your sync request...'}
+                    {provider === 'garmin'
+                      ? 'Queuing your sync request...'
+                      : 'This may take a minute or two.'}
                   </Text>
                 </View>
               )}
@@ -256,7 +283,7 @@ export function ImportRidesSheet({
                     <Ionicons name="checkmark-circle" size={48} color={config.color} />
                   </View>
 
-                  {provider === 'strava' && 'imported' in result ? (
+                  {provider === 'strava' && 'imported' in result && 'updated' in result ? (
                     <>
                       <Text style={styles.completeTitle}>Sync Complete</Text>
                       <Text style={styles.completeMessage}>{result.message}</Text>
@@ -268,6 +295,26 @@ export function ImportRidesSheet({
                         <View style={styles.stat}>
                           <Text style={styles.statValue}>{result.updated ?? result.skipped ?? 0}</Text>
                           <Text style={styles.statLabel}>Updated</Text>
+                        </View>
+                      </View>
+                    </>
+                  ) : (provider === 'suunto' || provider === 'whoop') &&
+                    'cyclingWorkouts' in result ? (
+                    <>
+                      <Text style={styles.completeTitle}>Sync Complete</Text>
+                      <Text style={styles.completeMessage}>{result.message}</Text>
+                      <View style={styles.statsRow}>
+                        <View style={styles.stat}>
+                          <Text style={styles.statValue}>{result.imported}</Text>
+                          <Text style={styles.statLabel}>New</Text>
+                        </View>
+                        <View style={styles.stat}>
+                          <Text style={styles.statValue}>{result.skipped}</Text>
+                          <Text style={styles.statLabel}>Skipped</Text>
+                        </View>
+                        <View style={styles.stat}>
+                          <Text style={styles.statValue}>{result.cyclingWorkouts}</Text>
+                          <Text style={styles.statLabel}>Total</Text>
                         </View>
                       </View>
                     </>

@@ -2,7 +2,7 @@ import { getAccessToken } from '../lib/auth';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
-export type IntegrationProvider = 'garmin' | 'strava';
+export type IntegrationProvider = 'garmin' | 'strava' | 'whoop' | 'suunto';
 
 export interface IntegrationStatus {
   connected: boolean;

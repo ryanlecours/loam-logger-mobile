@@ -33,6 +33,7 @@ export const colors = {
   strava: '#fc4c02',
   garmin: '#007dc3',
   whoop: '#00a651',
+  suunto: '#0072CE',
 
   // Skeleton
   skeleton: '#1f1f1f',

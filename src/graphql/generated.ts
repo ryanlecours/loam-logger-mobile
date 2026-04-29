@@ -583,6 +583,7 @@ export type Mutation = {
   snoozeComponent: Component;
   swapComponents: SwapComponentsResult;
   triggerProviderSync: TriggerSyncResult;
+  updateAnalyticsOptOut: User;
   updateBike: Bike;
   updateBikeAcquisition: UpdateBikeAcquisitionResult;
   updateBikeComponentInstall: BikeComponentInstall;
@@ -750,6 +751,11 @@ export type MutationSwapComponentsArgs = {
 
 export type MutationTriggerProviderSyncArgs = {
   provider: SyncProvider;
+};
+
+
+export type MutationUpdateAnalyticsOptOutArgs = {
+  optOut: Scalars['Boolean']['input'];
 };
 
 
@@ -940,6 +946,7 @@ export type Ride = {
   startTime: Scalars['String']['output'];
   stravaActivityId?: Maybe<Scalars['String']['output']>;
   stravaGearId?: Maybe<Scalars['String']['output']>;
+  suuntoWorkoutId?: Maybe<Scalars['String']['output']>;
   trailSystem?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['String']['output'];
   userId: Scalars['ID']['output'];
@@ -1302,6 +1309,7 @@ export type User = {
   accounts: Array<ConnectedAccount>;
   activeDataSource?: Maybe<Scalars['String']['output']>;
   age?: Maybe<Scalars['Int']['output']>;
+  analyticsOptOut: Scalars['Boolean']['output'];
   avatarUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
   distanceUnit?: Maybe<Scalars['String']['output']>;
@@ -1607,7 +1615,7 @@ export type RidesPageQueryVariables = Exact<{
 }>;
 
 
-export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
 
 export type UpdateServiceLogMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -3103,6 +3111,7 @@ export const RidesPageDocument = gql`
     garminActivityId
     stravaActivityId
     whoopWorkoutId
+    suuntoWorkoutId
     weather {
       id
       tempC

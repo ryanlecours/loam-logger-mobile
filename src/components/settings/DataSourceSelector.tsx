@@ -17,6 +17,8 @@ interface DataSourceSelectorProps {
 const PROVIDER_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   garmin: { label: 'Garmin', color: '#007dc3', icon: 'watch-outline' },
   strava: { label: 'Strava', color: '#fc4c02', icon: 'bicycle-outline' },
+  whoop: { label: 'WHOOP', color: '#00a651', icon: 'pulse-outline' },
+  suunto: { label: 'Suunto', color: '#0072CE', icon: 'watch-outline' },
 };
 
 export function DataSourceSelector({

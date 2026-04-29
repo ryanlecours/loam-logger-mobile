@@ -9,13 +9,20 @@ import {
   type IntegrationStatus,
 } from '../api/integrations';
 
+const PROVIDER_LABELS: Record<IntegrationProvider, string> = {
+  garmin: 'Garmin',
+  strava: 'Strava',
+  whoop: 'WHOOP',
+  suunto: 'Suunto',
+};
+
 export function useIntegrationConnect(provider: IntegrationProvider) {
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const providerLabel = provider === 'garmin' ? 'Garmin' : 'Strava';
+  const providerLabel = PROVIDER_LABELS[provider];
 
   const refresh = useCallback(async () => {
     try {

@@ -281,6 +281,20 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         )}
+        <IntegrationRow
+          provider="whoop"
+          label="WHOOP"
+          brandColor="#00a651"
+          onImportPress={() => handleImportPress('whoop')}
+          onConnectionChange={handleConnectionChange}
+        />
+        <IntegrationRow
+          provider="suunto"
+          label="Suunto"
+          brandColor="#0072CE"
+          onImportPress={() => handleImportPress('suunto')}
+          onConnectionChange={handleConnectionChange}
+        />
       </View>
 
       {connectedProviders.size >= 2 && (

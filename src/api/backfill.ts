@@ -36,6 +36,23 @@ export interface GarminBackfillResult {
   skipped?: string[];
 }
 
+// Shared shape used by synchronous backfill routes that filter to cycling
+// activities before import (WHOOP and Suunto). Matches backend response
+// from /api/{whoop,suunto}/backfill/fetch.
+export interface WorkoutBackfillResult {
+  success: boolean;
+  message: string;
+  totalWorkouts: number;
+  cyclingWorkouts: number;
+  imported: number;
+  skipped: number;
+  duplicatesDetected: number;
+  autoAssignedBike: boolean;
+}
+
+export type SuuntoBackfillResult = WorkoutBackfillResult;
+export type WhoopBackfillResult = WorkoutBackfillResult;
+
 export interface DataSourcePreference {
   success: boolean;
   activeDataSource: string | null;
@@ -97,6 +114,59 @@ export async function triggerStravaBackfill(
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       throw new Error(body.error || body.message || 'Failed to import Strava rides');
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Trigger a Suunto backfill for a given year (synchronous — waits for import).
+ * Suunto is paginated by limit/offset; a year typically completes in seconds.
+ */
+export async function triggerSuuntoBackfill(
+  year: string
+): Promise<SuuntoBackfillResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    const response = await authenticatedFetch(
+      `/api/suunto/backfill/fetch?year=${encodeURIComponent(year)}`,
+      { signal: controller.signal }
+    );
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || body.message || 'Failed to import Suunto rides');
+    }
+
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Trigger a WHOOP backfill for a given year (synchronous — waits for import).
+ */
+export async function triggerWhoopBackfill(
+  year: string
+): Promise<WhoopBackfillResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    const response = await authenticatedFetch(
+      `/api/whoop/backfill/fetch?year=${encodeURIComponent(year)}`,
+      { signal: controller.signal }
+    );
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || body.message || 'Failed to import WHOOP rides');
     }
 
     return await response.json();

@@ -51,6 +51,9 @@ function getSourceBadge(ride: RideItem): { label: string; color: string } | null
   if (ride.whoopWorkoutId) {
     return { label: 'WHOOP', color: colors.whoop };
   }
+  if (ride.suuntoWorkoutId) {
+    return { label: 'Suunto', color: colors.suunto };
+  }
   return null;
 }
 
