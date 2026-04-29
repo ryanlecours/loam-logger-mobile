@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useRidesPageQuery, useDeleteRideMutation } from '../../src/graphql/generated';
+import { useRidesPageQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
@@ -54,6 +54,7 @@ function getSourceInfo(ride: {
   garminActivityId?: string | null;
   stravaActivityId?: string | null;
   whoopWorkoutId?: string | null;
+  suuntoWorkoutId?: string | null;
 }): { label: string; color: string } | null {
   if (ride.stravaActivityId) {
     return { label: 'Synced from Strava', color: colors.strava };
@@ -64,11 +65,14 @@ function getSourceInfo(ride: {
   if (ride.whoopWorkoutId) {
     return { label: 'Synced from WHOOP', color: colors.whoop };
   }
+  if (ride.suuntoWorkoutId) {
+    return { label: 'Synced from Suunto', color: colors.suunto };
+  }
   return null;
 }
 
 export default function RideDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, action } = useLocalSearchParams<{ id: string; action?: string }>();
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
@@ -81,6 +85,19 @@ export default function RideDetailScreen() {
 
   const { bikes } = useBikesWithPredictions();
   const [deleteRide] = useDeleteRideMutation();
+  const [updateRide] = useUpdateRideMutation();
+  // The bike picker is shown when the user lands here from the
+  // "Which bike did you ride?" push notification (action=pickBike) AND the
+  // ride is still unassigned. Once they pick, we hide the picker locally so
+  // it doesn't briefly re-render before the cache refetch settles.
+  const [pickerDismissed, setPickerDismissed] = useState(false);
+  // Track which specific bike row is being assigned. The mutation's own
+  // `loading` flag is global to the mutation hook, so using it would render
+  // a spinner on every row simultaneously when the user taps one — they'd
+  // get no visual confirmation of which bike they actually picked. Storing
+  // the in-flight bikeId here lets us spin only the tapped row while still
+  // disabling the whole list to prevent concurrent taps.
+  const [assigningBikeId, setAssigningBikeId] = useState<string | null>(null);
 
   const ride = data?.rides.find((r) => r.id === id);
 
@@ -97,6 +114,27 @@ export default function RideDetailScreen() {
   const handleEdit = () => {
     router.push(`/ride/edit/${id}` as Href);
   };
+
+  const handlePickBike = useCallback(
+    async (bikeId: string) => {
+      setAssigningBikeId(bikeId);
+      try {
+        await updateRide({
+          variables: { id: id!, input: { bikeId } },
+          refetchQueries: ['RidesPage', 'RecentRides'],
+        });
+        setPickerDismissed(true);
+      } catch (err) {
+        Alert.alert(
+          'Could not assign bike',
+          err instanceof Error ? err.message : 'Please try again.'
+        );
+      } finally {
+        setAssigningBikeId(null);
+      }
+    },
+    [updateRide, id]
+  );
 
   const handleDelete = () => {
     Alert.alert(
@@ -224,6 +262,44 @@ export default function RideDetailScreen() {
         {/* Weather Card */}
         {ride.weather && (
           <WeatherCard weather={ride.weather} distanceUnit={distanceUnit} />
+        )}
+
+        {/* Inline bike picker — shown when arrived from the bike-prompt
+            push notification (?action=pickBike), the ride is still
+            unassigned, and the user actually has bikes to pick from.
+            Tapping a bike calls updateRide and the card hides itself. */}
+        {action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
+            <Text style={styles.pickerSubtitle}>
+              Tap to assign this ride so component hours track correctly.
+            </Text>
+            {bikes.map((bike) => {
+              const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
+              const isAssigningThis = assigningBikeId === bike.id;
+              return (
+                <TouchableOpacity
+                  key={bike.id}
+                  style={styles.bikePickerRow}
+                  onPress={() => handlePickBike(bike.id)}
+                  // Disable every row while any assignment is in flight to
+                  // prevent rapid double-taps that would race the mutation,
+                  // but only show the spinner on the row the user actually
+                  // tapped so they get clear visual feedback.
+                  disabled={!!assigningBikeId}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="bicycle" size={20} color={colors.textMuted} />
+                  <Text style={styles.bikePickerLabel}>{label}</Text>
+                  {isAssigningThis ? (
+                    <ActivityIndicator size="small" color={colors.textMuted} />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
 
         {/* Bike Card */}
@@ -401,6 +477,25 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bikeName: {
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  pickerSubtitle: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  bikePickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
+  bikePickerLabel: {
+    flex: 1,
     fontSize: 16,
     color: colors.textPrimary,
   },
