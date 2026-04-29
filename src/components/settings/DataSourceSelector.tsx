@@ -98,10 +98,20 @@ const styles = StyleSheet.create({
   },
   cards: {
     flexDirection: 'row',
+    // Wrap to a second line once cards can't comfortably fit side-by-side.
+    // With four providers connected on a narrow phone (iPhone SE / 13 mini at
+    // 375pt) four cards in one row would clip the label text. The minWidth
+    // on each card forces a clean wrap to a 2×2 grid at 4 providers; 2- and
+    // 3-provider layouts still fit on one row.
+    flexWrap: 'wrap',
     gap: 12,
   },
   card: {
-    flex: 1,
+    flexGrow: 1,
+    // 150pt fits a 40pt icon + 10pt gap + label + 20pt checkmark + padding
+    // without clipping. Set as the wrap trigger; flexGrow then stretches
+    // cards to fill the row evenly.
+    minWidth: 150,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
