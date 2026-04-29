@@ -13,6 +13,7 @@ query RidesPage($take: Int, $after: ID, $filter: RidesFilterInput) {
     garminActivityId
     stravaActivityId
     whoopWorkoutId
+    suuntoWorkoutId
     weather {
       id
       tempC
