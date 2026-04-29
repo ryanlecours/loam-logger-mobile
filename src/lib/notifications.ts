@@ -85,13 +85,24 @@ export function openNotificationSettings(): void {
 /**
  * Set up a listener for when the user taps a notification.
  * Routes to the relevant screen based on the notification data.
+ *
+ * `data.action` is an optional hint that the destination screen should
+ * surface a specific UI affordance on mount. Today the only action is
+ * `pickBike`, used by the bike-assignment notification fired for new
+ * unassigned rides on multi-bike accounts (see fireRideNotifications in
+ * the API). The ride detail screen reads the `?action=pickBike` query
+ * param and auto-opens its bike picker.
  */
 export function setupNotificationResponseListener(router: Router) {
   return Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data;
 
     if (data?.screen === 'ride' && data?.rideId) {
-      router.push(`/ride/${data.rideId}` as never);
+      const action = typeof data?.action === 'string' ? data.action : null;
+      const path = action
+        ? `/ride/${data.rideId}?action=${encodeURIComponent(action)}`
+        : `/ride/${data.rideId}`;
+      router.push(path as never);
     } else if (data?.screen === 'bike' && data?.bikeId) {
       router.push(`/bike/${data.bikeId}` as never);
     }

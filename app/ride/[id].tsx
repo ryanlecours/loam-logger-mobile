@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useRidesPageQuery, useDeleteRideMutation } from '../../src/graphql/generated';
+import { useRidesPageQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
@@ -68,7 +68,7 @@ function getSourceInfo(ride: {
 }
 
 export default function RideDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, action } = useLocalSearchParams<{ id: string; action?: string }>();
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
@@ -81,6 +81,12 @@ export default function RideDetailScreen() {
 
   const { bikes } = useBikesWithPredictions();
   const [deleteRide] = useDeleteRideMutation();
+  const [updateRide, { loading: assigning }] = useUpdateRideMutation();
+  // The bike picker is shown when the user lands here from the
+  // "Which bike did you ride?" push notification (action=pickBike) AND the
+  // ride is still unassigned. Once they pick, we hide the picker locally so
+  // it doesn't briefly re-render before the cache refetch settles.
+  const [pickerDismissed, setPickerDismissed] = useState(false);
 
   const ride = data?.rides.find((r) => r.id === id);
 
@@ -97,6 +103,24 @@ export default function RideDetailScreen() {
   const handleEdit = () => {
     router.push(`/ride/edit/${id}` as Href);
   };
+
+  const handlePickBike = useCallback(
+    async (bikeId: string) => {
+      try {
+        await updateRide({
+          variables: { id: id!, input: { bikeId } },
+          refetchQueries: ['RidesPage', 'RecentRides'],
+        });
+        setPickerDismissed(true);
+      } catch (err) {
+        Alert.alert(
+          'Could not assign bike',
+          err instanceof Error ? err.message : 'Please try again.'
+        );
+      }
+    },
+    [updateRide, id]
+  );
 
   const handleDelete = () => {
     Alert.alert(
@@ -224,6 +248,39 @@ export default function RideDetailScreen() {
         {/* Weather Card */}
         {ride.weather && (
           <WeatherCard weather={ride.weather} distanceUnit={distanceUnit} />
+        )}
+
+        {/* Inline bike picker — shown when arrived from the bike-prompt
+            push notification (?action=pickBike), the ride is still
+            unassigned, and the user actually has bikes to pick from.
+            Tapping a bike calls updateRide and the card hides itself. */}
+        {action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
+            <Text style={styles.pickerSubtitle}>
+              Tap to assign this ride so component hours track correctly.
+            </Text>
+            {bikes.map((bike) => {
+              const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
+              return (
+                <TouchableOpacity
+                  key={bike.id}
+                  style={styles.bikePickerRow}
+                  onPress={() => handlePickBike(bike.id)}
+                  disabled={assigning}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="bicycle" size={20} color={colors.textMuted} />
+                  <Text style={styles.bikePickerLabel}>{label}</Text>
+                  {assigning ? (
+                    <ActivityIndicator size="small" color={colors.textMuted} />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
 
         {/* Bike Card */}
@@ -401,6 +458,25 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bikeName: {
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  pickerSubtitle: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  bikePickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
+  bikePickerLabel: {
+    flex: 1,
     fontSize: 16,
     color: colors.textPrimary,
   },
