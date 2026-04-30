@@ -89,7 +89,7 @@ export function RecentRidesList({
             key={ride.id}
             ride={ride}
             bikeName={getBikeName(ride.bikeId)}
-            onPress={onRidePress ? () => onRidePress(ride) : () => undefined}
+            onPress={onRidePress ? () => onRidePress(ride) : () => {}}
           />
         ))}
       </View>
