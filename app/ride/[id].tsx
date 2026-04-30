@@ -77,10 +77,20 @@ export default function RideDetailScreen() {
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
 
-  // Fetch ride from the cached rides query
+  // Fetch ride from the rides query.
+  //
+  // `cache-and-network` (not `cache-first`) is load-bearing for the
+  // notification deep-link flow: when a user taps "Tap to choose which bike
+  // you rode" on a freshly-synced ride, that ride was created on the server
+  // AFTER the local RidesPage cache was last populated. With `cache-first`,
+  // Apollo would short-circuit on the stale cache, `data.rides.find(...)`
+  // would return undefined, and the screen would render "Ride not found"
+  // instead of the bike picker. `cache-and-network` shows the cached list
+  // immediately AND refetches, so the new ride appears once the network
+  // response lands and the picker renders correctly.
   const { data, loading } = useRidesPageQuery({
     variables: { take: 100 },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
   });
 
   const { bikes } = useBikesWithPredictions();
