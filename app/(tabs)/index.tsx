@@ -10,6 +10,7 @@ import {
   BikeFieldsFragment,
   ComponentPrediction,
   useCalibrationStateQuery,
+  useRecentRidesQuery,
 } from '../../src/graphql/generated';
 import {
   DashboardSkeleton,
@@ -17,6 +18,7 @@ import {
   BikeSelectorSheet,
   DashboardComponentCard,
   ComponentActionSheet,
+  RecentRidesList,
   RideStatsCard,
 } from '../../src/components/dashboard';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
@@ -65,6 +67,19 @@ export default function DashboardScreen() {
     fetchPolicy: 'cache-and-network',
   });
 
+  // Three most recent rides for the dashboard preview. The "See all" button
+  // jumps to the rides tab, which renders the full paginated list. Sharing
+  // this query name (`RecentRides`) with refetchQueries elsewhere (e.g.
+  // pickBike on ride detail) means assignment changes propagate here too.
+  const {
+    data: recentRidesData,
+    loading: recentRidesLoading,
+    refetch: refetchRecentRides,
+  } = useRecentRidesQuery({
+    variables: { take: 3 },
+    fetchPolicy: 'cache-and-network',
+  });
+
   useEffect(() => {
     if (calibrationData?.calibrationState?.showOverlay) {
       setShowCalibration(true);
@@ -75,9 +90,9 @@ export default function DashboardScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchBikes(), refetchStats()]);
+    await Promise.all([refetchBikes(), refetchStats(), refetchRecentRides()]);
     setRefreshing(false);
-  }, [refetchBikes, refetchStats]);
+  }, [refetchBikes, refetchStats, refetchRecentRides]);
 
   const typedBikes = bikes as BikeFieldsFragment[];
 
@@ -242,6 +257,16 @@ export default function DashboardScreen() {
             <Text style={styles.actionButtonText}>Inspect Bike</Text>
           </TouchableOpacity>
         )}
+
+        {/* Recent Rides — three most recent, with "See all" jumping to the
+            rides tab for the full list. */}
+        <RecentRidesList
+          rides={recentRidesData?.rides ?? []}
+          bikes={typedBikes}
+          loading={recentRidesLoading && !recentRidesData}
+          onSeeAll={() => router.push('/(tabs)/rides' as Href)}
+          onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
+        />
 
         {/* Needs Attention Section */}
         {attentionComponents.length > 0 && (

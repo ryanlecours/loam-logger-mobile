@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { NetworkStatus } from '@apollo/client';
 import { useRidesPageQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
@@ -86,11 +87,18 @@ export default function RideDetailScreen() {
   // Apollo would short-circuit on the stale cache, `data.rides.find(...)`
   // would return undefined, and the screen would render "Ride not found"
   // instead of the bike picker. `cache-and-network` shows the cached list
-  // immediately AND refetches, so the new ride appears once the network
-  // response lands and the picker renders correctly.
-  const { data, loading } = useRidesPageQuery({
+  // immediately AND refetches.
+  //
+  // `notifyOnNetworkStatusChange: true` is required so the consumer
+  // re-renders when the in-flight network fetch transitions — and so the
+  // `loading` flag accurately reflects "fetch in flight" during the
+  // cached-emission window. Without it, the cached emission lands with
+  // `loading: false` and the "Ride not found" branch below fires for the
+  // exact case this query change is meant to fix.
+  const { data, loading, networkStatus } = useRidesPageQuery({
     variables: { take: 100 },
     fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
   });
 
   const { bikes } = useBikesWithPredictions();
@@ -173,7 +181,13 @@ export default function RideDetailScreen() {
     );
   };
 
-  if (loading) {
+  // Treat any in-flight fetch as loading when we don't yet have the ride —
+  // covers both initial mount and explicit refetch where the cached list
+  // doesn't include the just-synced ride from the deep-link notification.
+  // Without the networkStatus guard, the user briefly sees "Ride not found"
+  // between the stale cache emission and the network response landing.
+  const isRefetching = networkStatus === NetworkStatus.refetch;
+  if (loading || (isRefetching && !ride)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
