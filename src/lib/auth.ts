@@ -70,6 +70,46 @@ export async function getRefreshToken(): Promise<string | null> {
   return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
 }
 
+/**
+ * Pull the `exp` claim out of a JWT access token without verifying the
+ * signature. Verification is the server's job; the client only needs the
+ * expiry to decide whether a proactive refresh is worth the round-trip.
+ *
+ * Returns the expiry as a unix-ms timestamp, or null if the token isn't a
+ * recognizable JWT — in which case callers should treat it as expired and
+ * fall through to a refresh, which will either succeed (we get a fresh
+ * token) or fail and clear SecureStore (we land on login).
+ */
+function decodeJwtExpiryMs(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // JWT payloads are base64url. Convert to standard base64 and pad before
+    // decoding — atob doesn't handle the url-safe alphabet or missing padding.
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const json = atob(padded);
+    const payload = JSON.parse(json) as { exp?: number };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True iff a stored access token exists and won't expire in the next
+ * `bufferSeconds`. The buffer guards against the token expiring mid-flight
+ * on a request that just left the device — better to refresh slightly
+ * early than to send a doomed request and rely on errorLink to recover.
+ */
+export async function hasValidAccessToken(bufferSeconds = 60): Promise<boolean> {
+  const token = await getAccessToken();
+  if (!token) return false;
+  const expiryMs = decodeJwtExpiryMs(token);
+  if (expiryMs == null) return false;
+  return expiryMs > Date.now() + bufferSeconds * 1000;
+}
+
 export async function getStoredUser(): Promise<LoginUser | null> {
   const userJson = await SecureStore.getItemAsync(USER_KEY);
   return userJson ? JSON.parse(userJson) : null;
@@ -103,6 +143,17 @@ export async function refreshAccessToken(): Promise<string | null> {
 
     const data = await response.json();
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.accessToken);
+    // The current server is stateless (HMAC-signed refresh tokens, no
+    // invalidation list) and only returns `{ accessToken }` here, so this
+    // branch is a no-op today. It's a forward-compat hook: if the server
+    // ever adopts refresh-token rotation (rotate on every use to shrink
+    // the replay window), the client will pick up the new refresh token
+    // automatically without needing a coordinated mobile release. Without
+    // this, the next refresh would send a dead token and the user would
+    // be silently logged out.
+    if (data.refreshToken) {
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refreshToken);
+    }
     // Notify listener that token was refreshed (so useAuth can refetch ME)
     onTokenRefreshed?.();
     return data.accessToken;

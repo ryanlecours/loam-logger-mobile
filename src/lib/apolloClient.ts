@@ -3,11 +3,26 @@ import {
   InMemoryCache,
   HttpLink,
   ApolloLink,
+  Observable,
   fromPromise,
+  type FetchResult,
 } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { getAccessToken, refreshAccessToken } from './auth';
+
+// Dedupe concurrent refresh attempts. When multiple queries land at once and
+// all 401, we want one /refresh round-trip — not N parallel refreshes that
+// race against each other.
+let inFlightRefresh: Promise<string | null> | null = null;
+function dedupedRefresh(): Promise<string | null> {
+  if (!inFlightRefresh) {
+    inFlightRefresh = refreshAccessToken().finally(() => {
+      inFlightRefresh = null;
+    });
+  }
+  return inFlightRefresh;
+}
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -27,48 +42,49 @@ const authLink = setContext(async (_, { headers }) => {
   };
 });
 
-const errorLink = onError(
-  ({ graphQLErrors, networkError, operation, forward }) => {
-    if (graphQLErrors) {
-      for (const err of graphQLErrors) {
-        if (err.extensions?.code === 'UNAUTHENTICATED') {
-          return fromPromise(
-            refreshAccessToken()
-              .then((newToken) => {
-                if (!newToken) {
-                  throw new Error('Unable to refresh token');
-                }
-
-                const oldHeaders = operation.getContext().headers;
-                operation.setContext({
-                  headers: {
-                    ...oldHeaders,
-                    authorization: `Bearer ${newToken}`,
-                  },
-                });
-
-                return forward(operation);
-              })
-              .catch(() => {
-                return forward(operation);
-              })
-          ).flatMap(() => forward(operation));
-        }
-      }
-    }
-
-    if (networkError) {
-      console.warn(`[Network error]: ${networkError}`);
-    }
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  if (networkError) {
+    console.warn(`[Network error]: ${networkError}`);
   }
-);
+
+  if (!graphQLErrors) return;
+
+  const hasUnauth = graphQLErrors.some(
+    (err) => err.extensions?.code === 'UNAUTHENTICATED',
+  );
+  if (!hasUnauth) return;
+
+  return fromPromise(dedupedRefresh()).flatMap((newToken) => {
+    if (!newToken) {
+      // Refresh failed; refreshAccessToken already cleared SecureStore.
+      // Surface the original UNAUTHENTICATED so useAuth's logout-on-error
+      // effect routes the user back to login. Synthesizing the result here
+      // avoids a doomed retry that would loop straight back into this link.
+      return Observable.of<FetchResult>({ errors: graphQLErrors });
+    }
+
+    operation.setContext(
+      ({ headers = {} }: { headers?: Record<string, unknown> }) => ({
+        headers: {
+          ...headers,
+          authorization: `Bearer ${newToken}`,
+        },
+      }),
+    );
+
+    return forward(operation);
+  });
+});
 
 export const client = new ApolloClient({
   link: ApolloLink.from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache({ canonizeResults: false }),
-  defaultOptions: {
-    watchQuery: {
-      fetchPolicy: 'cache-and-network',
-    },
-  },
+  // No global watchQuery `cache-and-network` default. A previous version of
+  // this file set one, but it silently upgraded EVERY useQuery in the app
+  // (dashboard, gear, settings, etc.) to fire a background network request
+  // on every mount — disproportionate API load relative to the cases that
+  // actually need it. Queries that need fresh data after a deep-link or
+  // mutation should opt in explicitly per call site (e.g. ride detail at
+  // app/ride/[id].tsx, useCalibrationStateQuery, useRecentRidesQuery).
+  // Apollo's per-query default of `cache-first` is the right baseline.
 });

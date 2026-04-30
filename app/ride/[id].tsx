@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { NetworkStatus } from '@apollo/client';
 import { useRidesPageQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
@@ -77,10 +78,27 @@ export default function RideDetailScreen() {
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
 
-  // Fetch ride from the cached rides query
-  const { data, loading } = useRidesPageQuery({
+  // Fetch ride from the rides query.
+  //
+  // `cache-and-network` (not `cache-first`) is load-bearing for the
+  // notification deep-link flow: when a user taps "Tap to choose which bike
+  // you rode" on a freshly-synced ride, that ride was created on the server
+  // AFTER the local RidesPage cache was last populated. With `cache-first`,
+  // Apollo would short-circuit on the stale cache, `data.rides.find(...)`
+  // would return undefined, and the screen would render "Ride not found"
+  // instead of the bike picker. `cache-and-network` shows the cached list
+  // immediately AND refetches.
+  //
+  // `notifyOnNetworkStatusChange: true` is required so the consumer
+  // re-renders when the in-flight network fetch transitions — and so the
+  // `loading` flag accurately reflects "fetch in flight" during the
+  // cached-emission window. Without it, the cached emission lands with
+  // `loading: false` and the "Ride not found" branch below fires for the
+  // exact case this query change is meant to fix.
+  const { data, loading, networkStatus } = useRidesPageQuery({
     variables: { take: 100 },
-    fetchPolicy: 'cache-first',
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
   });
 
   const { bikes } = useBikesWithPredictions();
@@ -163,7 +181,19 @@ export default function RideDetailScreen() {
     );
   };
 
-  if (loading) {
+  // Show the loading state ONLY when the ride isn't yet available — covers
+  // initial mount with no cache and the deep-link case where the cached
+  // list pre-dated the just-synced ride and a background refetch is mid-flight.
+  // Critically, gating on `!ride` first means rides that ARE in the cache
+  // render immediately on navigation; we don't briefly flash a spinner over
+  // stale-but-correct data while the background refetch settles.
+  //
+  // `isRefetching` is technically redundant under `notifyOnNetworkStatusChange:
+  // true` (loading already flips true for any networkStatus < ready,
+  // including refetch=4), but keeping it explicit guards the intent if a
+  // future contributor removes notifyOnNetworkStatusChange.
+  const isRefetching = networkStatus === NetworkStatus.refetch;
+  if (!ride && (loading || isRefetching)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -198,8 +228,58 @@ export default function RideDetailScreen() {
   const bikeName = getBikeName(ride.bikeId);
   const sourceInfo = getSourceInfo(ride);
 
+  const showBikePicker =
+    action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Inline bike picker — sits OUTSIDE the tap-to-edit touchable so
+          tapping its title or subtitle text doesn't bubble up to handleEdit
+          and navigate the user away from the picker. Rendered first in the
+          ScrollView so it's visible immediately when the user arrives from
+          the "Which bike did you ride?" push notification rather than
+          buried below header/stats/weather. */}
+      {showBikePicker && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
+          <Text style={styles.pickerSubtitle}>
+            Tap to assign this ride so component hours track correctly.
+          </Text>
+          {bikes.map((bike) => {
+            const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
+            const isAssigningThis = assigningBikeId === bike.id;
+            return (
+              <TouchableOpacity
+                key={bike.id}
+                style={[
+                  styles.bikePickerRow,
+                  // Dim the non-tapped rows during an in-flight assignment
+                  // so users can see they won't respond. The tapped row
+                  // keeps full opacity since its spinner already conveys
+                  // "this one is processing."
+                  !!assigningBikeId && !isAssigningThis && styles.bikePickerRowDisabled,
+                ]}
+                onPress={() => handlePickBike(bike.id)}
+                // Disable every row while any assignment is in flight to
+                // prevent rapid double-taps that would race the mutation,
+                // but only show the spinner on the row the user actually
+                // tapped so they get clear visual feedback.
+                disabled={!!assigningBikeId}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="bicycle" size={20} color={colors.textMuted} />
+                <Text style={styles.bikePickerLabel}>{label}</Text>
+                {isAssigningThis ? (
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
       <TouchableOpacity activeOpacity={0.7} onPress={handleEdit}>
         {/* Header Card */}
         <View style={styles.card}>
@@ -262,44 +342,6 @@ export default function RideDetailScreen() {
         {/* Weather Card */}
         {ride.weather && (
           <WeatherCard weather={ride.weather} distanceUnit={distanceUnit} />
-        )}
-
-        {/* Inline bike picker — shown when arrived from the bike-prompt
-            push notification (?action=pickBike), the ride is still
-            unassigned, and the user actually has bikes to pick from.
-            Tapping a bike calls updateRide and the card hides itself. */}
-        {action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
-            <Text style={styles.pickerSubtitle}>
-              Tap to assign this ride so component hours track correctly.
-            </Text>
-            {bikes.map((bike) => {
-              const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
-              const isAssigningThis = assigningBikeId === bike.id;
-              return (
-                <TouchableOpacity
-                  key={bike.id}
-                  style={styles.bikePickerRow}
-                  onPress={() => handlePickBike(bike.id)}
-                  // Disable every row while any assignment is in flight to
-                  // prevent rapid double-taps that would race the mutation,
-                  // but only show the spinner on the row the user actually
-                  // tapped so they get clear visual feedback.
-                  disabled={!!assigningBikeId}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="bicycle" size={20} color={colors.textMuted} />
-                  <Text style={styles.bikePickerLabel}>{label}</Text>
-                  {isAssigningThis ? (
-                    <ActivityIndicator size="small" color={colors.textMuted} />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
         )}
 
         {/* Bike Card */}
@@ -493,6 +535,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
+  },
+  bikePickerRowDisabled: {
+    opacity: 0.4,
   },
   bikePickerLabel: {
     flex: 1,
