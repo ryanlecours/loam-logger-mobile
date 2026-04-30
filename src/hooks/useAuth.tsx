@@ -10,6 +10,7 @@ import type { UserRole } from '../graphql/generated';
 import {
   getAccessToken,
   logout as logoutAuth,
+  refreshAccessToken,
   setTokenRefreshCallback,
   type User,
 } from '../lib/auth';
@@ -73,10 +74,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await getAccessToken();
       if (!token) return; // Unauthenticated — leave isAuthenticated=false
 
-      // Stored token exists. If the user has opted into biometric unlock AND
-      // the device still supports it, require a biometric pass before we
-      // trust the token. Otherwise (opt-out, or biometrics no longer
-      // available on the device), skip straight to authenticated.
+      // Access tokens are short-lived (15m). On any cold-boot beyond that
+      // window the stored token is already stale, so the post-unlock ME
+      // query would 401 and the errorLink retry path would have to recover.
+      // Pre-refresh here so the rest of the session uses a fresh token from
+      // the very first request — no retry, no flicker, no risk of the
+      // logout-on-error effect firing on a transient refresh failure.
+      //
+      // If refresh fails (refresh token expired/revoked), refreshAccessToken
+      // already cleared SecureStore — drop straight to the login screen
+      // without showing the biometric prompt. Sending the user through
+      // Face ID just to dump them at login is bad UX.
+      const refreshed = await refreshAccessToken();
+      if (!refreshed) return;
+
+      // Session is valid. If the user opted into biometric unlock AND the
+      // device still supports it, require a biometric pass before flipping
+      // authenticated. Otherwise skip straight in.
       const [enabled, available] = await Promise.all([
         isBiometricEnabled(),
         isBiometricAvailable(),
@@ -204,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refetchUser]);
 
   // Loading while initializing (checking SecureStore), or while authenticated
-  // and the ME query hasn't settled yet.
+  // and the ME query hasn't yielded a populated viewer yet.
   //
   // Deliberately NOT gating on `viewerLoading` alone. Apollo has a one-render
   // window between `skip: true → false` where the hook returns
@@ -213,11 +227,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // run during that window with `hasAcceptedCurrentTerms = false` (no viewer
   // yet, so the fallback wins) and redirect the user to the Terms screen.
   //
-  // `viewerResolved` flips true on any terminal state (data, null, or error)
-  // — see useViewer.ts — so we only need the single check here. Error + null
-  // cases unblock loading and let the logout-effect above run, which flips
-  // `isAuthenticated` back to false and re-routes to login.
-  const loading = initializing || (isAuthenticated && !viewerResolved);
+  // The `!viewer` clause covers a second flash window: `viewerResolved` flips
+  // true the moment `data !== undefined`, even when `data.me === null` (e.g.
+  // server returned null, network error). Without `!viewer`, that single
+  // render leaks `hasAcceptedCurrentTerms = false` to the gate and produces
+  // a ~1–2s Terms screen flash before the logout-effect cleans up. Keeping
+  // `loading = true` until viewer is populated lets the LoadingScreen stay
+  // mounted; error/null cases are unblocked by the logout-effect flipping
+  // `isAuthenticated` back to false (which short-circuits this expression).
+  const loading = initializing || (isAuthenticated && (!viewerResolved || !viewer));
 
   // Derive gating flags from viewer first (available immediately when query resolves),
   // then user state (set one render later via useEffect). This prevents a flash to

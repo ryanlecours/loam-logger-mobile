@@ -73,14 +73,9 @@ export function LogServiceSheet({
     });
   }, []);
 
-  // Filter to only serviceable components (those with service intervals)
-  const serviceableComponents = components.filter(
-    (c) => c.serviceDueAtHours !== null && c.serviceDueAtHours !== undefined
-  );
-
   const selectAll = useCallback(() => {
-    setSelectedIds(new Set(serviceableComponents.map((c) => c.id)));
-  }, [serviceableComponents]);
+    setSelectedIds(new Set(components.map((c) => c.id)));
+  }, [components]);
 
   const deselectAll = useCallback(() => {
     setSelectedIds(new Set());
@@ -136,8 +131,8 @@ export function LogServiceSheet({
   }, [onClose]);
 
   const allSelected =
-    serviceableComponents.length > 0 &&
-    selectedIds.size === serviceableComponents.length;
+    components.length > 0 &&
+    selectedIds.size === components.length;
 
   return (
     <Modal
@@ -163,7 +158,7 @@ export function LogServiceSheet({
                 <Text style={styles.subtitle}>
                   Select components to record service
                 </Text>
-                {serviceableComponents.length > 1 && (
+                {components.length > 1 && (
                   <TouchableOpacity
                     onPress={allSelected ? deselectAll : selectAll}
                     style={styles.selectAllButton}
@@ -199,15 +194,15 @@ export function LogServiceSheet({
               )}
 
               <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-                {serviceableComponents.length === 0 ? (
+                {components.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="construct-outline" size={48} color={colors.textMuted} />
                     <Text style={styles.emptyText}>
-                      No serviceable components found
+                      No components found
                     </Text>
                   </View>
                 ) : (
-                  serviceableComponents.map((component) => {
+                  components.map((component) => {
                     const isSelected = selectedIds.has(component.id);
                     const typeName = formatComponentType(component.type);
                     const location = formatLocation(component.location);
@@ -241,8 +236,9 @@ export function LogServiceSheet({
                             <Text style={styles.componentBrand}>{brandModel}</Text>
                           )}
                           <Text style={styles.componentHours}>
-                            {component.hoursUsed?.toFixed(0) || 0} /{' '}
-                            {component.serviceDueAtHours}h
+                            {component.serviceDueAtHours
+                              ? `${component.hoursUsed?.toFixed(0) || 0} / ${component.serviceDueAtHours}h`
+                              : `${component.hoursUsed?.toFixed(0) || 0}h used`}
                           </Text>
                         </View>
                       </TouchableOpacity>

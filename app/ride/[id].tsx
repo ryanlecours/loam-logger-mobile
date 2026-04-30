@@ -198,8 +198,58 @@ export default function RideDetailScreen() {
   const bikeName = getBikeName(ride.bikeId);
   const sourceInfo = getSourceInfo(ride);
 
+  const showBikePicker =
+    action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Inline bike picker — sits OUTSIDE the tap-to-edit touchable so
+          tapping its title or subtitle text doesn't bubble up to handleEdit
+          and navigate the user away from the picker. Rendered first in the
+          ScrollView so it's visible immediately when the user arrives from
+          the "Which bike did you ride?" push notification rather than
+          buried below header/stats/weather. */}
+      {showBikePicker && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
+          <Text style={styles.pickerSubtitle}>
+            Tap to assign this ride so component hours track correctly.
+          </Text>
+          {bikes.map((bike) => {
+            const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
+            const isAssigningThis = assigningBikeId === bike.id;
+            return (
+              <TouchableOpacity
+                key={bike.id}
+                style={[
+                  styles.bikePickerRow,
+                  // Dim the non-tapped rows during an in-flight assignment
+                  // so users can see they won't respond. The tapped row
+                  // keeps full opacity since its spinner already conveys
+                  // "this one is processing."
+                  !!assigningBikeId && !isAssigningThis && styles.bikePickerRowDisabled,
+                ]}
+                onPress={() => handlePickBike(bike.id)}
+                // Disable every row while any assignment is in flight to
+                // prevent rapid double-taps that would race the mutation,
+                // but only show the spinner on the row the user actually
+                // tapped so they get clear visual feedback.
+                disabled={!!assigningBikeId}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="bicycle" size={20} color={colors.textMuted} />
+                <Text style={styles.bikePickerLabel}>{label}</Text>
+                {isAssigningThis ? (
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
       <TouchableOpacity activeOpacity={0.7} onPress={handleEdit}>
         {/* Header Card */}
         <View style={styles.card}>
@@ -262,44 +312,6 @@ export default function RideDetailScreen() {
         {/* Weather Card */}
         {ride.weather && (
           <WeatherCard weather={ride.weather} distanceUnit={distanceUnit} />
-        )}
-
-        {/* Inline bike picker — shown when arrived from the bike-prompt
-            push notification (?action=pickBike), the ride is still
-            unassigned, and the user actually has bikes to pick from.
-            Tapping a bike calls updateRide and the card hides itself. */}
-        {action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
-            <Text style={styles.pickerSubtitle}>
-              Tap to assign this ride so component hours track correctly.
-            </Text>
-            {bikes.map((bike) => {
-              const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
-              const isAssigningThis = assigningBikeId === bike.id;
-              return (
-                <TouchableOpacity
-                  key={bike.id}
-                  style={styles.bikePickerRow}
-                  onPress={() => handlePickBike(bike.id)}
-                  // Disable every row while any assignment is in flight to
-                  // prevent rapid double-taps that would race the mutation,
-                  // but only show the spinner on the row the user actually
-                  // tapped so they get clear visual feedback.
-                  disabled={!!assigningBikeId}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="bicycle" size={20} color={colors.textMuted} />
-                  <Text style={styles.bikePickerLabel}>{label}</Text>
-                  {isAssigningThis ? (
-                    <ActivityIndicator size="small" color={colors.textMuted} />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
         )}
 
         {/* Bike Card */}
@@ -493,6 +505,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
+  },
+  bikePickerRowDisabled: {
+    opacity: 0.4,
   },
   bikePickerLabel: {
     flex: 1,
