@@ -181,13 +181,19 @@ export default function RideDetailScreen() {
     );
   };
 
-  // Treat any in-flight fetch as loading when we don't yet have the ride —
-  // covers both initial mount and explicit refetch where the cached list
-  // doesn't include the just-synced ride from the deep-link notification.
-  // Without the networkStatus guard, the user briefly sees "Ride not found"
-  // between the stale cache emission and the network response landing.
+  // Show the loading state ONLY when the ride isn't yet available — covers
+  // initial mount with no cache and the deep-link case where the cached
+  // list pre-dated the just-synced ride and a background refetch is mid-flight.
+  // Critically, gating on `!ride` first means rides that ARE in the cache
+  // render immediately on navigation; we don't briefly flash a spinner over
+  // stale-but-correct data while the background refetch settles.
+  //
+  // `isRefetching` is technically redundant under `notifyOnNetworkStatusChange:
+  // true` (loading already flips true for any networkStatus < ready,
+  // including refetch=4), but keeping it explicit guards the intent if a
+  // future contributor removes notifyOnNetworkStatusChange.
   const isRefetching = networkStatus === NetworkStatus.refetch;
-  if (loading || (isRefetching && !ride)) {
+  if (!ride && (loading || isRefetching)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

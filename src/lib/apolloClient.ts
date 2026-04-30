@@ -79,9 +79,12 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
 export const client = new ApolloClient({
   link: ApolloLink.from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache({ canonizeResults: false }),
-  defaultOptions: {
-    watchQuery: {
-      fetchPolicy: 'cache-and-network',
-    },
-  },
+  // No global watchQuery `cache-and-network` default. A previous version of
+  // this file set one, but it silently upgraded EVERY useQuery in the app
+  // (dashboard, gear, settings, etc.) to fire a background network request
+  // on every mount — disproportionate API load relative to the cases that
+  // actually need it. Queries that need fresh data after a deep-link or
+  // mutation should opt in explicitly per call site (e.g. ride detail at
+  // app/ride/[id].tsx, useCalibrationStateQuery, useRecentRidesQuery).
+  // Apollo's per-query default of `cache-first` is the right baseline.
 });

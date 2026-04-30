@@ -9,6 +9,7 @@ import { useApolloClient } from '@apollo/client';
 import type { UserRole } from '../graphql/generated';
 import {
   getAccessToken,
+  hasValidAccessToken,
   logout as logoutAuth,
   refreshAccessToken,
   setTokenRefreshCallback,
@@ -74,19 +75,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await getAccessToken();
       if (!token) return; // Unauthenticated — leave isAuthenticated=false
 
-      // Access tokens are short-lived (15m). On any cold-boot beyond that
-      // window the stored token is already stale, so the post-unlock ME
-      // query would 401 and the errorLink retry path would have to recover.
-      // Pre-refresh here so the rest of the session uses a fresh token from
-      // the very first request — no retry, no flicker, no risk of the
-      // logout-on-error effect firing on a transient refresh failure.
+      // Access tokens are short-lived (15m). For users who reopen the app
+      // frequently, the stored token is usually still valid — skip the
+      // /auth/mobile/refresh round-trip in that case to keep cold-boot fast.
+      // Only pre-refresh when the token is actually stale (or close to it,
+      // so we don't send a request that expires mid-flight).
       //
       // If refresh fails (refresh token expired/revoked), refreshAccessToken
       // already cleared SecureStore — drop straight to the login screen
       // without showing the biometric prompt. Sending the user through
       // Face ID just to dump them at login is bad UX.
-      const refreshed = await refreshAccessToken();
-      if (!refreshed) return;
+      if (!(await hasValidAccessToken())) {
+        const refreshed = await refreshAccessToken();
+        if (!refreshed) return;
+      }
 
       // Session is valid. If the user opted into biometric unlock AND the
       // device still supports it, require a biometric pass before flipping
