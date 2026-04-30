@@ -1,10 +1,16 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { RecentRidesQuery, BikeFieldsFragment } from '../../graphql/generated';
-import { RideCard } from './RideCard';
+import { BikeFieldsFragment } from '../../graphql/generated';
+import { RideListItem } from '../rides/RideListItem';
+import type { RideItem } from '../../hooks/useRidesPaginated';
 import { colors } from '../../constants/theme';
 
-type Ride = RecentRidesQuery['rides'][0];
+// Reuse the rides-tab row shape so the dashboard preview renders with the
+// same RideListItem component. Single source of truth means visual changes
+// to the rides tab automatically propagate to the dashboard preview, and
+// the Garmin-notes-as-title behavior at the row level applies in both
+// places without per-screen branching.
+type Ride = RideItem;
 
 interface RecentRidesListProps {
   rides: Ride[];
@@ -79,11 +85,11 @@ export function RecentRidesList({
       </View>
       <View style={styles.card}>
         {rides.map((ride) => (
-          <RideCard
+          <RideListItem
             key={ride.id}
             ride={ride}
             bikeName={getBikeName(ride.bikeId)}
-            onPress={onRidePress ? () => onRidePress(ride) : undefined}
+            onPress={onRidePress ? () => onRidePress(ride) : () => {}}
           />
         ))}
       </View>

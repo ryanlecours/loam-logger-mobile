@@ -87,25 +87,33 @@ export function BiometricUnlockSection() {
   );
 }
 
+// Mirrors `styles.section` / `styles.sectionTitle` in app/(tabs)/settings.tsx
+// so this section visually matches Profile / Display / Legal / etc. — title
+// sits inside the rounded card, not floating above it. Previously the outer
+// View had no background/border and the card styling lived on the inner row,
+// which made the "Security" title appear outside the section.
 const styles = StyleSheet.create({
   section: {
+    backgroundColor: colors.card,
+    marginTop: 16,
     marginHorizontal: 16,
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.textMuted,
-    marginBottom: 8,
+    color: colors.textSecondary,
+    marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
     gap: 12,
   },
   labelColumn: {

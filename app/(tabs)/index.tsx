@@ -10,7 +10,7 @@ import {
   BikeFieldsFragment,
   ComponentPrediction,
   useCalibrationStateQuery,
-  useRecentRidesQuery,
+  useRidesPageQuery,
 } from '../../src/graphql/generated';
 import {
   DashboardSkeleton,
@@ -67,15 +67,17 @@ export default function DashboardScreen() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Three most recent rides for the dashboard preview. The "See all" button
-  // jumps to the rides tab, which renders the full paginated list. Sharing
-  // this query name (`RecentRides`) with refetchQueries elsewhere (e.g.
-  // pickBike on ride detail) means assignment changes propagate here too.
+  // Three most recent rides for the dashboard preview. Uses the same
+  // `RidesPage` query as the rides tab (just with a smaller `take`) so the
+  // returned row shape matches `RideListItem` exactly — no shape adapter
+  // and no duplicate GraphQL fragment to keep in sync. `refetchQueries:
+  // ['RidesPage']` calls scattered around the app (pickBike, addRide,
+  // updateRide) refresh this preview alongside the rides tab.
   const {
     data: recentRidesData,
     loading: recentRidesLoading,
     refetch: refetchRecentRides,
-  } = useRecentRidesQuery({
+  } = useRidesPageQuery({
     variables: { take: 3 },
     fetchPolicy: 'cache-and-network',
   });
