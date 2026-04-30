@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RecentRidesQuery } from '../../graphql/generated';
 import {
   formatRideDate,
+  formatElevation,
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors } from '../../constants/theme';
@@ -27,11 +28,14 @@ const RIDE_TYPE_EMOJI: Record<string, string> = {
   TRAINER: '\uD83C\uDFE0',    // house
 };
 
-export function RideCard({ ride, bikeName: _bikeName, onPress }: RideCardProps) {
+export function RideCard({ ride, bikeName, onPress }: RideCardProps) {
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const _dateStr = formatRideDate(ride.startTime);
   const durationHours = ride.durationSeconds ? (ride.durationSeconds / 3600).toFixed(1) : null;
   const distanceDisplay = ride.distanceMeters ? formatDistance(ride.distanceMeters) : null;
+  const elevationDisplay = ride.elevationGainMeters
+    ? formatElevation(ride.elevationGainMeters, distanceUnit as 'mi' | 'km')
+    : null;
 
   const emoji = RIDE_TYPE_EMOJI[ride.rideType] || '\uD83D\uDEB2'; // default bicycle
 
@@ -67,8 +71,20 @@ export function RideCard({ ride, bikeName: _bikeName, onPress }: RideCardProps) 
               <Text style={styles.statText}>{distanceDisplay}</Text>
             </View>
           )}
+          {elevationDisplay && (
+            <View style={styles.stat}>
+              <Ionicons name="trending-up-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.statText}>{elevationDisplay}</Text>
+            </View>
+          )}
           <WeatherBadge weather={ride.weather} distanceUnit={distanceUnit as 'mi' | 'km'} />
         </View>
+        {bikeName && (
+          <View style={styles.bikeRow}>
+            <Ionicons name="bicycle-outline" size={12} color={colors.textMuted} />
+            <Text style={styles.bikeName} numberOfLines={1}>{bikeName}</Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.dateText}>{formattedDate}</Text>
@@ -126,6 +142,17 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  bikeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  bikeName: {
+    fontSize: 12,
+    color: colors.textMuted,
+    flexShrink: 1,
   },
   dateText: {
     fontSize: 13,

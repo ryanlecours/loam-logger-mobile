@@ -65,6 +65,14 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
   const elevationStr = formatElevation(ride.elevationGainMeters, distanceUnit);
   const sourceBadge = getSourceBadge(ride);
 
+  // Garmin's activity name lands in our `notes` column during ingest (Garmin
+  // doesn't reliably populate `location`, so for those rides this is the only
+  // human-meaningful identifier the user has). Surface it in the title slot
+  // for Garmin rides; everyone else keeps the existing `location` behavior.
+  const titleText = ride.garminActivityId
+    ? ride.notes ?? ride.location
+    : ride.location;
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.iconContainer}>
@@ -97,11 +105,11 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
           <WeatherBadge weather={ride.weather} distanceUnit={distanceUnit as 'mi' | 'km'} />
         </View>
 
-        {(ride.location || bikeName) && (
+        {(titleText || bikeName) && (
           <View style={styles.bottomRow}>
-            {ride.location && (
+            {titleText && (
               <Text style={styles.location} numberOfLines={1}>
-                {ride.location}
+                {titleText}
               </Text>
             )}
             {bikeName && (
