@@ -143,6 +143,17 @@ export async function refreshAccessToken(): Promise<string | null> {
 
     const data = await response.json();
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.accessToken);
+    // The current server is stateless (HMAC-signed refresh tokens, no
+    // invalidation list) and only returns `{ accessToken }` here, so this
+    // branch is a no-op today. It's a forward-compat hook: if the server
+    // ever adopts refresh-token rotation (rotate on every use to shrink
+    // the replay window), the client will pick up the new refresh token
+    // automatically without needing a coordinated mobile release. Without
+    // this, the next refresh would send a dead token and the user would
+    // be silently logged out.
+    if (data.refreshToken) {
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refreshToken);
+    }
     // Notify listener that token was refreshed (so useAuth can refetch ME)
     onTokenRefreshed?.();
     return data.accessToken;
