@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,7 +79,11 @@ export default function RideDetailScreen() {
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
-  const { sharing, openShareSheet, ShareSurface } = useShareRideOverlay();
+  // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
+  // not a component (rendered as `<ShareSurface />`). Returning a component
+  // here would unmount/remount the off-screen capture node on every state
+  // change inside the hook — see comment in useShareRideOverlay for details.
+  const { sharing, openShareSheet, shareSurface } = useShareRideOverlay();
 
   // Single-ride lookup by id. Earlier this screen pulled `useRidesPageQuery
   // ({ take: 100 })` and located the target via `data.rides.find()`, which
@@ -93,7 +98,7 @@ export default function RideDetailScreen() {
   // paint + background-refresh behavior; `notifyOnNetworkStatusChange`
   // makes the `loading` flag track in-flight fetches during the cached
   // emission window, which the not-found guard below relies on.
-  const { data, loading, error, networkStatus } = useRideQuery({
+  const { data, loading, error, networkStatus, refetch } = useRideQuery({
     variables: { id: id! },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
@@ -251,7 +256,22 @@ export default function RideDetailScreen() {
     action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        // Bind to NetworkStatus.refetch (i.e. user-triggered refetch) only —
+        // `loading` is true for any in-flight fetch including the background
+        // cache-and-network refresh on mount, which would otherwise animate
+        // the pull-to-refresh spinner without the user pulling. Mirrors the
+        // pattern in app/bike/[id].tsx.
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          tintColor={colors.primary}
+        />
+      }
+    >
       {/* Inline bike picker — sits OUTSIDE the tap-to-edit touchable so
           tapping its title or subtitle text doesn't bubble up to handleEdit
           and navigate the user away from the picker. Rendered first in the
@@ -424,12 +444,12 @@ export default function RideDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Off-screen mount point for the share overlay. Required by
-          useShareRideOverlay — captureRef snapshots from a real native
-          view, so the card has to be in the React tree even when
-          invisible. The component itself parks the surface at
-          position:absolute,left:-10000 with pointerEvents:none. */}
-      <ShareSurface />
+      {/* Share overlay surface: customization sheet + off-screen capture
+          mount. Rendered as a JSX value (not a component) so React
+          reconciles by element type + position and the underlying native
+          view behind cardRef stays mounted across state changes — what
+          captureRef needs to produce a non-stale PNG. */}
+      {shareSurface}
     </ScrollView>
   );
 }

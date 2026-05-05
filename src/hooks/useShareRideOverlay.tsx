@@ -109,37 +109,45 @@ export function useShareRideOverlay() {
     [],
   );
 
-  // Single component that wraps both the customization sheet and the
-  // off-screen capture mount. The mount stays in the tree whenever the
-  // hook has a live snapshot so captureRef has a real native node to
-  // snapshot at confirm time.
-  const ShareSurface = useCallback(
-    () => (
-      <>
-        {snapshotValues ? (
-          <ShareRideSheet
-            visible={sheetVisible}
-            onClose={closeSheet}
-            values={snapshotValues}
-            onConfirm={handleConfirm}
-            sharing={sharing}
-          />
-        ) : null}
+  // Returned as a JSX VALUE (rendered with `{shareSurface}`), not a
+  // component (rendered with `<ShareSurface />`). The earlier shape
+  // wrapped this in `useCallback` and consumed it as `<ShareSurface />`
+  // — every state change here returned a new function reference, and
+  // because React keys component subtrees by their function-as-type
+  // identity, a fresh function unmounted and remounted the entire
+  // subtree on every render. That destroyed the off-screen RideShareCard
+  // mid-capture: cardRef would briefly point at a torn-down native view,
+  // captureRef could fire before the remount committed, and the
+  // resulting PNG could be empty / stale / pointing at a freed view.
+  //
+  // Returning JSX directly lets React reconcile by element type +
+  // position. The View, Modal, and RideShareCard stay mounted across
+  // renders; only their props change. The native node behind `cardRef`
+  // is stable, which is what captureRef needs.
+  const shareSurface = (
+    <>
+      {snapshotValues ? (
+        <ShareRideSheet
+          visible={sheetVisible}
+          onClose={closeSheet}
+          values={snapshotValues}
+          onConfirm={handleConfirm}
+          sharing={sharing}
+        />
+      ) : null}
 
-        <View
-          style={styles.offscreen}
-          pointerEvents="none"
-          // `aria-hidden` on web; on native it's a no-op but documents intent.
-          aria-hidden
-        >
-          {captureValues ? <RideShareCard ref={cardRef} {...captureValues} /> : null}
-        </View>
-      </>
-    ),
-    [sheetVisible, snapshotValues, captureValues, sharing, closeSheet, handleConfirm],
+      <View
+        style={styles.offscreen}
+        pointerEvents="none"
+        // `aria-hidden` on web; on native it's a no-op but documents intent.
+        aria-hidden
+      >
+        {captureValues ? <RideShareCard ref={cardRef} {...captureValues} /> : null}
+      </View>
+    </>
   );
 
-  return { openShareSheet, sharing, ShareSurface };
+  return { openShareSheet, sharing, shareSurface };
 }
 
 const styles = StyleSheet.create({

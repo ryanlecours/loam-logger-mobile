@@ -54,7 +54,11 @@ export function RideStatsCard() {
     new Set(['summary'])
   );
   const { stats, loading } = useRideStats(timeframe);
-  const { sharing, openShareSheet, ShareSurface } = useShareRideOverlay();
+  // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
+  // not a component. See comment in useShareRideOverlay — returning JSX as
+  // a component-from-useCallback re-mounts the off-screen capture node on
+  // every state change, which corrupts the captureRef snapshot.
+  const { sharing, openShareSheet, shareSurface } = useShareRideOverlay();
 
   // Aggregate-stats share. Reuses the same RideShareCard layout the
   // single-ride share uses — distance, elevation, duration, average HR.
@@ -440,11 +444,11 @@ export function RideStatsCard() {
       {/* Weather Section */}
       {weatherSection}
 
-      {/* Off-screen mount point for the share overlay. Required by
-          useShareRideOverlay — captureRef snapshots from a real native
-          view, so the share card has to be in the React tree even when
-          invisible. */}
-      <ShareSurface />
+      {/* Share overlay surface: customization sheet + off-screen capture
+          mount. Rendered as a JSX value (not a component) so the
+          underlying native view behind cardRef stays mounted across
+          state changes — see useShareRideOverlay for details. */}
+      {shareSurface}
 
       {/* Timeframe Picker Modal */}
       <Modal
