@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
+import { useShareRideOverlay } from '../../hooks/useShareRideOverlay';
 import { colors } from '../../constants/theme';
 import { conditionIcon, conditionLabel, conditionTint } from '../../lib/weather';
 import type { WeatherCondition } from '../../lib/weather';
@@ -52,6 +54,28 @@ export function RideStatsCard() {
     new Set(['summary'])
   );
   const { stats, loading } = useRideStats(timeframe);
+  // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
+  // not a component. See comment in useShareRideOverlay — returning JSX as
+  // a component-from-useCallback re-mounts the off-screen capture node on
+  // every state change, which corrupts the captureRef snapshot.
+  const { sharing, openShareSheet, shareSurface } = useShareRideOverlay();
+
+  // Aggregate-stats share. Reuses the same RideShareCard layout the
+  // single-ride share uses — distance, elevation, duration, average HR.
+  // Distance/elevation/duration are timeframe totals; average HR is
+  // averaged across rides that have HR data (null when none do, in
+  // which case the share sheet renders that toggle disabled). Hours
+  // come back as a float; convert to seconds so formatDuration's "Xh
+  // Ym" output matches the single-ride share path's contract.
+  const handleShare = () => {
+    const totalSeconds = Math.round(stats.totalHours * 3600);
+    openShareSheet({
+      distance: formatDistance(stats.totalDistance),
+      elevation: formatElevation(stats.totalElevation, distanceUnit),
+      duration: formatDuration(totalSeconds),
+      averageHr: stats.ridesWithHr > 0 && stats.averageHr ? `${stats.averageHr} bpm` : null,
+    });
+  };
 
   const toggleSection = (section: SectionKey) => {
     setExpandedSections((prev) => {
@@ -151,6 +175,17 @@ export function RideStatsCard() {
   );
 
   return (
+    // Fragment so {shareSurface} can sit OUTSIDE the styles.card View.
+    // The card has `overflow: 'hidden'` (load-bearing for the rounded
+    // corners + shadow), and the off-screen RideShareCard inside
+    // shareSurface is absolutely positioned at left: -10000 — far
+    // outside the card's bounds. On Android, overflow:hidden can suppress
+    // layout/render of absolutely-positioned children that fall outside
+    // the parent's clip rect, which would make captureRef snapshot an
+    // empty native view in production builds. Hoisting the surface to a
+    // sibling level keeps the card visually clipped while letting the
+    // capture mount render at full size.
+    <>
     <View style={styles.card}>
       {/* Header with dropdown */}
       <View style={styles.header}>
@@ -170,7 +205,11 @@ export function RideStatsCard() {
         </Text>
       )}
 
-      {/* Summary Section */}
+      {/* Summary Section. The share icon is intentionally inside this
+          row (not at the card header) — sharing exports SUMMARY data
+          (distance, elevation, duration, avg HR) so the entry point
+          should sit next to the data it captures. Tap stops propagation
+          so it doesn't also collapse the section. */}
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={() => toggleSection('summary')}
@@ -179,11 +218,27 @@ export function RideStatsCard() {
           <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
           <Text style={styles.sectionTitle}>Summary</Text>
         </View>
-        <Ionicons
-          name={expandedSections.has('summary') ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textMuted}
-        />
+        <View style={styles.sectionHeaderActions}>
+          <TouchableOpacity
+            onPress={handleShare}
+            disabled={sharing}
+            // Larger hit target than the visible icon since this is a
+            // small touch area embedded in another touchable row.
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.shareIconButton}
+          >
+            {sharing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="share-outline" size={18} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+          <Ionicons
+            name={expandedSections.has('summary') ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textMuted}
+          />
+        </View>
       </TouchableOpacity>
       {expandedSections.has('summary') && (
         <View style={styles.sectionContent}>
@@ -439,6 +494,12 @@ export function RideStatsCard() {
         </Pressable>
       </Modal>
     </View>
+
+    {/* Share overlay surface: customization sheet + off-screen capture
+        mount. Sibling of the card (NOT a child) so it escapes the card's
+        `overflow: 'hidden'` clip — see comment at the Fragment open above. */}
+    {shareSurface}
+    </>
   );
 }
 
@@ -503,6 +564,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  shareIconButton: {
+    padding: 2,
   },
   sectionTitle: {
     fontSize: 14,

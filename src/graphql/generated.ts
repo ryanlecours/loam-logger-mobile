@@ -846,6 +846,7 @@ export enum PredictionStatus {
 
 export type Query = {
   __typename?: 'Query';
+  bike?: Maybe<Bike>;
   bikeHistory: BikeHistoryPayload;
   bikeNotes: BikeNotesPage;
   bikes: Array<Bike>;
@@ -854,6 +855,7 @@ export type Query = {
   importNotificationState?: Maybe<ImportNotificationState>;
   me?: Maybe<User>;
   referralStats: ReferralStats;
+  ride?: Maybe<Ride>;
   rideTypes: Array<RideType>;
   rides: Array<Ride>;
   servicePreferenceDefaults: Array<ServicePreferenceDefault>;
@@ -861,6 +863,11 @@ export type Query = {
   unassignedRides: UnassignedRidesPage;
   unmappedStravaGears: Array<StravaGearInfo>;
   user?: Maybe<User>;
+};
+
+
+export type QueryBikeArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -885,6 +892,11 @@ export type QueryBikesArgs = {
 
 export type QueryComponentsArgs = {
   filter?: InputMaybe<ComponentFilterInput>;
+};
+
+
+export type QueryRideArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -1516,6 +1528,13 @@ export type GearQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GearQuery = { __typename?: 'Query', bikes: Array<{ __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null }>, spareComponents: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }> };
 
+export type BikeQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type BikeQuery = { __typename?: 'Query', bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus: PredictionStatus, dueNowCount: number, dueSoonCount: number, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status: PredictionStatus, hoursRemaining: number, ridesRemainingEstimate: number, confidence: ConfidenceLevel, currentHours: number, serviceIntervalHours: number, hoursSinceService: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } | null };
+
 export type AddBikeMutationVariables = Exact<{
   input: AddBikeInput;
 }>;
@@ -1600,6 +1619,13 @@ export type ReferralStatsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type ReferralStatsQuery = { __typename?: 'Query', referralStats: { __typename?: 'ReferralStats', referralCode: string, referralLink: string, pendingCount: number, completedCount: number } };
+
+export type RideQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
 
 export type RecentRidesQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -2580,6 +2606,49 @@ export type GearQueryHookResult = ReturnType<typeof useGearQuery>;
 export type GearLazyQueryHookResult = ReturnType<typeof useGearLazyQuery>;
 export type GearSuspenseQueryHookResult = ReturnType<typeof useGearSuspenseQuery>;
 export type GearQueryResult = Apollo.QueryResult<GearQuery, GearQueryVariables>;
+export const BikeDocument = gql`
+    query Bike($id: ID!) {
+  bike(id: $id) {
+    ...BikeFields
+  }
+}
+    ${BikeFieldsFragmentDoc}`;
+
+/**
+ * __useBikeQuery__
+ *
+ * To run a query within a React component, call `useBikeQuery` and pass it any options that fit your needs.
+ * When your component renders, `useBikeQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useBikeQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useBikeQuery(baseOptions: Apollo.QueryHookOptions<BikeQuery, BikeQueryVariables> & ({ variables: BikeQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<BikeQuery, BikeQueryVariables>(BikeDocument, options);
+      }
+export function useBikeLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<BikeQuery, BikeQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<BikeQuery, BikeQueryVariables>(BikeDocument, options);
+        }
+// @ts-ignore
+export function useBikeSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<BikeQuery, BikeQueryVariables>): Apollo.UseSuspenseQueryResult<BikeQuery, BikeQueryVariables>;
+export function useBikeSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<BikeQuery, BikeQueryVariables>): Apollo.UseSuspenseQueryResult<BikeQuery | undefined, BikeQueryVariables>;
+export function useBikeSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<BikeQuery, BikeQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<BikeQuery, BikeQueryVariables>(BikeDocument, options);
+        }
+export type BikeQueryHookResult = ReturnType<typeof useBikeQuery>;
+export type BikeLazyQueryHookResult = ReturnType<typeof useBikeLazyQuery>;
+export type BikeSuspenseQueryHookResult = ReturnType<typeof useBikeSuspenseQuery>;
+export type BikeQueryResult = Apollo.QueryResult<BikeQuery, BikeQueryVariables>;
 export const AddBikeDocument = gql`
     mutation AddBike($input: AddBikeInput!) {
   addBike(input: $input) {
@@ -3040,6 +3109,72 @@ export type ReferralStatsQueryHookResult = ReturnType<typeof useReferralStatsQue
 export type ReferralStatsLazyQueryHookResult = ReturnType<typeof useReferralStatsLazyQuery>;
 export type ReferralStatsSuspenseQueryHookResult = ReturnType<typeof useReferralStatsSuspenseQuery>;
 export type ReferralStatsQueryResult = Apollo.QueryResult<ReferralStatsQuery, ReferralStatsQueryVariables>;
+export const RideDocument = gql`
+    query Ride($id: ID!) {
+  ride(id: $id) {
+    id
+    startTime
+    durationSeconds
+    distanceMeters
+    elevationGainMeters
+    averageHr
+    rideType
+    bikeId
+    location
+    notes
+    garminActivityId
+    stravaActivityId
+    whoopWorkoutId
+    suuntoWorkoutId
+    weather {
+      id
+      tempC
+      feelsLikeC
+      precipitationMm
+      windSpeedKph
+      humidity
+      wmoCode
+      condition
+    }
+  }
+}
+    `;
+
+/**
+ * __useRideQuery__
+ *
+ * To run a query within a React component, call `useRideQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRideQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRideQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useRideQuery(baseOptions: Apollo.QueryHookOptions<RideQuery, RideQueryVariables> & ({ variables: RideQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RideQuery, RideQueryVariables>(RideDocument, options);
+      }
+export function useRideLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RideQuery, RideQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RideQuery, RideQueryVariables>(RideDocument, options);
+        }
+// @ts-ignore
+export function useRideSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<RideQuery, RideQueryVariables>): Apollo.UseSuspenseQueryResult<RideQuery, RideQueryVariables>;
+export function useRideSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RideQuery, RideQueryVariables>): Apollo.UseSuspenseQueryResult<RideQuery | undefined, RideQueryVariables>;
+export function useRideSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RideQuery, RideQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RideQuery, RideQueryVariables>(RideDocument, options);
+        }
+export type RideQueryHookResult = ReturnType<typeof useRideQuery>;
+export type RideLazyQueryHookResult = ReturnType<typeof useRideLazyQuery>;
+export type RideSuspenseQueryHookResult = ReturnType<typeof useRideSuspenseQuery>;
+export type RideQueryResult = Apollo.QueryResult<RideQuery, RideQueryVariables>;
 export const RecentRidesDocument = gql`
     query RecentRides($take: Int) {
   rides(take: $take) {

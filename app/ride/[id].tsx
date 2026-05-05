@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
-import { useRidesPageQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
+import { useRideQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
@@ -20,6 +21,7 @@ import {
 } from '../../src/utils/greetingMessages';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { WeatherCard } from '../../src/components/ride/WeatherCard';
+import { useShareRideOverlay } from '../../src/hooks/useShareRideOverlay';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -77,26 +79,27 @@ export default function RideDetailScreen() {
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
+  // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
+  // not a component (rendered as `<ShareSurface />`). Returning a component
+  // here would unmount/remount the off-screen capture node on every state
+  // change inside the hook — see comment in useShareRideOverlay for details.
+  const { sharing, openShareSheet, shareSurface } = useShareRideOverlay();
 
-  // Fetch ride from the rides query.
+  // Single-ride lookup by id. Earlier this screen pulled `useRidesPageQuery
+  // ({ take: 100 })` and located the target via `data.rides.find()`, which
+  // failed for any ride that fell outside the first 100 (older backfilled
+  // rides, users with deep histories, etc.) — the deep-link from the
+  // bike-pick notification would land on "Ride not found" through no fault
+  // of the user.
   //
-  // `cache-and-network` (not `cache-first`) is load-bearing for the
-  // notification deep-link flow: when a user taps "Tap to choose which bike
-  // you rode" on a freshly-synced ride, that ride was created on the server
-  // AFTER the local RidesPage cache was last populated. With `cache-first`,
-  // Apollo would short-circuit on the stale cache, `data.rides.find(...)`
-  // would return undefined, and the screen would render "Ride not found"
-  // instead of the bike picker. `cache-and-network` shows the cached list
-  // immediately AND refetches.
-  //
-  // `notifyOnNetworkStatusChange: true` is required so the consumer
-  // re-renders when the in-flight network fetch transitions — and so the
-  // `loading` flag accurately reflects "fetch in flight" during the
-  // cached-emission window. Without it, the cached emission lands with
-  // `loading: false` and the "Ride not found" branch below fires for the
-  // exact case this query change is meant to fix.
-  const { data, loading, networkStatus } = useRidesPageQuery({
-    variables: { take: 100 },
+  // The dedicated `Ride(id)` query (server resolver in
+  // apps/api/src/graphql/resolvers.ts) sidesteps the entire pagination
+  // class of races. `cache-and-network` keeps the existing snappy-first-
+  // paint + background-refresh behavior; `notifyOnNetworkStatusChange`
+  // makes the `loading` flag track in-flight fetches during the cached
+  // emission window, which the not-found guard below relies on.
+  const { data, loading, error, networkStatus, refetch } = useRideQuery({
+    variables: { id: id! },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
   });
@@ -117,7 +120,7 @@ export default function RideDetailScreen() {
   // disabling the whole list to prevent concurrent taps.
   const [assigningBikeId, setAssigningBikeId] = useState<string | null>(null);
 
-  const ride = data?.rides.find((r) => r.id === id);
+  const ride = data?.ride ?? null;
 
   const getBikeName = useCallback(
     (bikeId: string | null | undefined): string | undefined => {
@@ -132,6 +135,21 @@ export default function RideDetailScreen() {
   const handleEdit = () => {
     router.push(`/ride/edit/${id}` as Href);
   };
+
+  const handleShare = useCallback(() => {
+    if (!ride) return;
+    // Pre-format here using the user's preferred units so the share card
+    // shows the same numbers the rest of the app shows. averageHr stays
+    // null when the ride has no HR data — the share sheet renders that
+    // toggle as disabled rather than hiding it, so the user knows the
+    // field exists but isn't available for this particular ride.
+    openShareSheet({
+      distance: formatDistance(ride.distanceMeters),
+      elevation: formatElevation(ride.elevationGainMeters, distanceUnit),
+      duration: formatDuration(ride.durationSeconds),
+      averageHr: ride.averageHr ? `${ride.averageHr} bpm` : null,
+    });
+  }, [ride, openShareSheet, formatDistance, distanceUnit]);
 
   const handlePickBike = useCallback(
     async (bikeId: string) => {
@@ -201,11 +219,17 @@ export default function RideDetailScreen() {
     );
   }
 
-  if (!ride) {
+  if (error || !ride) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
-        <Text style={styles.errorText}>Ride not found</Text>
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={error ? colors.danger : colors.textMuted}
+        />
+        <Text style={styles.errorText}>
+          {error ? 'Failed to load ride' : 'Ride not found'}
+        </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -232,7 +256,22 @@ export default function RideDetailScreen() {
     action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        // Bind to NetworkStatus.refetch (i.e. user-triggered refetch) only —
+        // `loading` is true for any in-flight fetch including the background
+        // cache-and-network refresh on mount, which would otherwise animate
+        // the pull-to-refresh spinner without the user pulling. Mirrors the
+        // pattern in app/bike/[id].tsx.
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          tintColor={colors.primary}
+        />
+      }
+    >
       {/* Inline bike picker — sits OUTSIDE the tap-to-edit touchable so
           tapping its title or subtitle text doesn't bubble up to handleEdit
           and navigate the user away from the picker. Rendered first in the
@@ -370,8 +409,25 @@ export default function RideDetailScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Delete Button */}
+      {/* Action Row — Share and Delete sit side-by-side. Share produces a
+          transparent PNG overlay (logo + distance/elevation/duration/HR
+          row) the user can drop onto an Instagram story or other social
+          post. See useShareRideOverlay for the capture pipeline. */}
       <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={handleShare}
+          disabled={sharing}
+        >
+          {sharing ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <>
+              <Ionicons name="share-outline" size={18} color={colors.primary} />
+              <Text style={styles.shareButtonText}>Share</Text>
+            </>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -387,6 +443,13 @@ export default function RideDetailScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Share overlay surface: customization sheet + off-screen capture
+          mount. Rendered as a JSX value (not a component) so React
+          reconciles by element type + position and the underlying native
+          view behind cardRef stays mounted across state changes — what
+          captureRef needs to produce a non-stale PNG. */}
+      {shareSurface}
     </ScrollView>
   );
 }
@@ -564,6 +627,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 4,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  shareButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primary,
   },
   deleteButton: {
     flex: 1,

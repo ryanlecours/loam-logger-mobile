@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { colors } from '../src/constants/theme';
 import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
 import { useNotifications } from '../src/hooks/useNotifications';
+import { usePendingNotificationRoute } from '../src/hooks/usePendingNotificationRoute';
 import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
@@ -119,6 +120,14 @@ function RootLayoutNav() {
 
   // Register push token and set up notification tap handler when fully authenticated
   const { registerTokenIfGranted } = useNotifications();
+
+  // Captures cold-start notifications and notifications that arrived while
+  // the user was locked / unauthenticated, then replays them once the auth
+  // and lock gates clear. Without this, taps that LAUNCH the app (vs. taps
+  // received while running) silently drop their deep-link, and warm taps
+  // during the lock-screen window navigate a not-yet-mounted Stack. The
+  // hook itself self-gates — safe to call unconditionally on every render.
+  usePendingNotificationRoute();
 
   useEffect(() => {
     if (!isAuthenticated || !onboardingCompleted) return;

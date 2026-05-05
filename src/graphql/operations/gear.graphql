@@ -168,6 +168,16 @@ query Gear {
   }
 }
 
+# Single-bike lookup keyed by id. Used by the bike detail screen for
+# service-due notification deep-links so a stale `Gear` cache doesn't
+# produce a spurious "Bike not found" flash. Server resolver scopes by
+# userId and returns null on miss/cross-user.
+query Bike($id: ID!) {
+  bike(id: $id) {
+    ...BikeFields
+  }
+}
+
 mutation AddBike($input: AddBikeInput!) {
   addBike(input: $input) {
     ...BikeFields

@@ -83,8 +83,10 @@ export function openNotificationSettings(): void {
 }
 
 /**
- * Set up a listener for when the user taps a notification.
- * Routes to the relevant screen based on the notification data.
+ * Pure routing helper for a notification's data payload. Shared between the
+ * live tap listener (`setupNotificationResponseListener`) and the cold-start
+ * replay path (`usePendingNotificationRoute`) so both arrive at the same
+ * screen for the same payload.
  *
  * `data.action` is an optional hint that the destination screen should
  * surface a specific UI affordance on mount. Today the only action is
@@ -92,19 +94,53 @@ export function openNotificationSettings(): void {
  * unassigned rides on multi-bike accounts (see fireRideNotifications in
  * the API). The ride detail screen reads the `?action=pickBike` query
  * param and auto-opens its bike picker.
+ *
+ * Returns `true` if a route was dispatched, `false` if the payload was
+ * unrecognized — useful for the cold-start path to decide whether to clear
+ * its queued response.
+ */
+export function navigateFromNotificationData(
+  router: Router,
+  data: unknown,
+): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+
+  if (d.screen === 'ride' && typeof d.rideId === 'string') {
+    const action = typeof d.action === 'string' ? d.action : null;
+    const path = action
+      ? `/ride/${d.rideId}?action=${encodeURIComponent(action)}`
+      : `/ride/${d.rideId}`;
+    router.push(path as never);
+    return true;
+  }
+  if (d.screen === 'bike' && typeof d.bikeId === 'string') {
+    // Service-due notifications for a single component carry that
+    // component's id in the payload so the bike detail screen can scroll
+    // it into view and auto-open its action sheet — saves the user from
+    // hunting for the offending row on a bike with many components.
+    // Multi-component notifications omit componentId (no single focus).
+    const componentId = typeof d.componentId === 'string' ? d.componentId : null;
+    const path = componentId
+      ? `/bike/${d.bikeId}?componentId=${encodeURIComponent(componentId)}`
+      : `/bike/${d.bikeId}`;
+    router.push(path as never);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Set up a listener for when the user taps a notification while the app is
+ * already running (warm path). Cold-start taps — i.e. taps that *launch*
+ * the killed app — go through `usePendingNotificationRoute` instead, since
+ * the JS runtime hasn't registered this listener yet at that point.
  */
 export function setupNotificationResponseListener(router: Router) {
   return Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data;
-
-    if (data?.screen === 'ride' && data?.rideId) {
-      const action = typeof data?.action === 'string' ? data.action : null;
-      const path = action
-        ? `/ride/${data.rideId}?action=${encodeURIComponent(action)}`
-        : `/ride/${data.rideId}`;
-      router.push(path as never);
-    } else if (data?.screen === 'bike' && data?.bikeId) {
-      router.push(`/bike/${data.bikeId}` as never);
-    }
+    navigateFromNotificationData(
+      router,
+      response.notification.request.content.data,
+    );
   });
 }
