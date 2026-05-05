@@ -175,6 +175,17 @@ export function RideStatsCard() {
   );
 
   return (
+    // Fragment so {shareSurface} can sit OUTSIDE the styles.card View.
+    // The card has `overflow: 'hidden'` (load-bearing for the rounded
+    // corners + shadow), and the off-screen RideShareCard inside
+    // shareSurface is absolutely positioned at left: -10000 — far
+    // outside the card's bounds. On Android, overflow:hidden can suppress
+    // layout/render of absolutely-positioned children that fall outside
+    // the parent's clip rect, which would make captureRef snapshot an
+    // empty native view in production builds. Hoisting the surface to a
+    // sibling level keeps the card visually clipped while letting the
+    // capture mount render at full size.
+    <>
     <View style={styles.card}>
       {/* Header with dropdown */}
       <View style={styles.header}>
@@ -444,12 +455,6 @@ export function RideStatsCard() {
       {/* Weather Section */}
       {weatherSection}
 
-      {/* Share overlay surface: customization sheet + off-screen capture
-          mount. Rendered as a JSX value (not a component) so the
-          underlying native view behind cardRef stays mounted across
-          state changes — see useShareRideOverlay for details. */}
-      {shareSurface}
-
       {/* Timeframe Picker Modal */}
       <Modal
         visible={showPicker}
@@ -489,6 +494,12 @@ export function RideStatsCard() {
         </Pressable>
       </Modal>
     </View>
+
+    {/* Share overlay surface: customization sheet + off-screen capture
+        mount. Sibling of the card (NOT a child) so it escapes the card's
+        `overflow: 'hidden'` clip — see comment at the Fragment open above. */}
+    {shareSurface}
+    </>
   );
 }
 
