@@ -115,7 +115,16 @@ export function navigateFromNotificationData(
     return true;
   }
   if (d.screen === 'bike' && typeof d.bikeId === 'string') {
-    router.push(`/bike/${d.bikeId}` as never);
+    // Service-due notifications for a single component carry that
+    // component's id in the payload so the bike detail screen can scroll
+    // it into view and auto-open its action sheet — saves the user from
+    // hunting for the offending row on a bike with many components.
+    // Multi-component notifications omit componentId (no single focus).
+    const componentId = typeof d.componentId === 'string' ? d.componentId : null;
+    const path = componentId
+      ? `/bike/${d.bikeId}?componentId=${encodeURIComponent(componentId)}`
+      : `/bike/${d.bikeId}`;
+    router.push(path as never);
     return true;
   }
   return false;

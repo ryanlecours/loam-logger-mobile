@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { NetworkStatus } from '@apollo/client';
 import { TouchableOpacity } from 'react-native';
-import { useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
+import { useBikeQuery, useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
 import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthBadge';
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
@@ -34,7 +35,10 @@ const STATUS_ORDER: Record<string, number> = {
 };
 
 export default function BikeDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, componentId: deepLinkComponentId } = useLocalSearchParams<{
+    id: string;
+    componentId?: string;
+  }>();
   const router = useRouter();
   const { isFreeLight } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
@@ -50,7 +54,32 @@ export default function BikeDetailScreen() {
   const [showAcquisitionSheet, setShowAcquisitionSheet] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const { data, loading, error, refetch } = useGearQuery({
+  // Single-bike lookup. Earlier this screen pulled `useGearQuery` (full
+  // bike list) and located the target via `data.bikes.find(...)` — for
+  // notification deep-links to a brand-new bike, the cached list could
+  // pre-date the bike and `find` returned undefined → "Bike not found"
+  // flash before the background refetch landed. The dedicated `Bike(id)`
+  // query (server resolver in apps/api/src/graphql/resolvers.ts) keys
+  // directly on (id, userId), so the not-found state only fires when
+  // the bike genuinely doesn't exist for this user.
+  //
+  // `notifyOnNetworkStatusChange: true` is required so `loading`
+  // accurately reflects in-flight fetches during the cached emission
+  // window — the not-found guard below relies on it. Same pattern as
+  // app/ride/[id].tsx after that screen's parallel fix.
+  const { data, loading, error, networkStatus, refetch } = useBikeQuery({
+    variables: { id: id! },
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
+  });
+
+  // Spare components feed the Replace flow only — secondary to the
+  // primary bike load. Kept on the existing `useGearQuery` rather than
+  // adding a dedicated query: the field is small, the gear cache is
+  // typically warm by the time a user reaches this screen, and the
+  // not-found race we just eliminated was specifically about the bike
+  // record (not its spares list).
+  const { data: gearData } = useGearQuery({
     fetchPolicy: 'cache-and-network',
   });
 
@@ -58,7 +87,7 @@ export default function BikeDetailScreen() {
   const [retireBike] = useRetireBikeMutation();
   const [reactivateBike] = useReactivateBikeMutation();
 
-  const bike = data?.bikes?.find((b) => b.id === id);
+  const bike = data?.bike ?? null;
   const predictions = bike?.predictions;
 
   const predictionMap = useMemo(() => {
@@ -91,7 +120,33 @@ export default function BikeDetailScreen() {
       .map((g) => ({ name: g, components: groups.get(g)! }));
   }, [bike?.components, predictionMap]);
 
-  if (loading && !data) {
+  // Auto-open the component detail sheet when arriving from a service-due
+  // notification with `?componentId=<id>` (single-component case, set by
+  // `navigateFromNotificationData`). Without this, the user lands on the
+  // bike screen and has to scan/scroll to find the offending component
+  // — defeating the purpose of carrying the id in the payload.
+  //
+  // The ref guards against re-firing if the bike refetches or the user
+  // closes the sheet manually: the deep-link is a one-shot affordance per
+  // navigation. Same identifier-once pattern used by usePendingNotificationRoute.
+  const deepLinkConsumedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkComponentId || !bike) return;
+    if (deepLinkConsumedRef.current === deepLinkComponentId) return;
+    const target = bike.components?.find((c) => c.id === deepLinkComponentId);
+    if (!target) return;
+    deepLinkConsumedRef.current = deepLinkComponentId;
+    setSelectedComponent(target);
+  }, [deepLinkComponentId, bike]);
+
+  // Show the loading state ONLY while the bike isn't yet available — covers
+  // initial mount with no cache and the deep-link case where an in-flight
+  // refetch hasn't yet populated a freshly-added bike. Gating on `!bike`
+  // first means bikes already in the cache render immediately on
+  // navigation; we don't briefly flash a spinner over correct data while
+  // the background refetch settles. Mirrors the pattern in app/ride/[id].tsx.
+  const isRefetching = networkStatus === NetworkStatus.refetch;
+  if (!bike && (loading || isRefetching)) {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Loading...' }} />
@@ -535,7 +590,7 @@ export default function BikeDetailScreen() {
         visible={showReplaceSheet}
         component={selectedComponent}
         bikeId={bike.id}
-        spareComponents={data?.spareComponents || []}
+        spareComponents={gearData?.spareComponents || []}
         onClose={() => setShowReplaceSheet(false)}
         onReplaced={handleReplaceComplete}
       />
