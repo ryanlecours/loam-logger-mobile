@@ -20,6 +20,7 @@ import {
 } from '../../src/utils/greetingMessages';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { WeatherCard } from '../../src/components/ride/WeatherCard';
+import { useShareRideOverlay } from '../../src/hooks/useShareRideOverlay';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -77,6 +78,7 @@ export default function RideDetailScreen() {
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
+  const { sharing, openShareSheet, ShareSurface } = useShareRideOverlay();
 
   // Single-ride lookup by id. Earlier this screen pulled `useRidesPageQuery
   // ({ take: 100 })` and located the target via `data.rides.find()`, which
@@ -91,7 +93,7 @@ export default function RideDetailScreen() {
   // paint + background-refresh behavior; `notifyOnNetworkStatusChange`
   // makes the `loading` flag track in-flight fetches during the cached
   // emission window, which the not-found guard below relies on.
-  const { data, loading, networkStatus } = useRideQuery({
+  const { data, loading, error, networkStatus } = useRideQuery({
     variables: { id: id! },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
@@ -128,6 +130,21 @@ export default function RideDetailScreen() {
   const handleEdit = () => {
     router.push(`/ride/edit/${id}` as Href);
   };
+
+  const handleShare = useCallback(() => {
+    if (!ride) return;
+    // Pre-format here using the user's preferred units so the share card
+    // shows the same numbers the rest of the app shows. averageHr stays
+    // null when the ride has no HR data — the share sheet renders that
+    // toggle as disabled rather than hiding it, so the user knows the
+    // field exists but isn't available for this particular ride.
+    openShareSheet({
+      distance: formatDistance(ride.distanceMeters),
+      elevation: formatElevation(ride.elevationGainMeters, distanceUnit),
+      duration: formatDuration(ride.durationSeconds),
+      averageHr: ride.averageHr ? `${ride.averageHr} bpm` : null,
+    });
+  }, [ride, openShareSheet, formatDistance, distanceUnit]);
 
   const handlePickBike = useCallback(
     async (bikeId: string) => {
@@ -197,11 +214,17 @@ export default function RideDetailScreen() {
     );
   }
 
-  if (!ride) {
+  if (error || !ride) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
-        <Text style={styles.errorText}>Ride not found</Text>
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={error ? colors.danger : colors.textMuted}
+        />
+        <Text style={styles.errorText}>
+          {error ? 'Failed to load ride' : 'Ride not found'}
+        </Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
@@ -366,8 +389,25 @@ export default function RideDetailScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Delete Button */}
+      {/* Action Row — Share and Delete sit side-by-side. Share produces a
+          transparent PNG overlay (logo + distance/elevation/duration/HR
+          row) the user can drop onto an Instagram story or other social
+          post. See useShareRideOverlay for the capture pipeline. */}
       <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={handleShare}
+          disabled={sharing}
+        >
+          {sharing ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <>
+              <Ionicons name="share-outline" size={18} color={colors.primary} />
+              <Text style={styles.shareButtonText}>Share</Text>
+            </>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={handleDelete}
@@ -383,6 +423,13 @@ export default function RideDetailScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Off-screen mount point for the share overlay. Required by
+          useShareRideOverlay — captureRef snapshots from a real native
+          view, so the card has to be in the React tree even when
+          invisible. The component itself parks the surface at
+          position:absolute,left:-10000 with pointerEvents:none. */}
+      <ShareSurface />
     </ScrollView>
   );
 }
@@ -560,6 +607,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 4,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  shareButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primary,
   },
   deleteButton: {
     flex: 1,

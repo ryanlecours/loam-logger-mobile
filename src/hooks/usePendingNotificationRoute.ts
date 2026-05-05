@@ -88,11 +88,23 @@ export function usePendingNotificationRoute(): void {
     const queued = pendingRef.current;
     if (!queued) return;
 
-    // Mark consumed BEFORE navigating so a same-tick re-render doesn't
-    // re-enter and double-push.
-    consumedIdentifiers.add(queued.identifier);
+    // Null the queue first so a same-tick re-render of this effect can't
+    // re-enter and double-push (the early return above will fire).
     pendingRef.current = null;
 
-    navigateFromNotificationData(router, queued.data);
+    const dispatched = navigateFromNotificationData(router, queued.data);
+    if (dispatched) {
+      // Only mark consumed on a successful dispatch — the set's job is to
+      // prevent the live listener from re-routing the same identifier on
+      // a warm-rehydration race. If the payload was unrecognized (e.g. a
+      // new `screen` value the navigator doesn't know yet), leaving it
+      // un-consumed lets a future app version's listener still route it.
+      consumedIdentifiers.add(queued.identifier);
+    } else {
+      console.warn(
+        '[usePendingNotificationRoute] navigateFromNotificationData declined to route',
+        queued.data,
+      );
+    }
   }, [loading, locked, isAuthenticated, onboardingCompleted, router]);
 }

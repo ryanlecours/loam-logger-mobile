@@ -305,7 +305,15 @@ export default function BikeDetailScreen() {
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={colors.primary} />
+        // Bind to NetworkStatus.refetch (i.e. user-triggered refetch) only —
+        // `loading` is true for any in-flight fetch including the background
+        // cache-and-network refresh on mount, which would otherwise animate
+        // the pull-to-refresh spinner without the user pulling.
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          tintColor={colors.primary}
+        />
       }
     >
       <Stack.Screen

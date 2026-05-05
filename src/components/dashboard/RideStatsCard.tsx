@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
+import { useShareRideOverlay } from '../../hooks/useShareRideOverlay';
 import { colors } from '../../constants/theme';
 import { conditionIcon, conditionLabel, conditionTint } from '../../lib/weather';
 import type { WeatherCondition } from '../../lib/weather';
@@ -52,6 +54,24 @@ export function RideStatsCard() {
     new Set(['summary'])
   );
   const { stats, loading } = useRideStats(timeframe);
+  const { sharing, openShareSheet, ShareSurface } = useShareRideOverlay();
+
+  // Aggregate-stats share. Reuses the same RideShareCard layout the
+  // single-ride share uses — distance, elevation, duration, average HR.
+  // Distance/elevation/duration are timeframe totals; average HR is
+  // averaged across rides that have HR data (null when none do, in
+  // which case the share sheet renders that toggle disabled). Hours
+  // come back as a float; convert to seconds so formatDuration's "Xh
+  // Ym" output matches the single-ride share path's contract.
+  const handleShare = () => {
+    const totalSeconds = Math.round(stats.totalHours * 3600);
+    openShareSheet({
+      distance: formatDistance(stats.totalDistance),
+      elevation: formatElevation(stats.totalElevation, distanceUnit),
+      duration: formatDuration(totalSeconds),
+      averageHr: stats.ridesWithHr > 0 && stats.averageHr ? `${stats.averageHr} bpm` : null,
+    });
+  };
 
   const toggleSection = (section: SectionKey) => {
     setExpandedSections((prev) => {
@@ -170,7 +190,11 @@ export function RideStatsCard() {
         </Text>
       )}
 
-      {/* Summary Section */}
+      {/* Summary Section. The share icon is intentionally inside this
+          row (not at the card header) — sharing exports SUMMARY data
+          (distance, elevation, duration, avg HR) so the entry point
+          should sit next to the data it captures. Tap stops propagation
+          so it doesn't also collapse the section. */}
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={() => toggleSection('summary')}
@@ -179,11 +203,27 @@ export function RideStatsCard() {
           <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
           <Text style={styles.sectionTitle}>Summary</Text>
         </View>
-        <Ionicons
-          name={expandedSections.has('summary') ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textMuted}
-        />
+        <View style={styles.sectionHeaderActions}>
+          <TouchableOpacity
+            onPress={handleShare}
+            disabled={sharing}
+            // Larger hit target than the visible icon since this is a
+            // small touch area embedded in another touchable row.
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.shareIconButton}
+          >
+            {sharing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="share-outline" size={18} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+          <Ionicons
+            name={expandedSections.has('summary') ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textMuted}
+          />
+        </View>
       </TouchableOpacity>
       {expandedSections.has('summary') && (
         <View style={styles.sectionContent}>
@@ -400,6 +440,12 @@ export function RideStatsCard() {
       {/* Weather Section */}
       {weatherSection}
 
+      {/* Off-screen mount point for the share overlay. Required by
+          useShareRideOverlay — captureRef snapshots from a real native
+          view, so the share card has to be in the React tree even when
+          invisible. */}
+      <ShareSurface />
+
       {/* Timeframe Picker Modal */}
       <Modal
         visible={showPicker}
@@ -503,6 +549,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  shareIconButton: {
+    padding: 2,
   },
   sectionTitle: {
     fontSize: 14,
