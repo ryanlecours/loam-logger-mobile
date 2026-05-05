@@ -854,6 +854,7 @@ export type Query = {
   importNotificationState?: Maybe<ImportNotificationState>;
   me?: Maybe<User>;
   referralStats: ReferralStats;
+  ride?: Maybe<Ride>;
   rideTypes: Array<RideType>;
   rides: Array<Ride>;
   servicePreferenceDefaults: Array<ServicePreferenceDefault>;
@@ -885,6 +886,11 @@ export type QueryBikesArgs = {
 
 export type QueryComponentsArgs = {
   filter?: InputMaybe<ComponentFilterInput>;
+};
+
+
+export type QueryRideArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -1600,6 +1606,13 @@ export type ReferralStatsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type ReferralStatsQuery = { __typename?: 'Query', referralStats: { __typename?: 'ReferralStats', referralCode: string, referralLink: string, pendingCount: number, completedCount: number } };
+
+export type RideQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
 
 export type RecentRidesQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -3040,6 +3053,72 @@ export type ReferralStatsQueryHookResult = ReturnType<typeof useReferralStatsQue
 export type ReferralStatsLazyQueryHookResult = ReturnType<typeof useReferralStatsLazyQuery>;
 export type ReferralStatsSuspenseQueryHookResult = ReturnType<typeof useReferralStatsSuspenseQuery>;
 export type ReferralStatsQueryResult = Apollo.QueryResult<ReferralStatsQuery, ReferralStatsQueryVariables>;
+export const RideDocument = gql`
+    query Ride($id: ID!) {
+  ride(id: $id) {
+    id
+    startTime
+    durationSeconds
+    distanceMeters
+    elevationGainMeters
+    averageHr
+    rideType
+    bikeId
+    location
+    notes
+    garminActivityId
+    stravaActivityId
+    whoopWorkoutId
+    suuntoWorkoutId
+    weather {
+      id
+      tempC
+      feelsLikeC
+      precipitationMm
+      windSpeedKph
+      humidity
+      wmoCode
+      condition
+    }
+  }
+}
+    `;
+
+/**
+ * __useRideQuery__
+ *
+ * To run a query within a React component, call `useRideQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRideQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRideQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useRideQuery(baseOptions: Apollo.QueryHookOptions<RideQuery, RideQueryVariables> & ({ variables: RideQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RideQuery, RideQueryVariables>(RideDocument, options);
+      }
+export function useRideLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RideQuery, RideQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RideQuery, RideQueryVariables>(RideDocument, options);
+        }
+// @ts-ignore
+export function useRideSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<RideQuery, RideQueryVariables>): Apollo.UseSuspenseQueryResult<RideQuery, RideQueryVariables>;
+export function useRideSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RideQuery, RideQueryVariables>): Apollo.UseSuspenseQueryResult<RideQuery | undefined, RideQueryVariables>;
+export function useRideSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RideQuery, RideQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RideQuery, RideQueryVariables>(RideDocument, options);
+        }
+export type RideQueryHookResult = ReturnType<typeof useRideQuery>;
+export type RideLazyQueryHookResult = ReturnType<typeof useRideLazyQuery>;
+export type RideSuspenseQueryHookResult = ReturnType<typeof useRideSuspenseQuery>;
+export type RideQueryResult = Apollo.QueryResult<RideQuery, RideQueryVariables>;
 export const RecentRidesDocument = gql`
     query RecentRides($take: Int) {
   rides(take: $take) {

@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
-import { useRidesPageQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
+import { useRideQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
@@ -78,25 +78,21 @@ export default function RideDetailScreen() {
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [deleting, setDeleting] = useState(false);
 
-  // Fetch ride from the rides query.
+  // Single-ride lookup by id. Earlier this screen pulled `useRidesPageQuery
+  // ({ take: 100 })` and located the target via `data.rides.find()`, which
+  // failed for any ride that fell outside the first 100 (older backfilled
+  // rides, users with deep histories, etc.) — the deep-link from the
+  // bike-pick notification would land on "Ride not found" through no fault
+  // of the user.
   //
-  // `cache-and-network` (not `cache-first`) is load-bearing for the
-  // notification deep-link flow: when a user taps "Tap to choose which bike
-  // you rode" on a freshly-synced ride, that ride was created on the server
-  // AFTER the local RidesPage cache was last populated. With `cache-first`,
-  // Apollo would short-circuit on the stale cache, `data.rides.find(...)`
-  // would return undefined, and the screen would render "Ride not found"
-  // instead of the bike picker. `cache-and-network` shows the cached list
-  // immediately AND refetches.
-  //
-  // `notifyOnNetworkStatusChange: true` is required so the consumer
-  // re-renders when the in-flight network fetch transitions — and so the
-  // `loading` flag accurately reflects "fetch in flight" during the
-  // cached-emission window. Without it, the cached emission lands with
-  // `loading: false` and the "Ride not found" branch below fires for the
-  // exact case this query change is meant to fix.
-  const { data, loading, networkStatus } = useRidesPageQuery({
-    variables: { take: 100 },
+  // The dedicated `Ride(id)` query (server resolver in
+  // apps/api/src/graphql/resolvers.ts) sidesteps the entire pagination
+  // class of races. `cache-and-network` keeps the existing snappy-first-
+  // paint + background-refresh behavior; `notifyOnNetworkStatusChange`
+  // makes the `loading` flag track in-flight fetches during the cached
+  // emission window, which the not-found guard below relies on.
+  const { data, loading, networkStatus } = useRideQuery({
+    variables: { id: id! },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
   });
@@ -117,7 +113,7 @@ export default function RideDetailScreen() {
   // disabling the whole list to prevent concurrent taps.
   const [assigningBikeId, setAssigningBikeId] = useState<string | null>(null);
 
-  const ride = data?.rides.find((r) => r.id === id);
+  const ride = data?.ride ?? null;
 
   const getBikeName = useCallback(
     (bikeId: string | null | undefined): string | undefined => {
