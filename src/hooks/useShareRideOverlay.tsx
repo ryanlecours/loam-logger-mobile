@@ -60,12 +60,23 @@ export function useShareRideOverlay() {
       setCaptureValues(selectedValues);
 
       try {
-        // Wait one frame so React commits the new card props before we
-        // snapshot. Without this, captureRef can race and grab the prior
-        // render — most visible the second time you share with different
-        // selections from the same screen.
+        // Two nested rAFs, not one. A single rAF schedules work before
+        // the next paint on the JS thread, but on Android the native
+        // bridge is asynchronous and the layout/commit triggered by
+        // React's render can land a frame later than JS's "next paint."
+        // captureRef snapshots the native view, so a single-rAF wait
+        // can race and grab the prior frame's contents — the bug
+        // manifests as the second share-from-the-same-screen returning
+        // a stale PNG (the first share works because no commit has
+        // happened yet between mount and capture).
+        //
+        // The second rAF fires after the native commit kicked off by
+        // the first, so by the time we call captureRef the native view
+        // backing cardRef reflects the latest captureValues.
         await new Promise<void>((resolve) =>
-          requestAnimationFrame(() => resolve()),
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => resolve()),
+          ),
         );
 
         const uri = await captureRef(cardRef, {
