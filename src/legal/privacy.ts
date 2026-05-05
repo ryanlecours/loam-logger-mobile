@@ -35,7 +35,7 @@ Loam Logger ("we," "us," or "our") is operated by Loam Labs LLC. This policy exp
     body: `If you are located in the European Economic Area (EEA), United Kingdom, or Switzerland, our legal basis for processing your data depends on the type of data and the context:
 
 \u2022 Contractual necessity: Account data, fitness data, and subscription data are processed to provide the service you signed up for.
-\u2022 Legitimate interest: Error tracking (Sentry), product analytics (PostHog), and security monitoring are processed to maintain and improve the service. You may object to analytics processing by opting out in Settings.
+\u2022 Legitimate interest: Error tracking (Sentry), product analytics (PostHog), and security monitoring are processed to maintain and improve the service. You may object to analytics processing by opting out in Settings (see Section 6 for details).
 \u2022 Consent: Where required by law, we obtain your consent before processing (e.g., push notifications, optional integrations).`,
   },
   {
@@ -94,11 +94,11 @@ You can delete your account and all associated data at any time from Settings or
   },
   {
     title: '11. Children',
-    body: 'Loam Logger is not intended for children under 18. We do not knowingly collect data from children under 13 (the age threshold under COPPA). If we learn that we have collected data from a child under 13, we will delete it promptly.',
+    body: 'You must be at least 16 years old to use Loam Logger (see our Terms of Service). We do not knowingly collect data from anyone under 16. If we learn that a user is under 16, we will delete their account and associated data promptly.',
   },
   {
     title: '12. International Transfers',
-    body: 'Your data is processed in the United States. If you are located outside the United States, your data will be transferred to the U.S. for processing. Where required by law (e.g., GDPR), we rely on Standard Contractual Clauses or other approved transfer mechanisms to ensure appropriate safeguards.',
+    body: 'Your data is processed in the United States. If you are located outside the United States, your data will be transferred to the U.S. for processing. Where required by law (e.g., GDPR), we rely on Standard Contractual Clauses (SCCs) or other approved transfer mechanisms to ensure appropriate safeguards. Copies of applicable SCCs are available upon request by contacting us at the email below.',
   },
   {
     title: '13. Your Rights',
