@@ -44,14 +44,13 @@ export const RideShareCard = forwardRef<View, RideShareCardProps>(
   function RideShareCard({ distance, elevation, duration, averageHr }, ref) {
     return (
       <View ref={ref} collapsable={false} style={styles.container}>
-        <Image
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          source={require('../../../assets/loam-logger-vertical.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
         <View style={styles.statsRow}>
+          <Image
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            source={require('../../../assets/loam_logger_192_rounded.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           {distance ? <Stat icon="navigate-outline" value={distance} /> : null}
           {elevation ? <Stat icon="trending-up-outline" value={elevation} /> : null}
           {duration ? <Stat icon="time-outline" value={duration} /> : null}
@@ -91,9 +90,8 @@ const styles = StyleSheet.create({
     width: 720,
   },
   logo: {
-    width: 140,
-    height: 140,
-    marginBottom: 16,
+    width: 64,
+    height: 64,
   },
   statsRow: {
     flexDirection: 'row',

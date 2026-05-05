@@ -19,7 +19,7 @@ By accessing or using the Service, you agree to be bound by these Terms and our 
   },
   {
     title: '1. Eligibility',
-    body: `You must be at least 18 years of age to use the Service. By using the Service, you represent and warrant that you meet this age requirement. If you are under 18, you may not create an account or use the Service.`,
+    body: `You must be at least 16 years of age to use the Service. By using the Service, you represent and warrant that you meet this age requirement. If you are under 16, you may not create an account or use the Service.`,
   },
   {
     title: '2. Purpose of the Service',
