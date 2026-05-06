@@ -7,7 +7,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useRouter, Href } from 'expo-router';
+import { Stack, useRouter, Href, Link } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import RevenueCatUI from 'react-native-purchases-ui';
 import { Ionicons } from '@expo/vector-icons';
@@ -84,41 +84,60 @@ export default function PricingScreen() {
     );
   }
 
-  // Free users see RevenueCat Paywall
+  // Free users see RevenueCat Paywall with required legal links beneath.
+  // Apple requires apps offering auto-renewable subscriptions to display
+  // functional links to the Terms of Use (EULA) and Privacy Policy on the
+  // purchase screen itself — see App Store Review Guideline 3.1.2(a).
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Upgrade to Pro', headerShown: false }} />
-      <RevenueCatUI.Paywall
-        onPurchaseCompleted={async () => {
-          await refetch();
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/(tabs)/settings');
-          }
-        }}
-        onPurchaseError={({ error }) => {
-          Alert.alert('Purchase Failed', error.message || 'Please try again.');
-        }}
-        onRestoreCompleted={async () => {
-          await refetch();
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/(tabs)/settings');
-          }
-        }}
-        onRestoreError={({ error }) => {
-          Alert.alert('Restore Failed', error.message || 'Please try again.');
-        }}
-        onDismiss={() => {
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/(tabs)/settings');
-          }
-        }}
-      />
+      <View style={styles.paywallContainer}>
+        <RevenueCatUI.Paywall
+          onPurchaseCompleted={async () => {
+            await refetch();
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/settings');
+            }
+          }}
+          onPurchaseError={({ error }) => {
+            Alert.alert('Purchase Failed', error.message || 'Please try again.');
+          }}
+          onRestoreCompleted={async () => {
+            await refetch();
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/settings');
+            }
+          }}
+          onRestoreError={({ error }) => {
+            Alert.alert('Restore Failed', error.message || 'Please try again.');
+          }}
+          onDismiss={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/settings');
+            }
+          }}
+        />
+      </View>
+      <View style={styles.legalFooter}>
+        <Text style={styles.legalText}>
+          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your Apple ID settings.
+        </Text>
+        <View style={styles.legalLinks}>
+          <Link href={'/settings-detail/terms' as Href} style={styles.legalLink}>
+            Terms of Use
+          </Link>
+          <Text style={styles.legalSeparator}>·</Text>
+          <Link href={'/settings-detail/privacy-policy' as Href} style={styles.legalLink}>
+            Privacy Policy
+          </Link>
+        </View>
+      </View>
     </View>
   );
 }
@@ -169,5 +188,38 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  paywallContainer: {
+    flex: 1,
+  },
+  legalFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 28,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
+  legalText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 15,
+    marginBottom: 8,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legalLink: {
+    fontSize: 12,
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    fontSize: 12,
+    color: colors.textMuted,
   },
 });
