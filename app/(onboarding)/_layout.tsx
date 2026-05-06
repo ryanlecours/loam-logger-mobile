@@ -14,6 +14,8 @@ export default function OnboardingLayout() {
         <Stack.Screen name="terms" options={{ gestureEnabled: false }} />
         <Stack.Screen name="age" options={{ gestureEnabled: false }} />
         <Stack.Screen name="bike" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="connect" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="notifications" options={{ gestureEnabled: false }} />
       </Stack>
     </OnboardingProvider>
   );

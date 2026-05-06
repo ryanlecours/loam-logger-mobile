@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import { useAuth } from './useAuth';
 
 // Reason codes the backend can attach to a callback redirect when the
 // OAuth round-trip fails. Strava/Garmin/WHOOP/Suunto all use the same
@@ -28,8 +29,10 @@ const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try connecting again
  *   2. If status is anything other than "success", shows an Alert with a
  *      user-friendly message derived from the reason code (or a generic
  *      fallback for unknown codes).
- *   3. Redirects back to Settings after a 300ms beat so the browser
- *      dismiss animation can finish before the screen transitions.
+ *   3. Redirects after a 300ms beat so the browser dismiss animation can
+ *      finish before the screen transitions. Lands on `/(onboarding)/connect`
+ *      if the user is mid-onboarding (server-side `onboardingCompleted=false`),
+ *      otherwise on `/(tabs)/settings`.
  *
  * Without the explicit error-status check, the previous implementation
  * silently swallowed every failure mode — users would land back on
@@ -41,6 +44,7 @@ export function useOAuthCallback(
   reason: string | undefined
 ) {
   const router = useRouter();
+  const { onboardingCompleted } = useAuth();
 
   useEffect(() => {
     WebBrowser.dismissBrowser();
@@ -52,9 +56,9 @@ export function useOAuthCallback(
     }
 
     const timer = setTimeout(() => {
-      router.replace('/(tabs)/settings');
+      router.replace((onboardingCompleted ? '/(tabs)/settings' : '/(onboarding)/connect') as Href);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [providerLabel, status, reason, router]);
+  }, [providerLabel, status, reason, router, onboardingCompleted]);
 }

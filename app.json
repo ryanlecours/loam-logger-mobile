@@ -49,7 +49,20 @@
       },
       "package": "com.loamlabs.loamlogger",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [{ "scheme": "loamlogger", "host": "signup" }]
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [{ "scheme": "https", "host": "loamlogger.app", "pathPrefix": "/signup" }],
+          "autoVerify": true
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/icon.png"

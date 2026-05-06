@@ -12,16 +12,13 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../../src/hooks/useAuth';
+import { useRouter, type Href } from 'expo-router';
 import { useOnboarding, type SpokesBike, type SpokesImage } from '../../src/hooks/useOnboarding';
-import { getAccessToken } from '../../src/lib/auth';
 import { searchBikes, getBikeById, type SpokesSearchResult } from '../../src/api/spokes';
-import { isUnauthorizedError } from '../../src/utils/errors';
 import { colors } from '../../src/constants/theme';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
-import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 
 type Step = 'search' | 'details' | 'wearStart' | 'confirm';
 
@@ -42,7 +39,7 @@ const INITIAL_MANUAL_FORM: ManualForm = {
 };
 
 export default function BikeScreen() {
-  const { refetchUser, logout } = useAuth();
+  const router = useRouter();
   const {
     data: onboardingData,
     setSelectedBike,
@@ -58,7 +55,6 @@ export default function BikeScreen() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [loadingBike, setLoadingBike] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [manualForm, setManualForm] = useState<ManualForm>(INITIAL_MANUAL_FORM);
 
@@ -194,71 +190,13 @@ export default function BikeScreen() {
     setStep('wearStart');
   }, []);
 
-  async function handleComplete() {
-    const bike = onboardingData.selectedBike;
-    if (!bike) {
+  const handleWearStartContinue = useCallback(() => {
+    if (!onboardingData.selectedBike) {
       Alert.alert('Error', 'Please select a bike');
       return;
     }
-
-    const isManual = bike.id.startsWith('manual-');
-
-    setSubmitting(true);
-    try {
-      const token = await getAccessToken();
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
-
-      const spokesComponents = isManual ? undefined : buildSpokesComponentsInput(bike.components);
-
-      const response = await fetch(`${apiUrl}/onboarding/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          age: onboardingData.age,
-          bikeMake: bike.maker,
-          bikeModel: bike.model,
-          bikeYear: bike.year,
-          spokesId: isManual ? undefined : bike.id,
-          spokesUrl: bike.spokesUrl,
-          thumbnailUrl: onboardingData.selectedImageUrl || bike.thumbnailUrl,
-          family: bike.family,
-          category: bike.category,
-          subcategory: bike.subcategory,
-          buildKind: bike.buildKind,
-          isFrameset: bike.isFrameset,
-          isEbike: bike.isEbike,
-          gender: bike.gender,
-          frameMaterial: bike.frameMaterial,
-          hangerStandard: bike.hangerStandard,
-          spokesComponents,
-          nickname: onboardingData.nickname?.trim() || undefined,
-          notes: onboardingData.notes?.trim() || undefined,
-          acquisitionCondition: onboardingData.acquisitionCondition,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Failed to complete onboarding' }));
-        throw new Error(error.message || 'Failed to complete onboarding');
-      }
-
-      await refetchUser();
-    } catch (err) {
-      if (isUnauthorizedError(err)) {
-        await logout();
-        return;
-      }
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to complete onboarding'
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
+    router.push('/(onboarding)/connect' as Href);
+  }, [onboardingData.selectedBike, router]);
 
   const renderSearchResult = useCallback(({ item }: { item: SpokesSearchResult }) => (
     <TouchableOpacity
@@ -290,21 +228,15 @@ export default function BikeScreen() {
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, submitting && styles.buttonDisabled]}
-              onPress={handleComplete}
-              disabled={submitting}
+              style={styles.button}
+              onPress={handleWearStartContinue}
             >
-              {submitting ? (
-                <ActivityIndicator color={colors.textPrimary} />
-              ) : (
-                <Text style={styles.buttonText}>Complete Setup</Text>
-              )}
+              <Text style={styles.buttonText}>Continue</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleBack}
-              disabled={submitting}
             >
               <Text style={styles.secondaryButtonText}>Back</Text>
             </TouchableOpacity>
@@ -646,9 +578,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
   },
   buttonText: {
     color: colors.textPrimary,

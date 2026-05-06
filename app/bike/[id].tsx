@@ -415,7 +415,18 @@ export default function BikeDetailScreen() {
         <View style={styles.componentsList}>
           {componentGroups.length === 0 ? (
             <View style={styles.emptyComponents}>
+              <Ionicons name="construct-outline" size={32} color={colors.textMuted} />
               <Text style={styles.emptyText}>No components tracked yet</Text>
+              <Text style={styles.emptySubtext}>
+                Log a service (suspension, drivetrain, brakes, etc.) and we&apos;ll start tracking wear and service intervals for that part.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyPrimaryButton}
+                onPress={() => setShowLogService(true)}
+              >
+                <Ionicons name="construct" size={16} color={colors.textPrimary} />
+                <Text style={styles.emptyPrimaryButtonText}>Log Service</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             componentGroups.map((group) => {
@@ -792,8 +803,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 13,
     color: colors.textMuted,
+    marginTop: 6,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 8,
+  },
+  emptyPrimaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+    marginTop: 16,
+  },
+  emptyPrimaryButtonText: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   notesBox: {
     padding: 16,
