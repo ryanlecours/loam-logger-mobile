@@ -54,10 +54,12 @@
         {
           "action": "VIEW",
           "category": ["DEFAULT", "BROWSABLE"],
-          "data": [
-            { "scheme": "loamlogger", "host": "signup" },
-            { "scheme": "https", "host": "loamlogger.app", "pathPrefix": "/signup" }
-          ],
+          "data": [{ "scheme": "loamlogger", "host": "signup" }]
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [{ "scheme": "https", "host": "loamlogger.app", "pathPrefix": "/signup" }],
           "autoVerify": true
         }
       ]

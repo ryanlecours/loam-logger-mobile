@@ -22,10 +22,9 @@ import {
   getCapturedReferral,
   setCapturedReferral,
   clearCapturedReferral,
+  REFERRAL_CODE_PATTERN,
 } from '../../src/lib/referral';
 import { colors } from '../../src/constants/theme';
-
-const REFERRAL_CODE_PATTERN = /^[a-f0-9]{8}$/;
 
 function normalizeCode(raw: string): string {
   return raw.trim().toLowerCase().replace(/[^a-f0-9]/g, '').slice(0, 8);

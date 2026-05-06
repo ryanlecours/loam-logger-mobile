@@ -128,10 +128,10 @@ export default function NotificationsOnboardingScreen() {
   }, [onboardingData, refetchUser, logout]);
 
   const handleEnable = useCallback(async () => {
-    setSubmitting(true);
     // Trigger the OS permission dialog. We don't gate completion on the
     // result — granted or denied, we still finish onboarding. Users who
-    // deny can re-enable later from Settings.
+    // deny can re-enable later from Settings. finishOnboarding owns the
+    // submitting state via its own try/finally.
     try {
       await requestPermissions();
     } catch {
