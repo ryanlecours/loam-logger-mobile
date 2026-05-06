@@ -18,6 +18,8 @@ interface RecentRidesListProps {
   loading?: boolean;
   onSeeAll?: () => void;
   onRidePress?: (ride: Ride) => void;
+  onConnectPress?: () => void;
+  onAddRidePress?: () => void;
 }
 
 export function RecentRidesList({
@@ -26,6 +28,8 @@ export function RecentRidesList({
   loading,
   onSeeAll,
   onRidePress,
+  onConnectPress,
+  onAddRidePress,
 }: RecentRidesListProps) {
   const getBikeName = (bikeId: string | null | undefined): string | undefined => {
     if (!bikeId) return undefined;
@@ -63,10 +67,21 @@ export function RecentRidesList({
         </View>
         <View style={styles.emptyCard}>
           <Ionicons name="bicycle-outline" size={32} color={colors.textMuted} />
-          <Text style={styles.emptyText}>No rides logged yet</Text>
+          <Text style={styles.emptyText}>No rides yet</Text>
           <Text style={styles.emptySubtext}>
-            Your recent rides will appear here
+            Connect Strava, Garmin, WHOOP, or Suunto to import past rides — or log one manually.
           </Text>
+          {onConnectPress && (
+            <TouchableOpacity style={styles.emptyPrimaryButton} onPress={onConnectPress}>
+              <Ionicons name="link-outline" size={16} color={colors.textPrimary} />
+              <Text style={styles.emptyPrimaryButtonText}>Connect a data source</Text>
+            </TouchableOpacity>
+          )}
+          {onAddRidePress && (
+            <TouchableOpacity style={styles.emptySecondaryButton} onPress={onAddRidePress}>
+              <Text style={styles.emptySecondaryButtonText}>Log a ride manually</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -150,6 +165,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     marginTop: 4,
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 8,
+  },
+  emptyPrimaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+    marginTop: 16,
+  },
+  emptyPrimaryButtonText: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptySecondaryButton: {
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  emptySecondaryButtonText: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textDecorationLine: 'underline',
   },
   skeletonRow: {
     flexDirection: 'row',

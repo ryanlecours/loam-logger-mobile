@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,10 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../src/hooks/useAuth';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
-import { getAccessToken } from '../../src/lib/auth';
-import { isUnauthorizedError } from '../../src/utils/errors';
-import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 import { colors } from '../../src/constants/theme';
 import type { IntegrationProvider } from '../../src/api/integrations';
 
@@ -74,75 +71,16 @@ function ConnectRow({ provider, label, brandColor }: ProviderConfig) {
 }
 
 export default function ConnectScreen() {
-  const { refetchUser, logout } = useAuth();
+  const router = useRouter();
   const { data: onboardingData } = useOnboarding();
-  const [submitting, setSubmitting] = useState(false);
 
-  const finishOnboarding = useCallback(async () => {
-    const bike = onboardingData.selectedBike;
-    if (!bike) {
+  const goToNotifications = useCallback(() => {
+    if (!onboardingData.selectedBike) {
       Alert.alert('Error', 'Bike data missing. Please go back and try again.');
       return;
     }
-
-    const isManual = bike.id.startsWith('manual-');
-
-    setSubmitting(true);
-    try {
-      const token = await getAccessToken();
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
-
-      const spokesComponents = isManual ? undefined : buildSpokesComponentsInput(bike.components);
-
-      const response = await fetch(`${apiUrl}/onboarding/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          age: onboardingData.age,
-          bikeMake: bike.maker,
-          bikeModel: bike.model,
-          bikeYear: bike.year,
-          spokesId: isManual ? undefined : bike.id,
-          spokesUrl: bike.spokesUrl,
-          thumbnailUrl: onboardingData.selectedImageUrl || bike.thumbnailUrl,
-          family: bike.family,
-          category: bike.category,
-          subcategory: bike.subcategory,
-          buildKind: bike.buildKind,
-          isFrameset: bike.isFrameset,
-          isEbike: bike.isEbike,
-          gender: bike.gender,
-          frameMaterial: bike.frameMaterial,
-          hangerStandard: bike.hangerStandard,
-          spokesComponents,
-          nickname: onboardingData.nickname?.trim() || undefined,
-          notes: onboardingData.notes?.trim() || undefined,
-          acquisitionCondition: onboardingData.acquisitionCondition,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Failed to complete onboarding' }));
-        throw new Error(error.message || 'Failed to complete onboarding');
-      }
-
-      await refetchUser();
-    } catch (err) {
-      if (isUnauthorizedError(err)) {
-        await logout();
-        return;
-      }
-      Alert.alert(
-        'Error',
-        err instanceof Error ? err.message : 'Failed to complete onboarding'
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }, [onboardingData, refetchUser, logout]);
+    router.push('/(onboarding)/notifications' as Href);
+  }, [onboardingData.selectedBike, router]);
 
   return (
     <View style={styles.container}>
@@ -161,21 +99,15 @@ export default function ConnectScreen() {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.button, submitting && styles.buttonDisabled]}
-          onPress={finishOnboarding}
-          disabled={submitting}
+          style={styles.button}
+          onPress={goToNotifications}
         >
-          {submitting ? (
-            <ActivityIndicator color={colors.textPrimary} />
-          ) : (
-            <Text style={styles.buttonText}>Continue</Text>
-          )}
+          <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={finishOnboarding}
-          disabled={submitting}
+          onPress={goToNotifications}
         >
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
@@ -259,9 +191,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
   },
   buttonText: {
     color: colors.textPrimary,

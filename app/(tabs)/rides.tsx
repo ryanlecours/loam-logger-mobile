@@ -92,27 +92,42 @@ export default function RidesScreen() {
     [getBikeName, handleRidePress]
   );
 
+  const handleConnectPress = () => {
+    router.push('/(tabs)/settings' as Href);
+  };
+
   const renderEmpty = () => {
     if (loading) return null;
+    if (dateRange === 'all') {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Ionicons name="bicycle-outline" size={48} color={colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>No rides yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Connect Strava, Garmin, WHOOP, or Suunto to import past rides — or add one manually.
+          </Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={handleConnectPress}>
+            <Ionicons name="link-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.emptyButtonText}>Connect a data source</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.emptySecondaryButton} onPress={handleAddRide}>
+            <Text style={styles.emptySecondaryButtonText}>Add a ride manually</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconContainer}>
           <Ionicons name="bicycle-outline" size={48} color={colors.textMuted} />
         </View>
-        <Text style={styles.emptyTitle}>
-          {dateRange === 'all' ? 'No rides yet' : 'No rides in this period'}
-        </Text>
-        <Text style={styles.emptySubtitle}>
-          {dateRange === 'all'
-            ? 'Add your first ride manually or sync from Strava/Garmin'
-            : 'Try a longer time range or add a ride'}
-        </Text>
-        {dateRange === 'all' && (
-          <TouchableOpacity style={styles.emptyButton} onPress={handleAddRide}>
-            <Ionicons name="add" size={20} color={colors.textPrimary} />
-            <Text style={styles.emptyButtonText}>Add Ride</Text>
-          </TouchableOpacity>
-        )}
+        <Text style={styles.emptyTitle}>No rides in this period</Text>
+        <Text style={styles.emptySubtitle}>Try a longer time range or add a ride.</Text>
+        <TouchableOpacity style={styles.emptyButton} onPress={() => setDateRange('all')}>
+          <Text style={styles.emptyButtonText}>Show all time</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -265,6 +280,15 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
+  },
+  emptySecondaryButton: {
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  emptySecondaryButtonText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textDecorationLine: 'underline',
   },
   footer: {
     paddingVertical: 16,

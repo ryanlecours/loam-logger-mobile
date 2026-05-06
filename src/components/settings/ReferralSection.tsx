@@ -23,7 +23,7 @@ export function ReferralSection() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Track your mountain bike maintenance with Loam Logger! Sign up with my link: ${stats.referralLink}`,
+        message: `Track your mountain bike maintenance with Loam Logger! Sign up with my link: ${stats.referralLink} — or enter code ${stats.referralCode} in the app.`,
       });
     } catch {
       // User cancelled share

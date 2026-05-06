@@ -268,6 +268,8 @@ export default function DashboardScreen() {
           loading={recentRidesLoading && !recentRidesData}
           onSeeAll={() => router.push('/(tabs)/rides' as Href)}
           onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
+          onConnectPress={() => router.push('/(tabs)/settings' as Href)}
+          onAddRidePress={() => router.push('/ride/add' as Href)}
         />
 
         {/* Needs Attention Section */}

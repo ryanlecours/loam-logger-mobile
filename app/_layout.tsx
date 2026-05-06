@@ -1,4 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { ApolloProvider } from '@apollo/client';
 import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import * as Sentry from '@sentry/react-native';
@@ -12,6 +13,7 @@ import { usePendingNotificationRoute } from '../src/hooks/usePendingNotification
 import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
+import { setCapturedReferral } from '../src/lib/referral';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
 import { LockScreen } from '../src/components/LockScreen';
 import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
@@ -53,6 +55,26 @@ function RootLayoutNav() {
   const { needsDowngradeSelection } = useUserTier();
   const segments = useSegments() as string[];
   const router = useRouter();
+
+  // Cold-start safety net for referral attribution: if the app was launched
+  // from (or receives) a deep link carrying ?ref=<code>, persist it before
+  // any auth gates run. The signup screen reads it back from SecureStore on
+  // mount, so the code survives even if the user is bounced through login
+  // before reaching signup. Universal links and the loamlogger:// scheme
+  // both surface here.
+  const incomingUrl = Linking.useURL();
+  useEffect(() => {
+    if (!incomingUrl) return;
+    try {
+      const { queryParams } = Linking.parse(incomingUrl);
+      const ref = queryParams?.ref;
+      if (typeof ref === 'string' && ref) {
+        setCapturedReferral(ref);
+      }
+    } catch {
+      // Malformed URL — ignore.
+    }
+  }, [incomingUrl]);
 
   useEffect(() => {
     if (loading) return;

@@ -238,7 +238,16 @@ export default function BikeHistoryScreen() {
       {sections.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="calendar-outline" size={32} color={colors.textMuted} />
-          <Text style={styles.emptyText}>No events in this timeframe.</Text>
+          <Text style={styles.emptyText}>
+            {timeframe === 'all'
+              ? 'No events yet. Log rides or service entries to see them here.'
+              : 'No events in this timeframe.'}
+          </Text>
+          {timeframe !== 'all' && (
+            <TouchableOpacity onPress={() => setTimeframe('all')}>
+              <Text style={styles.emptyResetLink}>Show all time</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <SectionList
@@ -605,8 +614,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
-  empty: { alignItems: 'center', paddingVertical: 40, gap: 8 },
-  emptyText: { color: colors.textMuted },
+  empty: { alignItems: 'center', paddingVertical: 40, gap: 8, paddingHorizontal: 24 },
+  emptyText: { color: colors.textMuted, textAlign: 'center' },
+  emptyResetLink: { color: colors.primary, fontSize: 14, fontWeight: '600', marginTop: 4 },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   headerButtonText: { color: colors.primary, fontSize: 16, fontWeight: '500', paddingHorizontal: 8 },
   selectionBar: {
