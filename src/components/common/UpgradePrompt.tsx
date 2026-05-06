@@ -50,10 +50,11 @@ const styles = StyleSheet.create({
     borderColor: colors.monitorBg,
     borderRadius: 12,
     padding: 16,
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
     marginBottom: 14,
   },
@@ -62,11 +63,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.monitor,
     lineHeight: 20,
+    textAlign: 'center',
   },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    justifyContent: 'center',
   },
   upgradeButton: {
     flexDirection: 'row',
