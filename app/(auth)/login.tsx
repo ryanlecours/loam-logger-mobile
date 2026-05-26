@@ -25,6 +25,16 @@ import {
 } from '../../src/lib/biometric';
 import { colors } from '../../src/constants/theme';
 
+/**
+ * Build the alert body for a server-side auth failure. When the backend returned
+ * an x-request-id, append it so a user can read it back in a bug report — this
+ * pins the failure to one log line in Railway.
+ */
+function authFailureMessage(error?: string, requestId?: string): string {
+  const body = error || 'Please try again';
+  return requestId ? `${body}\n\nReference: ${requestId}` : body;
+}
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -117,7 +127,7 @@ export default function LoginScreen() {
       return;
     }
 
-    Alert.alert('Login Failed', result.error || 'Please try again');
+    Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
   }
 
   async function handleGoogleSuccess(idToken: string) {
@@ -141,7 +151,7 @@ export default function LoginScreen() {
       return;
     }
 
-    Alert.alert('Login Failed', result.error || 'Please try again');
+    Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
   }
 
   function handleGoogleError(error: string) {
@@ -171,7 +181,7 @@ export default function LoginScreen() {
       return;
     }
 
-    Alert.alert('Login Failed', result.error || 'Please try again');
+    Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
   }
 
   function handleAppleError(error: string) {
