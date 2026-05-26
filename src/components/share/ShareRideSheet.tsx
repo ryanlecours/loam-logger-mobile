@@ -89,6 +89,9 @@ export function ShareRideSheet({ visible, onClose, values, onConfirm, sharing }:
 
   const previewProps: RideShareCardProps = useMemo(
     () => ({
+      // Title isn't user-toggleable — it identifies the period the stats cover
+      // and would be meaningless to omit. Passes through unchanged when present.
+      title: values.title,
       distance: selection.distance ? values.distance : null,
       elevation: selection.elevation ? values.elevation : null,
       duration: selection.duration ? values.duration : null,
