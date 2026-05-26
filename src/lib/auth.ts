@@ -348,8 +348,8 @@ export async function deleteAccount(): Promise<void> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete account');
+    const { message } = await parseErrorResponse(response);
+    throw new Error(message || 'Failed to delete account');
   }
 
   await clearTokens();
