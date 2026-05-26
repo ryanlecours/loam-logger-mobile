@@ -69,7 +69,9 @@ export function RideStatsCard() {
   // Ym" output matches the single-ride share path's contract.
   const handleShare = () => {
     const totalSeconds = Math.round(stats.totalHours * 3600);
+    const timeframeLabel = TIMEFRAME_OPTIONS.find((o) => o.value === timeframe)?.label;
     openShareSheet({
+      title: timeframeLabel,
       distance: formatDistance(stats.totalDistance),
       elevation: formatElevation(stats.totalElevation, distanceUnit),
       duration: formatDuration(totalSeconds),

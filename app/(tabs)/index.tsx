@@ -436,6 +436,7 @@ const styles = StyleSheet.create({
   },
   upgradeBanner: {
     paddingHorizontal: 16,
+    marginTop: 16,
     marginBottom: 16,
   },
   bikeImageContainer: {

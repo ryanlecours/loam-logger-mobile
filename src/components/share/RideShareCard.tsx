@@ -30,6 +30,10 @@ import { Ionicons } from '@expo/vector-icons';
  * logo, which is intentional: users may want a logo-only branded export.
  */
 export interface RideShareCardProps {
+  /** Human-readable label for the period these stats cover (e.g. "Year to date",
+   *  "Last 30 days", "2024"). Rendered above the stats row when present.
+   *  Omitted for single-ride shares where a timeframe isn't applicable. */
+  title?: string | null;
   /** Pre-formatted distance, e.g. "18.2 mi" or "29.3 km". */
   distance?: string | null;
   /** Pre-formatted elevation gain, e.g. "1,400 ft" or "427 m". */
@@ -41,9 +45,14 @@ export interface RideShareCardProps {
 }
 
 export const RideShareCard = forwardRef<View, RideShareCardProps>(
-  function RideShareCard({ distance, elevation, duration, averageHr }, ref) {
+  function RideShareCard({ title, distance, elevation, duration, averageHr }, ref) {
     return (
       <View ref={ref} collapsable={false} style={styles.container}>
+        {title ? (
+          <Text style={styles.title} allowFontScaling={false}>
+            {title}
+          </Text>
+        ) : null}
         <View style={styles.statsRow}>
           <Image
             // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -92,6 +101,18 @@ const styles = StyleSheet.create({
   logo: {
     width: 64,
     height: 64,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+    // Same shadow as statValue so the title stays readable against varied
+    // backgrounds (light photos, busy story backgrounds, etc.).
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   statsRow: {
     flexDirection: 'row',

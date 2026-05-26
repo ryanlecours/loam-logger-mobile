@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import * as Sentry from '@sentry/react-native';
 import type { UserRole } from '../graphql/generated';
 
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -168,6 +169,51 @@ export interface AuthResult {
   success: boolean;
   error?: string;
   errorCode?: 'CLOSED_BETA' | 'ALREADY_ON_WAITLIST' | 'INVALID_CREDENTIALS' | 'NETWORK_ERROR';
+  /**
+   * The backend's x-request-id header, when available. Surface this in user-facing
+   * error messages so a bug report ties to an exact log line in Railway.
+   */
+  requestId?: string;
+}
+
+// Read an error response defensively: the API returns JSON (`{ error, code }`),
+// but historically some endpoints returned plain text. `response.json()` throws
+// on non-JSON, and the throw used to be caught as NETWORK_ERROR — masking real
+// failures like CLOSED_BETA behind a misleading "Network error" alert.
+async function parseErrorResponse(
+  response: Response
+): Promise<{ message: string; code?: string; requestId?: string }> {
+  const requestId = response.headers.get('x-request-id') ?? undefined;
+  const text = await response.text();
+  try {
+    const json = JSON.parse(text) as { error?: string; message?: string; code?: string };
+    return { message: json.error ?? json.message ?? text, code: json.code, requestId };
+  } catch {
+    return { message: text || `HTTP ${response.status}`, requestId };
+  }
+}
+
+/**
+ * Add a Sentry breadcrumb so a later captured event includes the auth context.
+ * For NETWORK_ERROR (no response received), additionally capture a message so
+ * the failure is independently visible in Sentry.
+ */
+function recordAuthFailure(
+  endpoint: 'apple' | 'google' | 'email' | 'refresh',
+  errorCode: string,
+  requestId?: string,
+  status?: number
+): void {
+  Sentry.addBreadcrumb({
+    category: 'auth',
+    type: 'error',
+    level: 'warning',
+    message: `Mobile auth failed: ${endpoint}`,
+    data: { errorCode, requestId, status, endpoint },
+  });
+  if (errorCode === 'NETWORK_ERROR') {
+    Sentry.captureMessage(`Mobile auth network error: ${endpoint}`, 'warning');
+  }
 }
 
 export async function loginWithEmail(
@@ -186,24 +232,26 @@ export async function loginWithEmail(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      const message = error.message || 'Login failed';
+      const { message, code, requestId } = await parseErrorResponse(response);
 
-      // Check for specific error codes
-      if (message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
-        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST' };
+      if (code === 'ALREADY_ON_WAITLIST' || message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
+        recordAuthFailure('email', 'ALREADY_ON_WAITLIST', requestId, response.status);
+        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST', requestId };
       }
-      if (message.includes('CLOSED_BETA') || message.includes('closed beta')) {
-        return { success: false, error: message, errorCode: 'CLOSED_BETA' };
+      if (code === 'CLOSED_BETA' || message.includes('CLOSED_BETA') || message.includes('closed beta')) {
+        recordAuthFailure('email', 'CLOSED_BETA', requestId, response.status);
+        return { success: false, error: message, errorCode: 'CLOSED_BETA', requestId };
       }
 
-      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS' };
+      recordAuthFailure('email', 'INVALID_CREDENTIALS', requestId, response.status);
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
     }
 
     const data = await response.json();
     await storeTokens(data.accessToken, data.refreshToken, data.user);
     return { success: true };
   } catch (_error) {
+    recordAuthFailure('email', 'NETWORK_ERROR');
     return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
@@ -223,24 +271,26 @@ export async function loginWithGoogle(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      const message = error.message || 'Google login failed';
+      const { message, code, requestId } = await parseErrorResponse(response);
 
-      // Check for specific error codes
-      if (message.includes('CLOSED_BETA') || message.includes('closed beta')) {
-        return { success: false, error: message, errorCode: 'CLOSED_BETA' };
+      if (code === 'CLOSED_BETA' || message.includes('CLOSED_BETA') || message.includes('closed beta')) {
+        recordAuthFailure('google', 'CLOSED_BETA', requestId, response.status);
+        return { success: false, error: message, errorCode: 'CLOSED_BETA', requestId };
       }
-      if (message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
-        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST' };
+      if (code === 'ALREADY_ON_WAITLIST' || message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
+        recordAuthFailure('google', 'ALREADY_ON_WAITLIST', requestId, response.status);
+        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST', requestId };
       }
 
-      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS' };
+      recordAuthFailure('google', 'INVALID_CREDENTIALS', requestId, response.status);
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
     }
 
     const data = await response.json();
     await storeTokens(data.accessToken, data.refreshToken, data.user);
     return { success: true };
   } catch (_error) {
+    recordAuthFailure('google', 'NETWORK_ERROR');
     return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
@@ -261,24 +311,26 @@ export async function loginWithApple(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      const message = error.message || 'Apple login failed';
+      const { message, code, requestId } = await parseErrorResponse(response);
 
-      // Check for specific error codes
-      if (message.includes('CLOSED_BETA') || message.includes('closed beta')) {
-        return { success: false, error: message, errorCode: 'CLOSED_BETA' };
+      if (code === 'CLOSED_BETA' || message.includes('CLOSED_BETA') || message.includes('closed beta')) {
+        recordAuthFailure('apple', 'CLOSED_BETA', requestId, response.status);
+        return { success: false, error: message, errorCode: 'CLOSED_BETA', requestId };
       }
-      if (message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
-        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST' };
+      if (code === 'ALREADY_ON_WAITLIST' || message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
+        recordAuthFailure('apple', 'ALREADY_ON_WAITLIST', requestId, response.status);
+        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST', requestId };
       }
 
-      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS' };
+      recordAuthFailure('apple', 'INVALID_CREDENTIALS', requestId, response.status);
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
     }
 
     const data = await response.json();
     await storeTokens(data.accessToken, data.refreshToken, data.user);
     return { success: true };
   } catch (_error) {
+    recordAuthFailure('apple', 'NETWORK_ERROR');
     return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
@@ -296,8 +348,8 @@ export async function deleteAccount(): Promise<void> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete account');
+    const { message } = await parseErrorResponse(response);
+    throw new Error(message || 'Failed to delete account');
   }
 
   await clearTokens();
