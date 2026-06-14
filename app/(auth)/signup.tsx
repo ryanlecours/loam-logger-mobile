@@ -36,7 +36,6 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   // Whether the inline manual-entry input is expanded (auto-true when a code
   // was captured so the user can see/edit it; otherwise hidden behind the
@@ -134,20 +133,11 @@ export default function SignupScreen() {
       // a stale code.
       await clearCapturedReferral();
 
-      // Check if user was added to waitlist (closed beta)
-      if (data.waitlist) {
-        setLoading(false);
-        setWaitlistSuccess(true);
-        return;
-      }
-
-      // If not waitlist, tokens should be returned (future: open beta)
-      if (data.accessToken) {
-        const { storeTokens } = await import('../../src/lib/auth');
-        await storeTokens(data.accessToken, data.refreshToken, data.user);
-        setAuthenticated(true);
-        router.replace('/(tabs)');
-      }
+      // Signup always creates an active account and returns tokens.
+      const { storeTokens } = await import('../../src/lib/auth');
+      await storeTokens(data.accessToken, data.refreshToken, data.user);
+      setAuthenticated(true);
+      router.replace('/(tabs)');
     } catch (error) {
       Alert.alert(
         'Signup Failed',
@@ -176,27 +166,6 @@ export default function SignupScreen() {
   function startEditingReferral() {
     setReferralDraft(referralCode ?? '');
     setReferralEditing(true);
-  }
-
-  // Show waitlist success screen
-  if (waitlistSuccess) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>You're on the list!</Text>
-          <Text style={styles.waitlistMessage}>
-            We've added you to our waitlist. We'll send you an email when your
-            account is ready.
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.buttonText}>Back to Login</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
   }
 
   return (
@@ -371,14 +340,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textSecondary,
     marginBottom: 32,
-  },
-  waitlistMessage: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: colors.textSecondary,
-    marginBottom: 32,
-    lineHeight: 24,
-    paddingHorizontal: 16,
   },
   form: {
     width: '100%',
