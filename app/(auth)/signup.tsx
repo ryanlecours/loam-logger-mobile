@@ -42,6 +42,9 @@ export default function SignupScreen() {
   // "Have a referral code?" disclosure).
   const [referralEditing, setReferralEditing] = useState(false);
   const [referralDraft, setReferralDraft] = useState('');
+  // Validation message shown when Apply is tapped on a non-empty but malformed
+  // draft (fewer than 8 hex chars). Cleared on edit, apply-success, or clear.
+  const [referralError, setReferralError] = useState<string | null>(null);
   const router = useRouter();
   const { ref: refFromUrl } = useLocalSearchParams<{ ref?: string }>();
   const { setAuthenticated } = useAuth();
@@ -154,18 +157,25 @@ export default function SignupScreen() {
       setCapturedReferral(normalized);
       setReferralEditing(false);
       setReferralDraft('');
+      setReferralError(null);
     } else if (normalized.length === 0) {
       // Empty input clears any captured code.
       setReferralCode(null);
       clearCapturedReferral();
       setReferralEditing(false);
       setReferralDraft('');
+      setReferralError(null);
+    } else {
+      // Non-empty but malformed (fewer than 8 hex chars) — keep the input open
+      // and tell the user why nothing was applied.
+      setReferralError('Enter a valid 8-character code');
     }
   }
 
   function startEditingReferral() {
     setReferralDraft(referralCode ?? '');
     setReferralEditing(true);
+    setReferralError(null);
   }
 
   return (
@@ -259,28 +269,36 @@ export default function SignupScreen() {
             )}
 
             {referralEditing && (
-              <View style={styles.referralEditRow}>
-                <TextInput
-                  style={[styles.input, styles.referralInput]}
-                  placeholder="8-character code"
-                  placeholderTextColor={colors.textMuted}
-                  value={referralDraft}
-                  onChangeText={(text) => setReferralDraft(normalizeCode(text))}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  maxLength={8}
-                  editable={!loading}
-                  onSubmitEditing={applyReferralDraft}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity
-                  style={styles.referralApplyButton}
-                  onPress={applyReferralDraft}
-                  disabled={loading}
-                >
-                  <Text style={styles.referralApplyText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
+              <>
+                <View style={styles.referralEditRow}>
+                  <TextInput
+                    style={[styles.input, styles.referralInput]}
+                    placeholder="8-character code"
+                    placeholderTextColor={colors.textMuted}
+                    value={referralDraft}
+                    onChangeText={(text) => {
+                      setReferralDraft(normalizeCode(text));
+                      setReferralError(null);
+                    }}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={8}
+                    editable={!loading}
+                    onSubmitEditing={applyReferralDraft}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity
+                    style={styles.referralApplyButton}
+                    onPress={applyReferralDraft}
+                    disabled={loading}
+                  >
+                    <Text style={styles.referralApplyText}>Apply</Text>
+                  </TouchableOpacity>
+                </View>
+                {referralError && (
+                  <Text style={styles.errorText}>{referralError}</Text>
+                )}
+              </>
             )}
 
             <TouchableOpacity

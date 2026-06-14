@@ -122,7 +122,36 @@ loam-logger-mobile/
 8. On 401 error -> Attempt token refresh
 9. Refresh fails -> Redirect to login
 
-## Building for Production
+## Releases
+
+Production releases are **manual** — CI does **not** build on merge to `main`.
+Every production build is a paid EAS build that auto-submits to App Store Connect,
+so releases are cut on demand rather than on every merge.
+
+### Cut a release (recommended)
+
+1. **Bump the marketing version** in [`app.json`](app.json) (`expo.version`) when the
+   release is going to the public App Store — e.g. `1.0.2` → `1.0.3` (patch) or `1.1.0`
+   (features) — and commit it. Skip this when pushing another TestFlight build for a
+   release that's already in progress. You never set the iOS **build number** by hand:
+   EAS auto-increments it (`autoIncrement` + `appVersionSource: "remote"` in `eas.json`),
+   so each upload gets a unique, increasing build number.
+2. Go to the repo's **Actions** tab → **EAS Build** → **Run workflow**.
+3. Choose the inputs:
+   - **profile**: `production` (default) or `preview`
+   - **platform**: `ios`
+4. Run it. The build runs on EAS with `--no-wait`; track progress on the EAS dashboard.
+
+Profile behavior in CI:
+
+- **production** — builds and auto-submits to App Store Connect. The build then
+  shows up in TestFlight; promoting it to the public App Store is a separate manual
+  step in App Store Connect (submit for review / release).
+- **preview** — internal-distribution build only, no submission. Use for ad-hoc testing.
+
+### Local / ad-hoc builds
+
+You can also build from your machine with the EAS CLI:
 
 ```bash
 # Development build (internal distribution)
