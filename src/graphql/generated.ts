@@ -1359,8 +1359,7 @@ export type UserWeatherBreakdownArgs = {
 export enum UserRole {
   Admin = 'ADMIN',
   Free = 'FREE',
-  Pro = 'PRO',
-  Waitlist = 'WAITLIST'
+  Pro = 'PRO'
 }
 
 export type UserServicePreference = {

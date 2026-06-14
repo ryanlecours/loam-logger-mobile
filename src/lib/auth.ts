@@ -168,7 +168,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 export interface AuthResult {
   success: boolean;
   error?: string;
-  errorCode?: 'CLOSED_BETA' | 'ALREADY_ON_WAITLIST' | 'INVALID_CREDENTIALS' | 'NETWORK_ERROR';
+  errorCode?: 'INVALID_CREDENTIALS' | 'NETWORK_ERROR';
   /**
    * The backend's x-request-id header, when available. Surface this in user-facing
    * error messages so a bug report ties to an exact log line in Railway.
@@ -179,7 +179,7 @@ export interface AuthResult {
 // Read an error response defensively: the API returns JSON (`{ error, code }`),
 // but historically some endpoints returned plain text. `response.json()` throws
 // on non-JSON, and the throw used to be caught as NETWORK_ERROR — masking real
-// failures like CLOSED_BETA behind a misleading "Network error" alert.
+// failures behind a misleading "Network error" alert.
 async function parseErrorResponse(
   response: Response
 ): Promise<{ message: string; code?: string; requestId?: string }> {
@@ -232,16 +232,7 @@ export async function loginWithEmail(
     });
 
     if (!response.ok) {
-      const { message, code, requestId } = await parseErrorResponse(response);
-
-      if (code === 'ALREADY_ON_WAITLIST' || message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
-        recordAuthFailure('email', 'ALREADY_ON_WAITLIST', requestId, response.status);
-        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST', requestId };
-      }
-      if (code === 'CLOSED_BETA' || message.includes('CLOSED_BETA') || message.includes('closed beta')) {
-        recordAuthFailure('email', 'CLOSED_BETA', requestId, response.status);
-        return { success: false, error: message, errorCode: 'CLOSED_BETA', requestId };
-      }
+      const { message, requestId } = await parseErrorResponse(response);
 
       recordAuthFailure('email', 'INVALID_CREDENTIALS', requestId, response.status);
       return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
@@ -271,16 +262,7 @@ export async function loginWithGoogle(
     });
 
     if (!response.ok) {
-      const { message, code, requestId } = await parseErrorResponse(response);
-
-      if (code === 'CLOSED_BETA' || message.includes('CLOSED_BETA') || message.includes('closed beta')) {
-        recordAuthFailure('google', 'CLOSED_BETA', requestId, response.status);
-        return { success: false, error: message, errorCode: 'CLOSED_BETA', requestId };
-      }
-      if (code === 'ALREADY_ON_WAITLIST' || message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
-        recordAuthFailure('google', 'ALREADY_ON_WAITLIST', requestId, response.status);
-        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST', requestId };
-      }
+      const { message, requestId } = await parseErrorResponse(response);
 
       recordAuthFailure('google', 'INVALID_CREDENTIALS', requestId, response.status);
       return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
@@ -311,16 +293,7 @@ export async function loginWithApple(
     });
 
     if (!response.ok) {
-      const { message, code, requestId } = await parseErrorResponse(response);
-
-      if (code === 'CLOSED_BETA' || message.includes('CLOSED_BETA') || message.includes('closed beta')) {
-        recordAuthFailure('apple', 'CLOSED_BETA', requestId, response.status);
-        return { success: false, error: message, errorCode: 'CLOSED_BETA', requestId };
-      }
-      if (code === 'ALREADY_ON_WAITLIST' || message.includes('ALREADY_ON_WAITLIST') || message.includes('waitlist')) {
-        recordAuthFailure('apple', 'ALREADY_ON_WAITLIST', requestId, response.status);
-        return { success: false, error: message, errorCode: 'ALREADY_ON_WAITLIST', requestId };
-      }
+      const { message, requestId } = await parseErrorResponse(response);
 
       recordAuthFailure('apple', 'INVALID_CREDENTIALS', requestId, response.status);
       return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };

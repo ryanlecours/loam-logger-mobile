@@ -117,16 +117,6 @@ export default function LoginScreen() {
       return;
     }
 
-    // Handle special error codes
-    if (result.errorCode === 'CLOSED_BETA') {
-      router.replace('/closed-beta' as Href);
-      return;
-    }
-    if (result.errorCode === 'ALREADY_ON_WAITLIST') {
-      router.replace('/waitlist' as Href);
-      return;
-    }
-
     Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
   }
 
@@ -138,16 +128,6 @@ export default function LoginScreen() {
     if (result.success) {
       setAuthenticated(true);
       void maybePromptBiometricEnrollment();
-      return;
-    }
-
-    // Handle special error codes
-    if (result.errorCode === 'CLOSED_BETA') {
-      router.replace('/closed-beta' as Href);
-      return;
-    }
-    if (result.errorCode === 'ALREADY_ON_WAITLIST') {
-      router.replace('/waitlist' as Href);
       return;
     }
 
@@ -169,15 +149,6 @@ export default function LoginScreen() {
     if (result.success) {
       setAuthenticated(true);
       void maybePromptBiometricEnrollment();
-      return;
-    }
-
-    if (result.errorCode === 'CLOSED_BETA') {
-      router.replace('/closed-beta' as Href);
-      return;
-    }
-    if (result.errorCode === 'ALREADY_ON_WAITLIST') {
-      router.replace('/waitlist' as Href);
       return;
     }
 

@@ -226,8 +226,6 @@ function RootLayoutNav() {
         <Stack.Screen name="billing-success" options={{ headerShown: false }} />
         <Stack.Screen name="billing-cancelled" options={{ headerShown: false }} />
         <Stack.Screen name="billing-return" options={{ headerShown: false }} />
-        <Stack.Screen name="closed-beta" />
-        <Stack.Screen name="waitlist" />
       </Stack>
       {isAuthenticated && needsDowngradeSelection && <DowngradeSelectionModal />}
     </>
