@@ -1,16 +1,10 @@
 name: EAS Build
 
+# Mobile releases are triggered MANUALLY only. We intentionally do NOT build on
+# push to main: every production build is a paid EAS build + TestFlight submission,
+# and auto-building each merge burned through too many. Cut a release on demand
+# from the Actions tab → "EAS Build" → "Run workflow".
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'app/**'
-      - 'assets/**'
-      - 'app.json'
-      - 'eas.json'
-      - 'package.json'
-      - 'package-lock.json'
   workflow_dispatch:
     inputs:
       profile:
@@ -53,20 +47,6 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Determine build parameters
-        id: params
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "profile=${{ inputs.profile }}" >> $GITHUB_OUTPUT
-            echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
-          else
-            # Default for push-to-main: build production iOS and auto-submit to
-            # TestFlight. Every merge to main becomes a release candidate, so
-            # only land changes on main when you're ready to ship them.
-            echo "profile=production" >> $GITHUB_OUTPUT
-            echo "platform=ios" >> $GITHUB_OUTPUT
-          fi
-
       - name: Run EAS Build
         env:
           # SENTRY_AUTH_TOKEN enables the @sentry/react-native/expo plugin
@@ -77,9 +57,16 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           EXPO_PUBLIC_SENTRY_RELEASE: ${{ github.sha }}
         run: |
+          # Only production builds auto-submit to TestFlight. Preview builds use
+          # internal distribution and have no submit profile in eas.json, so
+          # submitting them would fail.
+          SUBMIT_FLAG=""
+          if [ "${{ inputs.profile }}" = "production" ]; then
+            SUBMIT_FLAG="--auto-submit"
+          fi
           eas build \
-            --profile ${{ steps.params.outputs.profile }} \
-            --platform ${{ steps.params.outputs.platform }} \
-            --auto-submit \
+            --profile ${{ inputs.profile }} \
+            --platform ${{ inputs.platform }} \
+            $SUBMIT_FLAG \
             --non-interactive \
             --no-wait
