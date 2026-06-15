@@ -16,7 +16,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.loamlabs.loamlogger",
-      "associatedDomains": ["applinks:loamlogger.app"],
+      "associatedDomains": [
+        "applinks:loamlogger.app"
+      ],
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -25,19 +27,27 @@
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
-            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
-            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1"
+            ]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
-            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
           }
         ]
       }
@@ -53,13 +63,30 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "category": ["DEFAULT", "BROWSABLE"],
-          "data": [{ "scheme": "loamlogger", "host": "signup" }]
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "loamlogger",
+              "host": "signup"
+            }
+          ]
         },
         {
           "action": "VIEW",
-          "category": ["DEFAULT", "BROWSABLE"],
-          "data": [{ "scheme": "https", "host": "loamlogger.app", "pathPrefix": "/signup" }],
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "loamlogger.app",
+              "pathPrefix": "/signup"
+            }
+          ],
           "autoVerify": true
         }
       ]
@@ -102,6 +129,17 @@
         {
           "organization": "loam-labs-llc",
           "project": "react-native"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "extraPods": [
+              { "name": "GoogleUtilities", "modular_headers": true },
+              { "name": "RecaptchaInterop", "modular_headers": true }
+            ]
+          }
         }
       ]
     ],
