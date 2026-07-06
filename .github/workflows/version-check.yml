@@ -1,0 +1,82 @@
+name: Version Bump Check
+
+# Non-blocking reminder: warns (but never fails) when a PR into main/dev does
+# not bump `expo.version` in app.json. Because every step exits 0 and the job
+# always succeeds, this check can never block a merge — it only annotates the
+# PR and leaves a sticky comment.
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  version-check:
+    name: Warn if app version not bumped
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+
+      - name: Compare app.json version against base branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const MARKER = '<!-- version-bump-check -->';
+
+            // Read the version on this PR branch (checked out locally).
+            let prVersion;
+            try {
+              prVersion = JSON.parse(fs.readFileSync('app.json', 'utf8')).expo.version;
+            } catch (e) {
+              core.warning(`Could not read expo.version from PR app.json: ${e.message}`);
+              return; // nothing to compare — stay silent, exit success
+            }
+
+            // Read the version on the base branch (target of the PR).
+            let baseVersion;
+            try {
+              const { data } = await github.rest.repos.getContent({
+                owner, repo, path: 'app.json', ref: pr.base.sha,
+              });
+              const baseContent = Buffer.from(data.content, 'base64').toString('utf8');
+              baseVersion = JSON.parse(baseContent).expo.version;
+            } catch (e) {
+              // e.g. app.json is new in this PR — treat as a valid version set, no warning.
+              core.info(`Could not read base app.json (${e.message}); skipping warning.`);
+              return;
+            }
+
+            const bumped = prVersion !== baseVersion;
+            core.info(`Base version: ${baseVersion} | PR version: ${prVersion} | bumped: ${bumped}`);
+
+            const body = bumped
+              ? `${MARKER}\n### ✅ App version bumped\n\`expo.version\` changed \`${baseVersion}\` → \`${prVersion}\`.`
+              : `${MARKER}\n### ⚠️ App version not bumped\n\`expo.version\` is still \`${baseVersion}\` in \`app.json\`.\n\n` +
+                `If this PR ships a change users should get from the App Store, bump the version (e.g. \`${baseVersion}\` → a higher value) before merging. ` +
+                `The iOS build number auto-increments on EAS, so you only need to update the marketing version.\n\n` +
+                `_This is a non-blocking reminder — it will not prevent merging._`;
+
+            if (!bumped) {
+              core.warning(`app.json expo.version was not bumped (still ${baseVersion}).`);
+            }
+
+            // Upsert a single sticky comment so repeated pushes don't spam the PR.
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: pr.number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(MARKER));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else if (!bumped) {
+              // Only open a new thread when there's something to warn about.
+              await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
+            }
