@@ -56,11 +56,27 @@ export function setTokenRefreshCallback(cb: TokenRefreshCallback | null): void {
 export async function storeTokens(
   accessToken: string,
   refreshToken: string,
-  user: LoginUser
+  user?: LoginUser
 ): Promise<void> {
+  // Validate tokens are real strings before handing them to SecureStore.
+  // A malformed/partial auth response (e.g. a server that omits a field) would
+  // otherwise reach setItemAsync as `undefined` and throw the opaque
+  // "Invalid value provided to SecureStore" error — surface a clear message
+  // instead. This guards every auth entry point (signup + all login helpers).
+  if (typeof accessToken !== 'string' || !accessToken ||
+      typeof refreshToken !== 'string' || !refreshToken) {
+    throw new Error('Malformed auth response: missing tokens');
+  }
+
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
   await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
-  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  // `user` is a hydration cache only — the ME query populates the real user
+  // state — so a response without it is not fatal. Skip the write rather than
+  // JSON.stringify(undefined), which returns the value `undefined` (not a
+  // string) and crashes SecureStore.
+  if (user) {
+    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  }
 }
 
 export async function getAccessToken(): Promise<string | null> {
