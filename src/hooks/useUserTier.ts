@@ -15,11 +15,9 @@ export function useUserTier() {
   const isAdmin = role === 'ADMIN';
   const isFoundingRider = viewer?.isFoundingRider ?? false;
 
-  const tier = (viewer?.subscriptionTier ?? 'FREE_LIGHT') as SubscriptionTierName;
+  const tier = (viewer?.subscriptionTier ?? 'FREE') as SubscriptionTierName;
   const isPro = tier === 'PRO' || isAdmin || isFoundingRider;
-  const isFree = (tier === 'FREE_LIGHT' || tier === 'FREE_FULL') && !isAdmin && !isFoundingRider;
-  const isFreeLight = tier === 'FREE_LIGHT' && !isFoundingRider && !isAdmin;
-  const isFreeFull = tier === 'FREE_FULL' && !isFoundingRider && !isAdmin;
+  const isFree = tier !== 'PRO' && !isAdmin && !isFoundingRider;
 
   const subscriptionProvider: SubscriptionProvider | null = viewer?.subscriptionProvider ?? null;
   const tierLimits = viewer?.tierLimits ?? null;
@@ -31,8 +29,6 @@ export function useUserTier() {
     tier,
     isPro,
     isFree,
-    isFreeLight,
-    isFreeFull,
     isFoundingRider,
     isAdmin,
     subscriptionProvider,

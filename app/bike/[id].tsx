@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, RefreshControl, Alert, ActionSheetIOS, Platform } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
@@ -12,9 +12,6 @@ import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailS
 import { EditServiceSheet, type EditableServiceLog } from '../../src/components/gear/EditServiceSheet';
 import { UpdateAcquisitionSheet } from '../../src/components/gear/UpdateAcquisitionSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
-import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
-import { useUserTier } from '../../src/hooks/useUserTier';
-import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
 const COMPONENT_GROUP_MAP: Record<string, string> = {
@@ -40,7 +37,6 @@ export default function BikeDetailScreen() {
     componentId?: string;
   }>();
   const router = useRouter();
-  const { isFreeLight } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
   const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
@@ -52,7 +48,6 @@ export default function BikeDetailScreen() {
   const [editingServiceLog, setEditingServiceLog] = useState<EditableServiceLog | null>(null);
   const [editingServiceLogLabel, setEditingServiceLogLabel] = useState('');
   const [showAcquisitionSheet, setShowAcquisitionSheet] = useState(false);
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   // Single-bike lookup. Earlier this screen pulled `useGearQuery` (full
   // bike list) and located the target via `data.bikes.find(...)` — for
@@ -182,14 +177,7 @@ export default function BikeDetailScreen() {
     });
   };
 
-  const isComponentRestricted = (type: string) =>
-    isFreeLight && !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(type);
-
   const handleComponentPress = (component: ComponentFieldsFragment) => {
-    if (isComponentRestricted(component.type)) {
-      setShowUpgradePrompt(true);
-      return;
-    }
     setSelectedComponent(component);
   };
 
@@ -468,7 +456,6 @@ export default function BikeDetailScreen() {
                         component={component}
                         status={prediction?.status || component.status || undefined}
                         hoursRemaining={prediction?.hoursRemaining}
-                        restricted={isComponentRestricted(component.type)}
                         onPress={() => handleComponentPress(component)}
                       />
                     );
@@ -614,25 +601,6 @@ export default function BikeDetailScreen() {
         onReplaced={handleReplaceComplete}
       />
 
-      <Modal
-        visible={showUpgradePrompt}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowUpgradePrompt(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowUpgradePrompt(false)}>
-          <View style={styles.upgradeOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.upgradeContent}>
-                <UpgradePrompt
-                  message="This component type requires a Pro plan to track."
-                  onUpgrade={() => setShowUpgradePrompt(false)}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </ScrollView>
   );
 }

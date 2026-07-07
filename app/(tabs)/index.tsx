@@ -25,8 +25,6 @@ import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
-import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -45,7 +43,7 @@ function formatComponentType(type: string): string {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { isPro, isFreeLight, isFoundingRider } = useUserTier();
+  const { isPro, isFoundingRider } = useUserTier();
   const { distanceUnit } = useDistanceUnit();
   const {
     bikes,
@@ -115,13 +113,6 @@ export default function DashboardScreen() {
       (p) => p.status === 'DUE_NOW' || p.status === 'DUE_SOON' || p.status === 'OVERDUE'
     );
   }, [selectedBike]);
-
-  const hasRestrictedComponents = useMemo(() => {
-    if (!isFreeLight || !selectedBike?.predictions?.components) return false;
-    return selectedBike.predictions.components.some(
-      (p) => !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(p.componentType)
-    );
-  }, [isFreeLight, selectedBike]);
 
   const displayName = selectedBike
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
@@ -290,15 +281,6 @@ export default function DashboardScreen() {
                 onPress={() => setSelectedPrediction(comp)}
               />
             ))}
-          </View>
-        )}
-
-        {/* Upgrade banner for free users with restricted components */}
-        {hasRestrictedComponents && (
-          <View style={styles.upgradeBanner}>
-            <UpgradePrompt
-              message="You're only tracking 4 component types. Upgrade to Pro or refer a friend to unlock all 23+ components."
-            />
           </View>
         )}
 
