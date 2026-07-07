@@ -12,6 +12,8 @@ import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailS
 import { EditServiceSheet, type EditableServiceLog } from '../../src/components/gear/EditServiceSheet';
 import { UpdateAcquisitionSheet } from '../../src/components/gear/UpdateAcquisitionSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
+import { UpsellCard } from '../../src/components/common/UpgradePrompt';
+import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
 
 const COMPONENT_GROUP_MAP: Record<string, string> = {
@@ -37,6 +39,7 @@ export default function BikeDetailScreen() {
     componentId?: string;
   }>();
   const router = useRouter();
+  const { isFree } = useUserTier();
   const [showLogService, setShowLogService] = useState(false);
   const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
@@ -392,11 +395,13 @@ export default function BikeDetailScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Components</Text>
+          {/* Due counts are Pro-only (null for free tier) — render nothing
+              rather than a zero count. */}
           {predictions && (
             <Text style={styles.sectionSubtitle}>
-              {predictions.dueNowCount > 0 && `${predictions.dueNowCount} due now`}
-              {predictions.dueNowCount > 0 && predictions.dueSoonCount > 0 && ' · '}
-              {predictions.dueSoonCount > 0 && `${predictions.dueSoonCount} due soon`}
+              {(predictions.dueNowCount ?? 0) > 0 && `${predictions.dueNowCount} due now`}
+              {(predictions.dueNowCount ?? 0) > 0 && (predictions.dueSoonCount ?? 0) > 0 && ' · '}
+              {(predictions.dueSoonCount ?? 0) > 0 && `${predictions.dueSoonCount} due soon`}
             </Text>
           )}
         </View>
@@ -456,6 +461,8 @@ export default function BikeDetailScreen() {
                         component={component}
                         status={prediction?.status || component.status || undefined}
                         hoursRemaining={prediction?.hoursRemaining}
+                        hoursSinceService={prediction?.hoursSinceService}
+                        ridesSinceService={prediction?.ridesSinceService}
                         onPress={() => handleComponentPress(component)}
                       />
                     );
@@ -466,6 +473,14 @@ export default function BikeDetailScreen() {
           )}
         </View>
       </View>
+
+      {/* Free tier: predictions upsell below the components list. This is
+          the screen's single inline CTA. */}
+      {isFree && (
+        <View style={styles.upsellContainer}>
+          <UpsellCard feature="predictions" />
+        </View>
+      )}
 
       {/* Notes Section */}
       {bike.notes && (
@@ -727,6 +742,10 @@ const styles = StyleSheet.create({
   componentsList: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
+  },
+  upsellContainer: {
+    marginTop: 16,
+    marginHorizontal: 16,
   },
   groupHeader: {
     flexDirection: 'row',

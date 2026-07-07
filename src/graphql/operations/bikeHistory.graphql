@@ -6,6 +6,7 @@ query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
       manufacturer
       model
       year
+      shareSlug
     }
     rides {
       id

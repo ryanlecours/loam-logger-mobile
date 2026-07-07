@@ -2,7 +2,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../constants/theme';
 
 interface ComponentHealthBadgeProps {
-  status: string;
+  /** Null/undefined (e.g. free-tier gated predictions) renders nothing. */
+  status?: string | null;
   size?: 'small' | 'medium';
 }
 
@@ -15,6 +16,10 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }>
 };
 
 export function ComponentHealthBadge({ status, size = 'medium' }: ComponentHealthBadgeProps) {
+  // No status (free tier hides predictions) — render nothing rather than
+  // implying a known state.
+  if (!status) return null;
+
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.UNKNOWN;
   const isSmall = size === 'small';
 

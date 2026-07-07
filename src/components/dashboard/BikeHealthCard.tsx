@@ -16,9 +16,16 @@ export function BikeHealthCard({ bike, onPress, compact }: BikeHealthCardProps) 
   const subtitle = bike.nickname ? `${bike.manufacturer} ${bike.model}` : null;
   const predictions = bike.predictions;
 
-  const overallStatus = predictions?.overallStatus || 'UNKNOWN';
+  // For free-tier users the API nulls the prediction summary fields. Keep
+  // the 'UNKNOWN' fallback only when predictions haven't loaded at all —
+  // a gated (null) overallStatus renders no badge.
+  const overallStatus = predictions ? predictions.overallStatus : 'UNKNOWN';
   const dueNowCount = predictions?.dueNowCount || 0;
   const dueSoonCount = predictions?.dueSoonCount || 0;
+  const countsHidden =
+    !!predictions &&
+    (predictions.dueNowCount === null || predictions.dueNowCount === undefined) &&
+    (predictions.dueSoonCount === null || predictions.dueSoonCount === undefined);
 
   const getStatusText = () => {
     if (dueNowCount > 0 && dueSoonCount > 0) {
@@ -68,7 +75,9 @@ export function BikeHealthCard({ bike, onPress, compact }: BikeHealthCardProps) 
           <ComponentHealthBadge status={overallStatus} />
         </View>
 
-        <Text style={styles.statusText}>{getStatusText()}</Text>
+        {/* Hide the counts line when the API gated them (free tier) rather
+            than claiming "all good" from a null. */}
+        {!countsHidden && <Text style={styles.statusText}>{getStatusText()}</Text>}
 
         <View style={styles.footer}>
           <Text style={styles.viewDetails}>View Details</Text>

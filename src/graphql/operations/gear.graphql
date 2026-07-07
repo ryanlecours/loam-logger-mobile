@@ -43,6 +43,7 @@ fragment PredictionFields on BikePredictionSummary {
     currentHours
     serviceIntervalHours
     hoursSinceService
+    ridesSinceService
   }
   components {
     componentId
@@ -57,6 +58,7 @@ fragment PredictionFields on BikePredictionSummary {
     currentHours
     serviceIntervalHours
     hoursSinceService
+    ridesSinceService
   }
 }
 

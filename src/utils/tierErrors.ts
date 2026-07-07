@@ -24,7 +24,7 @@ export function getTierErrorMessage(error: ApolloError): string {
   const code = getErrorCode(error);
   switch (code) {
     case 'TIER_LIMIT_EXCEEDED':
-      return 'You\'ve reached the bike limit on your Free plan. Upgrade to Pro for unlimited bikes.';
+      return 'Your Free plan covers one bike. The correct number of bikes is always one more — track the whole quiver with Pro.';
     case 'TIER_COMPONENT_RESTRICTED':
       return 'This component type requires a Pro plan to track.';
     case 'DOWNGRADE_SELECTION_REQUIRED':

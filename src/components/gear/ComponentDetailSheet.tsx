@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
+import { ProChip } from '../common/UpgradePrompt';
 import type { EditableServiceLog } from './EditServiceSheet';
 
 /** User-facing hints for what "service" means for specific component types */
@@ -185,6 +186,10 @@ export function ComponentDetailSheet({
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
   const status = prediction?.status || component.status || 'UNKNOWN';
   const confidence = formatConfidence(prediction?.confidence);
+  // Pro-only prediction fields (status, hoursRemaining, confidence, ...) come
+  // back null for free-tier users even when a prediction row exists.
+  const predictionGated =
+    !!prediction && (prediction.hoursRemaining === null || prediction.hoursRemaining === undefined);
 
   const hoursRemaining = prediction?.hoursRemaining;
   const serviceInterval = optimisticInterval ?? prediction?.serviceIntervalHours ?? component.serviceDueAtHours;
@@ -228,17 +233,19 @@ export function ComponentDetailSheet({
                     <Text style={styles.conditionLabel}>Condition:</Text>
                     <ComponentHealthBadge status={status} />
                   </View>
-                  <TouchableOpacity
-                    style={styles.confidenceRow}
-                    onPress={() => setShowConfidenceInfo(!showConfidenceInfo)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="analytics-outline" size={14} color={confidence.color} />
-                    <Text style={[styles.confidenceText, { color: confidence.color }]}>
-                      {confidence.label} confidence
-                    </Text>
-                    <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
-                  </TouchableOpacity>
+                  {!predictionGated && (
+                    <TouchableOpacity
+                      style={styles.confidenceRow}
+                      onPress={() => setShowConfidenceInfo(!showConfidenceInfo)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="analytics-outline" size={14} color={confidence.color} />
+                      <Text style={[styles.confidenceText, { color: confidence.color }]}>
+                        {confidence.label} confidence
+                      </Text>
+                      <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {showConfidenceInfo && (
@@ -281,7 +288,7 @@ export function ComponentDetailSheet({
 
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
-                  {hoursRemaining !== null && hoursRemaining !== undefined && (
+                  {hoursRemaining !== null && hoursRemaining !== undefined ? (
                     <View style={styles.statItem}>
                       <Ionicons
                         name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
@@ -301,7 +308,15 @@ export function ComponentDetailSheet({
                         {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
                       </Text>
                     </View>
-                  )}
+                  ) : predictionGated ? (
+                    // Free tier: the countdown is Pro-only — show the chip
+                    // where the headline number would be.
+                    <View style={styles.statItem}>
+                      <Ionicons name="time-outline" size={20} color={colors.textMuted} />
+                      <ProChip />
+                      <Text style={styles.statLabel}>Remaining</Text>
+                    </View>
+                  ) : null}
 
                   {serviceInterval && (
                     editingInterval ? (
@@ -353,6 +368,14 @@ export function ComponentDetailSheet({
                       <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
                       <Text style={styles.statValue}>{hoursSinceService.toFixed(0)}h</Text>
                       <Text style={styles.statLabel}>Since Service</Text>
+                    </View>
+                  )}
+
+                  {predictionGated && prediction && (
+                    <View style={styles.statItem}>
+                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+                      <Text style={styles.statValue}>{prediction.ridesSinceService}</Text>
+                      <Text style={styles.statLabel}>Rides Since Service</Text>
                     </View>
                   )}
 
