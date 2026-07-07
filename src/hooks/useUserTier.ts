@@ -26,7 +26,6 @@ export function useUserTier() {
   const canAddBike = tierLimits?.canAddBike ?? true;
   const allowedComponentTypes = (tierLimits?.allowedComponentTypes ?? []) as ComponentType[];
   const needsDowngradeSelection = viewer?.needsDowngradeSelection ?? false;
-  const referralCode = viewer?.referralCode ?? null;
 
   return {
     tier,
@@ -40,7 +39,6 @@ export function useUserTier() {
     canAddBike,
     allowedComponentTypes,
     needsDowngradeSelection,
-    referralCode,
     tierLimits,
     loading,
     error,

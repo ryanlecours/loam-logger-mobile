@@ -142,7 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword: viewer.mustChangePassword,
         isFoundingRider: viewer.isFoundingRider,
         subscriptionTier: viewer.subscriptionTier,
-        referralCode: viewer.referralCode,
         needsDowngradeSelection: viewer.needsDowngradeSelection,
         hoursDisplayPreference: viewer.hoursDisplayPreference,
         predictionMode: viewer.predictionMode,

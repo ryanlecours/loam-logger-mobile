@@ -26,7 +26,7 @@ export function getTierErrorMessage(error: ApolloError): string {
     case 'TIER_LIMIT_EXCEEDED':
       return 'You\'ve reached the bike limit on your Free plan. Upgrade to Pro for unlimited bikes.';
     case 'TIER_COMPONENT_RESTRICTED':
-      return 'This component type requires a Pro plan or a completed referral to track.';
+      return 'This component type requires a Pro plan to track.';
     case 'DOWNGRADE_SELECTION_REQUIRED':
       return 'Please select which bike to keep before making changes.';
     default:

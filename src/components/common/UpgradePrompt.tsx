@@ -5,21 +5,13 @@ import { colors } from '../../constants/theme';
 
 interface UpgradePromptProps {
   message: string;
-  showReferral?: boolean;
   onUpgrade?: () => void;
-  onReferral?: () => void;
 }
 
-export function UpgradePrompt({
-  message,
-  showReferral = true,
-  onUpgrade,
-  onReferral,
-}: UpgradePromptProps) {
+export function UpgradePrompt({ message, onUpgrade }: UpgradePromptProps) {
   const router = useRouter();
 
   const handleUpgrade = onUpgrade ?? (() => router.push('/settings-detail/pricing' as Href));
-  const handleReferral = onReferral ?? (() => router.push('/(tabs)/settings' as Href));
 
   return (
     <View style={styles.container}>
@@ -32,12 +24,6 @@ export function UpgradePrompt({
           <Ionicons name="arrow-up-circle-outline" size={16} color={colors.textPrimary} />
           <Text style={styles.upgradeText}>Upgrade to Pro</Text>
         </TouchableOpacity>
-        {showReferral && (
-          <TouchableOpacity style={styles.referralButton} onPress={handleReferral}>
-            <Ionicons name="share-outline" size={16} color={colors.primary} />
-            <Text style={styles.referralText}>Refer a friend</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
@@ -84,20 +70,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.textPrimary,
-  },
-  referralButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  referralText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
   },
 });

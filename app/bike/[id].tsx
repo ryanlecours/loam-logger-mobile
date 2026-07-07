@@ -625,9 +625,8 @@ export default function BikeDetailScreen() {
             <TouchableWithoutFeedback>
               <View style={styles.upgradeContent}>
                 <UpgradePrompt
-                  message="This component type requires a Pro plan or a completed referral to track."
+                  message="This component type requires a Pro plan to track."
                   onUpgrade={() => setShowUpgradePrompt(false)}
-                  onReferral={() => setShowUpgradePrompt(false)}
                 />
               </View>
             </TouchableWithoutFeedback>

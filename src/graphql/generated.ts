@@ -574,6 +574,7 @@ export type Mutation = {
   logComponentService: Component;
   logService: ServiceLog;
   markPairedComponentMigrationSeen: User;
+  markTrailStewardshipNoticeSeen: User;
   migratePairedComponents: MigratePairedComponentsResult;
   reactivateBike: Bike;
   replaceComponent: ReplaceComponentResult;
@@ -854,6 +855,7 @@ export type Query = {
   components: Array<Component>;
   importNotificationState?: Maybe<ImportNotificationState>;
   me?: Maybe<User>;
+  /** @deprecated Referral program removed; returns zeros */
   referralStats: ReferralStats;
   ride?: Maybe<Ride>;
   rideTypes: Array<RideType>;
@@ -1340,6 +1342,7 @@ export type User = {
   onboardingCompleted: Scalars['Boolean']['output'];
   pairedComponentMigrationSeenAt?: Maybe<Scalars['String']['output']>;
   predictionMode?: Maybe<Scalars['String']['output']>;
+  /** @deprecated Referral program removed; always null */
   referralCode?: Maybe<Scalars['String']['output']>;
   rides: Array<Ride>;
   ridesMissingWeather: Scalars['Int']['output'];
@@ -1348,6 +1351,7 @@ export type User = {
   subscriptionProvider?: Maybe<SubscriptionProvider>;
   subscriptionTier: SubscriptionTier;
   tierLimits: TierLimits;
+  trailStewardshipNoticeSeenAt?: Maybe<Scalars['String']['output']>;
   weatherBreakdown: WeatherBreakdown;
 };
 
@@ -1612,12 +1616,7 @@ export type UpdateBikeNotificationPreferenceMutation = { __typename?: 'Mutation'
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, referralCode?: string | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
-
-export type ReferralStatsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type ReferralStatsQuery = { __typename?: 'Query', referralStats: { __typename?: 'ReferralStats', referralCode: string, referralLink: string, pendingCount: number, completedCount: number } };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RideQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -3013,7 +3012,6 @@ export const MeDocument = gql`
     activeDataSource
     subscriptionTier
     subscriptionProvider
-    referralCode
     needsDowngradeSelection
     tierLimits {
       maxBikes
@@ -3063,51 +3061,6 @@ export type MeQueryHookResult = ReturnType<typeof useMeQuery>;
 export type MeLazyQueryHookResult = ReturnType<typeof useMeLazyQuery>;
 export type MeSuspenseQueryHookResult = ReturnType<typeof useMeSuspenseQuery>;
 export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
-export const ReferralStatsDocument = gql`
-    query ReferralStats {
-  referralStats {
-    referralCode
-    referralLink
-    pendingCount
-    completedCount
-  }
-}
-    `;
-
-/**
- * __useReferralStatsQuery__
- *
- * To run a query within a React component, call `useReferralStatsQuery` and pass it any options that fit your needs.
- * When your component renders, `useReferralStatsQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useReferralStatsQuery({
- *   variables: {
- *   },
- * });
- */
-export function useReferralStatsQuery(baseOptions?: Apollo.QueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ReferralStatsQuery, ReferralStatsQueryVariables>(ReferralStatsDocument, options);
-      }
-export function useReferralStatsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ReferralStatsQuery, ReferralStatsQueryVariables>(ReferralStatsDocument, options);
-        }
-// @ts-ignore
-export function useReferralStatsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>): Apollo.UseSuspenseQueryResult<ReferralStatsQuery, ReferralStatsQueryVariables>;
-export function useReferralStatsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>): Apollo.UseSuspenseQueryResult<ReferralStatsQuery | undefined, ReferralStatsQueryVariables>;
-export function useReferralStatsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ReferralStatsQuery, ReferralStatsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ReferralStatsQuery, ReferralStatsQueryVariables>(ReferralStatsDocument, options);
-        }
-export type ReferralStatsQueryHookResult = ReturnType<typeof useReferralStatsQuery>;
-export type ReferralStatsLazyQueryHookResult = ReturnType<typeof useReferralStatsLazyQuery>;
-export type ReferralStatsSuspenseQueryHookResult = ReturnType<typeof useReferralStatsSuspenseQuery>;
-export type ReferralStatsQueryResult = Apollo.QueryResult<ReferralStatsQuery, ReferralStatsQueryVariables>;
 export const RideDocument = gql`
     query Ride($id: ID!) {
   ride(id: $id) {
