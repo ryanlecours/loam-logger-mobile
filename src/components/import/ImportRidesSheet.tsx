@@ -187,9 +187,14 @@ export function ImportRidesSheet({
                         const isCompleted = request?.status === 'completed';
                         const isInProgress = request?.status === 'pending' || request?.status === 'in_progress';
                         const isSelected = selectedYear === year;
-                        // Past seasons are a Pro feature — free accounts
-                        // import the current year ('ytd') only.
-                        const isProLocked = !isPro && year !== 'ytd';
+                        // Past seasons are a Pro feature — free accounts can
+                        // import the current year only. Mirrors the server's
+                        // canBackfillYear, which accepts both 'ytd' and the
+                        // literal current-year entry.
+                        const isProLocked =
+                          !isPro &&
+                          year !== 'ytd' &&
+                          parseInt(year, 10) !== new Date().getFullYear();
                         const isDisabled = isCompleted || isInProgress || isProLocked;
 
                         return (
