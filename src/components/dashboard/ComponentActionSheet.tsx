@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
+import { ProChip } from '../common/UpgradePrompt';
 import { colors } from '../../constants/theme';
 
 interface ComponentActionSheetProps {
@@ -86,6 +87,9 @@ export function ComponentActionSheet({
   const location = formatLocation(prediction.location);
   const brandModel = [prediction.brand, prediction.model].filter(Boolean).join(' ');
   const recommendedHours = prediction.serviceIntervalHours ?? 50;
+  // Pro-only prediction fields come back null for free-tier users.
+  const hoursRemaining = prediction.hoursRemaining;
+  const ridesRemaining = prediction.ridesRemainingEstimate;
 
   return (
     <Modal
@@ -117,28 +121,35 @@ export function ComponentActionSheet({
               </View>
 
               <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Status Badge */}
+                {/* Status Badge — free tier gets a Pro chip where the
+                    prediction status would sit */}
                 <View style={styles.statusRow}>
-                  <ComponentHealthBadge status={prediction.status} />
+                  {prediction.status ? (
+                    <ComponentHealthBadge status={prediction.status} />
+                  ) : (
+                    <ProChip />
+                  )}
                 </View>
 
                 {/* Stats Grid */}
                 <View style={styles.statsGrid}>
-                  <View style={styles.statItem}>
-                    <Ionicons
-                      name={prediction.hoursRemaining <= 0 ? 'warning' : 'time-outline'}
-                      size={20}
-                      color={prediction.hoursRemaining <= 0 ? colors.danger : colors.primary}
-                    />
-                    <Text style={styles.statValue}>
-                      {prediction.hoursRemaining <= 0
-                        ? `${Math.abs(prediction.hoursRemaining).toFixed(0)}h overdue`
-                        : `${prediction.hoursRemaining.toFixed(0)}h`}
-                    </Text>
-                    <Text style={styles.statLabel}>
-                      {prediction.hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
-                    </Text>
-                  </View>
+                  {hoursRemaining !== null && hoursRemaining !== undefined && (
+                    <View style={styles.statItem}>
+                      <Ionicons
+                        name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
+                        size={20}
+                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
+                      />
+                      <Text style={styles.statValue}>
+                        {hoursRemaining <= 0
+                          ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
+                          : `${hoursRemaining.toFixed(0)}h`}
+                      </Text>
+                      <Text style={styles.statLabel}>
+                        {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
+                      </Text>
+                    </View>
+                  )}
 
                   <View style={styles.statItem}>
                     <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
@@ -152,10 +163,18 @@ export function ComponentActionSheet({
                     <Text style={styles.statLabel}>Since Service</Text>
                   </View>
 
-                  {prediction.ridesRemainingEstimate > 0 && (
+                  {(hoursRemaining === null || hoursRemaining === undefined) && (
                     <View style={styles.statItem}>
                       <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{prediction.ridesRemainingEstimate}</Text>
+                      <Text style={styles.statValue}>{prediction.ridesSinceService}</Text>
+                      <Text style={styles.statLabel}>Rides Since Service</Text>
+                    </View>
+                  )}
+
+                  {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
+                    <View style={styles.statItem}>
+                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+                      <Text style={styles.statValue}>{ridesRemaining}</Text>
                       <Text style={styles.statLabel}>Rides Left</Text>
                     </View>
                   )}

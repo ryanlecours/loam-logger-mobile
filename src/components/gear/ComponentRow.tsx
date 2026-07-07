@@ -6,8 +6,11 @@ import { colors } from '../../constants/theme';
 
 interface ComponentRowProps {
   component: ComponentFieldsFragment;
-  status?: string;
+  status?: string | null;
   hoursRemaining?: number | null;
+  /** Raw usage from the prediction — shown when hoursRemaining is gated (free tier). */
+  hoursSinceService?: number | null;
+  ridesSinceService?: number | null;
   restricted?: boolean;
   onPress?: () => void;
 }
@@ -27,7 +30,7 @@ function formatLocation(location: string | null | undefined): string {
     .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-export function ComponentRow({ component, status, hoursRemaining, restricted, onPress }: ComponentRowProps) {
+export function ComponentRow({ component, status, hoursRemaining, hoursSinceService, ridesSinceService, restricted, onPress }: ComponentRowProps) {
   const typeName = formatComponentType(component.type);
   const location = formatLocation(component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
@@ -39,6 +42,13 @@ export function ComponentRow({ component, status, hoursRemaining, restricted, on
         return `${Math.abs(hoursRemaining).toFixed(0)}h overdue`;
       }
       return `${hoursRemaining.toFixed(0)}h remaining`;
+    }
+    // Free tier: remaining hours are gated — show raw usage instead.
+    if (hoursSinceService !== undefined && hoursSinceService !== null) {
+      if (ridesSinceService !== undefined && ridesSinceService !== null) {
+        return `${hoursSinceService.toFixed(0)}h · ${ridesSinceService} rides since service`;
+      }
+      return `${hoursSinceService.toFixed(0)}h since service`;
     }
     if (component.hoursUsed !== null && component.serviceDueAtHours) {
       return `${component.hoursUsed?.toFixed(0) || 0} / ${component.serviceDueAtHours}h`;

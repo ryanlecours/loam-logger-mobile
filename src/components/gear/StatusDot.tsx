@@ -1,7 +1,8 @@
 import { View, StyleSheet } from 'react-native';
 
 interface StatusDotProps {
-  status: string;
+  /** Null/undefined (e.g. free-tier gated predictions) renders nothing. */
+  status?: string | null;
   size?: number;
 }
 
@@ -14,6 +15,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function StatusDot({ status, size = 10 }: StatusDotProps) {
+  // No status (free tier hides predictions) — render nothing rather than
+  // implying a known state with a gray dot.
+  if (!status) return null;
+
   const color = STATUS_COLORS[status] || STATUS_COLORS.UNKNOWN;
 
   return (

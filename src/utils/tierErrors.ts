@@ -1,4 +1,5 @@
 import type { ApolloError } from '@apollo/client';
+import { UPSELL_COPY } from '../constants/upsellCopy';
 
 function getErrorCode(error: ApolloError): string | undefined {
   return error.graphQLErrors?.[0]?.extensions?.code as string | undefined;
@@ -24,9 +25,9 @@ export function getTierErrorMessage(error: ApolloError): string {
   const code = getErrorCode(error);
   switch (code) {
     case 'TIER_LIMIT_EXCEEDED':
-      return 'You\'ve reached the bike limit on your Free plan. Upgrade to Pro for unlimited bikes.';
+      return `Your Free plan covers one bike. ${UPSELL_COPY.bikeLimit.body}`;
     case 'TIER_COMPONENT_RESTRICTED':
-      return 'This component type requires a Pro plan or a completed referral to track.';
+      return 'This component type requires a Pro plan to track.';
     case 'DOWNGRADE_SELECTION_REQUIRED':
       return 'Please select which bike to keep before making changes.';
     default:

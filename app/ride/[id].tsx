@@ -20,7 +20,9 @@ import {
   formatElevation,
 } from '../../src/utils/greetingMessages';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
+import { useUserTier } from '../../src/hooks/useUserTier';
 import { WeatherCard } from '../../src/components/ride/WeatherCard';
+import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { useShareRideOverlay } from '../../src/hooks/useShareRideOverlay';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -78,6 +80,7 @@ export default function RideDetailScreen() {
   const { id, action } = useLocalSearchParams<{ id: string; action?: string }>();
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
+  const { isFree } = useUserTier();
   const [deleting, setDeleting] = useState(false);
   // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
   // not a component (rendered as `<ShareSurface />`). Returning a component
@@ -378,9 +381,11 @@ export default function RideDetailScreen() {
           </View>
         </View>
 
-        {/* Weather Card */}
-        {ride.weather && (
+        {/* Weather Card — Pro-only; free users see the weather upsell where it would render */}
+        {ride.weather ? (
           <WeatherCard weather={ride.weather} distanceUnit={distanceUnit} />
+        ) : (
+          isFree && <UpsellCard feature="weather" />
         )}
 
         {/* Bike Card */}

@@ -24,9 +24,8 @@ import {
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
+import { ProChip } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
-import { FREE_LIGHT_COMPONENT_TYPES } from '../../src/constants/tiers';
 import { colors } from '../../src/constants/theme';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -45,7 +44,7 @@ function formatComponentType(type: string): string {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { isPro, isFreeLight, isFoundingRider } = useUserTier();
+  const { isPro, isFoundingRider } = useUserTier();
   const { distanceUnit } = useDistanceUnit();
   const {
     bikes,
@@ -102,10 +101,19 @@ export default function DashboardScreen() {
   const activeBikeId = selectedBikeId || typedBikes[0]?.id || null;
   const selectedBike = typedBikes.find((b) => b.id === activeBikeId) || null;
 
-  // Attention count from bike predictions
+  // Attention count from bike predictions. Null means the API hid the due
+  // counts (free tier) — distinct from a real zero, so we don't claim
+  // "Ready to ride" without data.
   const attentionCount = useMemo(() => {
-    if (!selectedBike?.predictions) return 0;
-    return (selectedBike.predictions.dueNowCount || 0) + (selectedBike.predictions.dueSoonCount || 0);
+    const predictions = selectedBike?.predictions;
+    if (!predictions) return 0;
+    if (
+      (predictions.dueNowCount === null || predictions.dueNowCount === undefined) &&
+      (predictions.dueSoonCount === null || predictions.dueSoonCount === undefined)
+    ) {
+      return null;
+    }
+    return (predictions.dueNowCount || 0) + (predictions.dueSoonCount || 0);
   }, [selectedBike]);
 
   // Get components needing attention
@@ -115,13 +123,6 @@ export default function DashboardScreen() {
       (p) => p.status === 'DUE_NOW' || p.status === 'DUE_SOON' || p.status === 'OVERDUE'
     );
   }, [selectedBike]);
-
-  const hasRestrictedComponents = useMemo(() => {
-    if (!isFreeLight || !selectedBike?.predictions?.components) return false;
-    return selectedBike.predictions.components.some(
-      (p) => !(FREE_LIGHT_COMPONENT_TYPES as readonly string[]).includes(p.componentType)
-    );
-  }, [isFreeLight, selectedBike]);
 
   const displayName = selectedBike
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
@@ -232,7 +233,13 @@ export default function DashboardScreen() {
             <Text style={styles.statLabel}>{distanceUnit === 'km' ? 'KM' : 'MI'}</Text>
           </View>
           <View style={styles.statCard}>
-            {attentionCount === 0 ? (
+            {attentionCount === null ? (
+              <>
+                <Ionicons name="construct-outline" size={18} color={colors.textMuted} />
+                <ProChip />
+                <Text style={styles.statLabel}>SERVICE STATUS</Text>
+              </>
+            ) : attentionCount === 0 ? (
               <>
                 <Ionicons name="checkmark-circle-outline" size={18} color={colors.good} />
                 <Text style={[styles.statValue, { fontSize: 15 }]}>Ready to</Text>
@@ -286,19 +293,10 @@ export default function DashboardScreen() {
                 installDate={undefined}
                 currentHours={comp.currentHours}
                 serviceIntervalHours={comp.serviceIntervalHours}
-                status={comp.status}
+                status={comp.status ?? 'UNKNOWN'}
                 onPress={() => setSelectedPrediction(comp)}
               />
             ))}
-          </View>
-        )}
-
-        {/* Upgrade banner for free users with restricted components */}
-        {hasRestrictedComponents && (
-          <View style={styles.upgradeBanner}>
-            <UpgradePrompt
-              message="You're only tracking 4 component types. Upgrade to Pro or refer a friend to unlock all 23+ components."
-            />
           </View>
         )}
 

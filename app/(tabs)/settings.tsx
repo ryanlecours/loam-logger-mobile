@@ -12,7 +12,6 @@ import { deleteAccount } from '../../src/lib/auth';
 import { DataSourceSelector } from '../../src/components/settings/DataSourceSelector';
 import { NotificationPreferences } from '../../src/components/settings/NotificationPreferences';
 import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
-import { ReferralSection } from '../../src/components/settings/ReferralSection';
 import { WeatherBackfillSection } from '../../src/components/settings/WeatherBackfillSection';
 import { BiometricUnlockSection } from '../../src/components/settings/BiometricUnlockSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
@@ -247,10 +246,6 @@ export default function SettingsScreen() {
 
       <View style={{ marginTop: 16, marginHorizontal: 16 }}>
         <SubscriptionSection />
-      </View>
-
-      <View style={{ marginHorizontal: 16 }}>
-        <ReferralSection />
       </View>
 
       <View style={styles.section}>

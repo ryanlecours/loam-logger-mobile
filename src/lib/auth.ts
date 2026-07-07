@@ -21,7 +21,6 @@ export interface User {
   mustChangePassword: boolean;
   isFoundingRider: boolean;
   subscriptionTier?: string | null;
-  referralCode?: string | null;
   needsDowngradeSelection?: boolean;
   hoursDisplayPreference?: string | null;
   predictionMode?: string | null;

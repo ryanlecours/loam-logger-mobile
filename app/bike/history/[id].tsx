@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator, Alert, Modal, Platform, Share } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
-import { useBikeHistoryQuery, useBulkUpdateBikeComponentInstallsMutation } from '../../../src/graphql/generated';
+import {
+  useBikeHistoryQuery,
+  useBulkUpdateBikeComponentInstallsMutation,
+  useEnableBikeShareMutation,
+  useDisableBikeShareMutation,
+} from '../../../src/graphql/generated';
 import { useDistanceUnit } from '../../../src/hooks/useDistanceUnit';
+import { useUserTier } from '../../../src/hooks/useUserTier';
+import { UpsellCard } from '../../../src/components/common/UpgradePrompt';
 import { colors } from '../../../src/constants/theme';
 import {
   bikeName,
@@ -37,10 +44,12 @@ function formatShortDate(iso: string): string {
 export default function BikeHistoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { distanceUnit } = useDistanceUnit();
+  const { isPro } = useUserTier();
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [showRides, setShowRides] = useState(true);
   const [showService, setShowService] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [showPdfUpsell, setShowPdfUpsell] = useState(false);
   const [editingService, setEditingService] = useState<{
     log: EditableServiceLog;
     componentLabel: string;
@@ -69,6 +78,10 @@ export default function BikeHistoryScreen() {
   const [bulkUpdateInstalls] = useBulkUpdateBikeComponentInstallsMutation({
     refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
   });
+
+  // Public share link — free for all tiers (it's a growth surface).
+  const [enableShare] = useEnableBikeShareMutation({ refetchQueries: ['BikeHistory'] });
+  const [disableShare] = useDisableBikeShareMutation({ refetchQueries: ['BikeHistory'] });
 
   const exitSelectionMode = useCallback(() => {
     setSelectionMode(false);
@@ -117,6 +130,11 @@ export default function BikeHistoryScreen() {
 
   const handleExport = async () => {
     if (!payload) return;
+    // PDF export is Pro-only — free users get the upsell card instead.
+    if (!isPro) {
+      setShowPdfUpsell(true);
+      return;
+    }
     setExporting(true);
     try {
       await exportBikeHistoryPdf({
@@ -131,6 +149,43 @@ export default function BikeHistoryScreen() {
       Alert.alert('Export failed', err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const shareLink = async () => {
+    if (!id) return;
+    try {
+      const { data: shareData } = await enableShare({ variables: { bikeId: id } });
+      const url = shareData?.enableBikeShare;
+      if (url) {
+        await Share.share({ message: url });
+      }
+    } catch (err) {
+      Alert.alert('Sharing failed', err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const handleShareLink = () => {
+    if (!payload) return;
+    if (payload.bike.shareSlug) {
+      // Already shared — offer re-share or revoke.
+      Alert.alert('Bike history link', 'Anyone with the link can view this bike’s service history.', [
+        { text: 'Share link', onPress: () => void shareLink() },
+        {
+          text: 'Stop sharing',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await disableShare({ variables: { bikeId: id! } });
+            } catch (err) {
+              Alert.alert('Error', err instanceof Error ? err.message : 'Unknown error');
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    } else {
+      void shareLink();
     }
   };
 
@@ -188,17 +243,30 @@ export default function BikeHistoryScreen() {
                 >
                   <Ionicons name="calendar-outline" size={22} color={colors.primary} />
                 </TouchableOpacity>
+                <TouchableOpacity onPress={handleShareLink} style={styles.headerButton}>
+                  <Ionicons
+                    name={payload.bike.shareSlug ? 'link' : 'link-outline'}
+                    size={22}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={handleExport} disabled={exporting} style={styles.headerButton}>
                   {exporting ? (
                     <ActivityIndicator color={colors.primary} />
                   ) : (
-                    <Ionicons name="share-outline" size={22} color={colors.primary} />
+                    <Ionicons name="document-text-outline" size={22} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               </View>
             ),
         }}
       />
+
+      {showPdfUpsell && !isPro && (
+        <View style={styles.pdfUpsell}>
+          <UpsellCard feature="pdfExport" />
+        </View>
+      )}
 
       <View style={styles.totalsRow}>
         <TotalCell label="Rides" value={payload.totals.rideCount.toLocaleString()} />
@@ -578,6 +646,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, padding: 24 },
   errorText: { color: colors.danger, textAlign: 'center' },
   headerButton: { paddingHorizontal: 8, paddingVertical: 4 },
+  pdfUpsell: { paddingHorizontal: 16, paddingTop: 12 },
   totalsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
   totalCell: { flex: 1, backgroundColor: colors.card, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.cardBorder },
   totalLabel: { color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },

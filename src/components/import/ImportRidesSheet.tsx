@@ -23,6 +23,8 @@ import {
   type WorkoutBackfillResult,
 } from '../../api/backfill';
 import type { IntegrationProvider } from '../../api/integrations';
+import { useUserTier } from '../../hooks/useUserTier';
+import { UpsellCard } from '../common/UpgradePrompt';
 import { colors } from '../../constants/theme';
 
 interface ImportRidesSheetProps {
@@ -42,9 +44,12 @@ const PROVIDER_CONFIG: Record<IntegrationProvider, { label: string; color: strin
 };
 
 function getStravaYearOptions(): string[] {
+  // 'ytd' covers the current year (with checkpoint-resume), so the list
+  // starts at last season — matching the web import modals, where each
+  // year appears exactly once.
   const currentYear = new Date().getFullYear();
   const years: string[] = ['ytd'];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 1; i <= 5; i++) {
     years.push(String(currentYear - i));
   }
   return years;
@@ -68,6 +73,7 @@ export function ImportRidesSheet({
   provider,
   onSuccess,
 }: ImportRidesSheetProps) {
+  const { isPro } = useUserTier();
   const [step, setStep] = useState<Step>('select');
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [history, setHistory] = useState<BackfillRequest[]>([]);
@@ -184,7 +190,15 @@ export function ImportRidesSheet({
                         const isCompleted = request?.status === 'completed';
                         const isInProgress = request?.status === 'pending' || request?.status === 'in_progress';
                         const isSelected = selectedYear === year;
-                        const isDisabled = isCompleted || isInProgress;
+                        // Past seasons are a Pro feature — free accounts can
+                        // import the current year only. Mirrors the server's
+                        // canBackfillYear, which accepts both 'ytd' and the
+                        // literal current-year entry.
+                        const isProLocked =
+                          !isPro &&
+                          year !== 'ytd' &&
+                          parseInt(year, 10) !== new Date().getFullYear();
+                        const isDisabled = isCompleted || isInProgress || isProLocked;
 
                         return (
                           <TouchableOpacity
@@ -203,6 +217,8 @@ export function ImportRidesSheet({
                                 <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                               ) : isInProgress ? (
                                 <ActivityIndicator size="small" color={config.color} />
+                              ) : isProLocked ? (
+                                <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
                               ) : isSelected ? (
                                 <Ionicons name="radio-button-on" size={24} color={config.color} />
                               ) : (
@@ -221,11 +237,20 @@ export function ImportRidesSheet({
                               {isInProgress && (
                                 <Text style={styles.yearMeta}>Sync in progress...</Text>
                               )}
+                              {isProLocked && !isCompleted && !isInProgress && (
+                                <Text style={styles.yearMeta}>Pro</Text>
+                              )}
                             </View>
                           </TouchableOpacity>
                         );
                       })}
                     </ScrollView>
+                  )}
+
+                  {!isPro && provider !== 'garmin' && (
+                    <View style={styles.importUpsell}>
+                      <UpsellCard feature="importDepth" />
+                    </View>
                   )}
 
                   {provider === 'garmin' && (
@@ -440,6 +465,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  importUpsell: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   footer: {
     padding: 20,

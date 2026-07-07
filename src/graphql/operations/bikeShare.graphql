@@ -1,0 +1,7 @@
+mutation EnableBikeShare($bikeId: ID!) {
+  enableBikeShare(bikeId: $bikeId)
+}
+
+mutation DisableBikeShare($bikeId: ID!) {
+  disableBikeShare(bikeId: $bikeId)
+}
