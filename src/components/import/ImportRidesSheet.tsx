@@ -44,9 +44,12 @@ const PROVIDER_CONFIG: Record<IntegrationProvider, { label: string; color: strin
 };
 
 function getStravaYearOptions(): string[] {
+  // 'ytd' covers the current year (with checkpoint-resume), so the list
+  // starts at last season — matching the web import modals, where each
+  // year appears exactly once.
   const currentYear = new Date().getFullYear();
   const years: string[] = ['ytd'];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 1; i <= 5; i++) {
     years.push(String(currentYear - i));
   }
   return years;
