@@ -24,7 +24,7 @@ import {
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
-import { ProChip } from '../../src/components/common/UpgradePrompt';
+import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
 
@@ -101,20 +101,15 @@ export default function DashboardScreen() {
   const activeBikeId = selectedBikeId || typedBikes[0]?.id || null;
   const selectedBike = typedBikes.find((b) => b.id === activeBikeId) || null;
 
-  // Attention count from bike predictions. Null means the API hid the due
-  // counts (free tier) — distinct from a real zero, so we don't claim
-  // "Ready to ride" without data.
+  // Free tier gets the binary READY / NOT READY signal from dueNowCount
+  // alone; the finer-grained dueSoonCount stays Pro-only.
   const attentionCount = useMemo(() => {
     const predictions = selectedBike?.predictions;
     if (!predictions) return 0;
-    if (
-      (predictions.dueNowCount === null || predictions.dueNowCount === undefined) &&
-      (predictions.dueSoonCount === null || predictions.dueSoonCount === undefined)
-    ) {
-      return null;
-    }
-    return (predictions.dueNowCount || 0) + (predictions.dueSoonCount || 0);
-  }, [selectedBike]);
+    const dueNow = predictions.dueNowCount ?? 0;
+    if (!isPro) return dueNow;
+    return dueNow + (predictions.dueSoonCount ?? 0);
+  }, [selectedBike, isPro]);
 
   // Get components needing attention
   const attentionComponents = useMemo(() => {
@@ -233,17 +228,17 @@ export default function DashboardScreen() {
             <Text style={styles.statLabel}>{distanceUnit === 'km' ? 'KM' : 'MI'}</Text>
           </View>
           <View style={styles.statCard}>
-            {attentionCount === null ? (
-              <>
-                <Ionicons name="construct-outline" size={18} color={colors.textMuted} />
-                <ProChip />
-                <Text style={styles.statLabel}>SERVICE STATUS</Text>
-              </>
-            ) : attentionCount === 0 ? (
+            {attentionCount === 0 ? (
               <>
                 <Ionicons name="checkmark-circle-outline" size={18} color={colors.good} />
                 <Text style={[styles.statValue, { fontSize: 15 }]}>Ready to</Text>
                 <Text style={[styles.statLabel, { color: colors.good }]}>RIDE</Text>
+              </>
+            ) : !isPro ? (
+              <>
+                <Ionicons name="warning-outline" size={18} color={colors.warning} />
+                <Text style={[styles.statValue, { fontSize: 15 }]}>Not Ready</Text>
+                <Text style={[styles.statLabel, { color: colors.warning }]}>SERVICE DUE</Text>
               </>
             ) : (
               <>
@@ -265,6 +260,12 @@ export default function DashboardScreen() {
             <Ionicons name="search-outline" size={22} color={colors.textPrimary} />
             <Text style={styles.actionButtonText}>Inspect Bike</Text>
           </TouchableOpacity>
+        )}
+
+        {!isPro && (
+          <View style={styles.upgradeBanner}>
+            <UpgradePrompt message="Unlock service predictions, due-soon warnings, and all 23+ components with Pro." />
+          </View>
         )}
 
         {/* Recent Rides — three most recent, with "See all" jumping to the
