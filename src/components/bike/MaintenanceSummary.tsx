@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Sentry from '@sentry/react-native';
 import { useBikeAdvisorSummaryQuery } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
 
@@ -22,13 +24,38 @@ interface MaintenanceSummaryProps {
  * mistake the summary prose for human-authored maintenance advice.
  */
 export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
-  const { data, loading } = useBikeAdvisorSummaryQuery({
+  const { data, loading, error } = useBikeAdvisorSummaryQuery({
     variables: { id: bikeId },
     fetchPolicy: 'cache-and-network',
     // No `skip` here — parent screen gates on isPro + non-empty components.
     // Server returns null when its own tier / trivial-state checks decline
     // to produce a summary, so we defensively handle that below too.
   });
+
+  // The resolver returns null on every known failure path (SDK error,
+  // timeout, rate limit, tier gate), so a truthy `error` here is
+  // genuinely unexpected — a GraphQL schema mismatch, a transport-level
+  // problem the global errorLink didn't fully handle, or a server bug.
+  // Log to Sentry so we hear about it; the UI still degrades to nothing
+  // via the `summary?.text` check below.
+  useEffect(() => {
+    if (!error) return;
+    Sentry.addBreadcrumb({
+      category: 'advisor',
+      type: 'error',
+      level: 'warning',
+      message: 'MaintenanceSummary query error',
+      data: {
+        bikeId,
+        graphQLError: error.graphQLErrors[0]?.message,
+        networkError: error.networkError?.message,
+      },
+    });
+    Sentry.captureMessage(
+      `MaintenanceSummary query failed: ${error.message}`,
+      'warning'
+    );
+  }, [error, bikeId]);
 
   const summary = data?.bike?.predictions?.advisorSummary;
 
