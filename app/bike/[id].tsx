@@ -13,6 +13,7 @@ import { EditServiceSheet, type EditableServiceLog } from '../../src/components/
 import { UpdateAcquisitionSheet } from '../../src/components/gear/UpdateAcquisitionSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
+import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
 import { formatComponentType } from '../../src/utils/formatComponentType';
@@ -336,6 +337,11 @@ export default function BikeDetailScreen() {
           </View>
         </View>
       </View>
+
+      {/* Maintenance Summary (Pro-only, hidden when advisor returns null) */}
+      {!isFree && (predictions?.components?.length ?? 0) > 0 && (
+        <MaintenanceSummary bikeId={bike.id} />
+      )}
 
       {/* Specs Section */}
       <View style={styles.section}>
