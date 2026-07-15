@@ -78,7 +78,28 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
 
 export const client = new ApolloClient({
   link: ApolloLink.from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache({ canonizeResults: false }),
+  cache: new InMemoryCache({
+    canonizeResults: false,
+    // Neither BikePredictionSummary nor ComponentPrediction has an `id`
+    // field (they have bikeId / componentId). Without an explicit keyFields
+    // policy, Apollo treats them as embedded objects and REPLACES the whole
+    // object on any partial write — so when a second query for the same bike
+    // fetches only some fields of predictions (e.g. BikeAdvisorSummary,
+    // which asks only for `bikeId, advisorSummary`), the cache-write drops
+    // every other field (overallStatus, components, dueNowCount, etc.) and
+    // the bike-detail screen's health badge and component list go blank a
+    // moment after paint. Explicit keyFields makes them their own normalized
+    // entities so Apollo field-merges partial writes automatically. Add the
+    // same policy for any future prediction-related type without an `id`.
+    typePolicies: {
+      BikePredictionSummary: {
+        keyFields: ['bikeId'],
+      },
+      ComponentPrediction: {
+        keyFields: ['componentId'],
+      },
+    },
+  }),
   // No global watchQuery `cache-and-network` default. A previous version of
   // this file set one, but it silently upgraded EVERY useQuery in the app
   // (dashboard, gear, settings, etc.) to fire a background network request
