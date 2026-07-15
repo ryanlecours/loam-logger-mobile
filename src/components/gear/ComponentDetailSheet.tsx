@@ -16,6 +16,7 @@ import { colors } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
+import { formatComponentType } from '../../utils/formatComponentType';
 import type { EditableServiceLog } from './EditServiceSheet';
 
 /** User-facing hints for what "service" means for specific component types */
@@ -37,21 +38,6 @@ interface ComponentDetailSheetProps {
    * Android (inner sheet renders behind the outer backdrop).
    */
   onEditServiceLog?: (log: EditableServiceLog) => void;
-}
-
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function formatLocation(location: string | null | undefined): string {
-  if (!location || location === 'NONE') return '';
-  return location
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 function formatDate(dateString: string | null | undefined): string {
@@ -181,8 +167,7 @@ export function ComponentDetailSheet({
 
   if (!component) return null;
 
-  const typeName = formatComponentType(component.type);
-  const location = formatLocation(component.location);
+  const label = formatComponentType(component.type, component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
   const status = prediction?.status || component.status || 'UNKNOWN';
   const confidence = formatConfidence(prediction?.confidence);
@@ -215,7 +200,7 @@ export function ComponentDetailSheet({
               <View style={styles.header}>
                 <View style={styles.headerContent}>
                   <Text style={styles.title}>
-                    {location ? `${location} ${typeName}` : typeName}
+                    {label}
                   </Text>
                   {brandModel && brandModel !== 'Stock' && (
                     <Text style={styles.brandModel}>{brandModel}</Text>

@@ -20,6 +20,7 @@ import {
 } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
 import { isTierError, getTierErrorMessage } from '../../utils/tierErrors';
+import { formatComponentType } from '../../utils/formatComponentType';
 import type { ApolloError } from '@apollo/client';
 
 interface ReplaceComponentSheetProps {
@@ -32,13 +33,6 @@ interface ReplaceComponentSheetProps {
 }
 
 type TabType = 'spare' | 'new';
-
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
 
 export function ReplaceComponentSheet({
   visible,

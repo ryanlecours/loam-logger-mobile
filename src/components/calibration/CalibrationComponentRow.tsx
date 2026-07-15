@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusDot } from '../gear/StatusDot';
 import { colors } from '../../constants/theme';
+import { formatComponentType } from '../../utils/formatComponentType';
 import type { ComponentPrediction } from '../../graphql/generated';
 
 interface CalibrationComponentRowProps {
@@ -14,21 +15,6 @@ interface CalibrationComponentRowProps {
   disabled: boolean;
 }
 
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function formatLocation(location: string | null | undefined): string {
-  if (!location || location === 'NONE') return '';
-  return location
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
 export function CalibrationComponentRow({
   component,
   isCalibrated,
@@ -38,10 +24,8 @@ export function CalibrationComponentRow({
   onSnooze,
   disabled,
 }: CalibrationComponentRowProps) {
-  const typeName = formatComponentType(component.componentType);
-  const location = formatLocation(component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
-  const label = location ? `${location} ${typeName}` : typeName;
+  const label = formatComponentType(component.componentType, component.location);
 
   if (isCalibrated) {
     return (

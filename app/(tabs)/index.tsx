@@ -27,6 +27,7 @@ import { CalibrationSheet } from '../../src/components/calibration/CalibrationSh
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
+import { formatComponentType } from '../../src/utils/formatComponentType';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: '7d', label: '7D' },
@@ -34,13 +35,6 @@ const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: '90d', label: '90D' },
   { key: 'YTD', label: 'YTD' },
 ];
-
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
 
 export default function DashboardScreen() {
   const router = useRouter();

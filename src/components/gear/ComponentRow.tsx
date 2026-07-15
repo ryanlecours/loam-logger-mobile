@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusDot } from './StatusDot';
 import { ComponentFieldsFragment } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
+import { formatComponentType } from '../../utils/formatComponentType';
 
 interface ComponentRowProps {
   component: ComponentFieldsFragment;
@@ -15,24 +16,8 @@ interface ComponentRowProps {
   onPress?: () => void;
 }
 
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function formatLocation(location: string | null | undefined): string {
-  if (!location || location === 'NONE') return '';
-  return location
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
 export function ComponentRow({ component, status, hoursRemaining, hoursSinceService, ridesSinceService, restricted, onPress }: ComponentRowProps) {
-  const typeName = formatComponentType(component.type);
-  const location = formatLocation(component.location);
+  const label = formatComponentType(component.type, component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
   const effectiveStatus = status || component.status || 'UNKNOWN';
 
@@ -76,7 +61,7 @@ export function ComponentRow({ component, status, hoursRemaining, hoursSinceServ
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.type, restricted && styles.textRestricted]}>
-            {location ? `${location} ${typeName}` : typeName}
+            {label}
           </Text>
           {!restricted && hoursText && (
             <Text
