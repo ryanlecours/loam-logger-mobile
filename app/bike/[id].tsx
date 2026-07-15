@@ -15,6 +15,7 @@ import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponen
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
+import { formatComponentType } from '../../src/utils/formatComponentType';
 
 const COMPONENT_GROUP_MAP: Record<string, string> = {
   FORK: 'Suspension', SHOCK: 'Suspension',
@@ -572,22 +573,11 @@ export default function BikeDetailScreen() {
         onReplace={handleReplaceFromDetail}
         onEditServiceLog={(log) => {
           if (!selectedComponent) return;
-          // Build a human-readable label for the component, matching the
-          // old in-sheet logic. Kept here (rather than recomputing inside
-          // EditServiceSheet) so the sheet's props stay purely string-typed.
-          const typeLabel = selectedComponent.type
-            .replace(/_/g, ' ')
-            .toLowerCase()
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-          const loc = selectedComponent.location;
-          const locLabel =
-            loc && loc !== 'NONE'
-              ? loc
-                  .replace(/_/g, ' ')
-                  .toLowerCase()
-                  .replace(/\b\w/g, (l) => l.toUpperCase())
-              : '';
-          setEditingServiceLogLabel(locLabel ? `${locLabel} ${typeLabel}` : typeLabel);
+          // Kept here rather than recomputed inside EditServiceSheet so the
+          // sheet's props stay purely string-typed.
+          setEditingServiceLogLabel(
+            formatComponentType(selectedComponent.type, selectedComponent.location),
+          );
           setEditingServiceLog(log);
         }}
       />

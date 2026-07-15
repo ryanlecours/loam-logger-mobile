@@ -15,6 +15,7 @@ import { ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/g
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
 import { colors } from '../../constants/theme';
+import { formatComponentType } from '../../utils/formatComponentType';
 
 interface ComponentActionSheetProps {
   visible: boolean;
@@ -23,21 +24,6 @@ interface ComponentActionSheetProps {
   onLogService: () => void;
   onReplace: () => void;
   onActionComplete: () => void;
-}
-
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function formatLocation(location: string | null | undefined): string {
-  if (!location || location === 'NONE') return '';
-  return location
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 export function ComponentActionSheet({
@@ -84,7 +70,7 @@ export function ComponentActionSheet({
   if (!prediction) return null;
 
   const typeName = formatComponentType(prediction.componentType);
-  const location = formatLocation(prediction.location);
+  const location = formatComponentType(prediction.location ?? '');
   const brandModel = [prediction.brand, prediction.model].filter(Boolean).join(' ');
   const recommendedHours = prediction.serviceIntervalHours ?? 50;
   // Pro-only prediction fields come back null for free-tier users.

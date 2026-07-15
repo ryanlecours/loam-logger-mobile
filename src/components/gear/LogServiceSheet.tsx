@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ComponentFieldsFragment, useLogComponentServiceMutation } from '../../graphql/generated';
 import { StatusDot } from './StatusDot';
 import { colors } from '../../constants/theme';
+import { formatComponentType } from '../../utils/formatComponentType';
 
 interface LogServiceSheetProps {
   visible: boolean;
@@ -23,21 +24,6 @@ interface LogServiceSheetProps {
   components: ComponentFieldsFragment[];
   onServiceLogged?: () => void;
   preSelectedId?: string | null;
-}
-
-function formatComponentType(type: string): string {
-  return type
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
-}
-
-function formatLocation(location: string | null | undefined): string {
-  if (!location || location === 'NONE') return '';
-  return location
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 export function LogServiceSheet({
@@ -204,8 +190,7 @@ export function LogServiceSheet({
                 ) : (
                   components.map((component) => {
                     const isSelected = selectedIds.has(component.id);
-                    const typeName = formatComponentType(component.type);
-                    const location = formatLocation(component.location);
+                    const label = formatComponentType(component.type, component.location);
                     const brandModel = [component.brand, component.model]
                       .filter(Boolean)
                       .join(' ');
@@ -230,7 +215,7 @@ export function LogServiceSheet({
                         <StatusDot status={component.status || 'UNKNOWN'} />
                         <View style={styles.componentContent}>
                           <Text style={styles.componentType}>
-                            {location ? `${location} ${typeName}` : typeName}
+                            {label}
                           </Text>
                           {brandModel && (
                             <Text style={styles.componentBrand}>{brandModel}</Text>
