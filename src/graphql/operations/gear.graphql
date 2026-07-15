@@ -246,3 +246,22 @@ mutation UpdateBikeNotificationPreference($input: UpdateBikeNotificationPreferen
     ...BikeNotificationPreferenceFields
   }
 }
+
+# Separate query for the advisor summary so LLM latency (~500ms–2s) doesn't
+# block the bike-detail screen render. The main Bike($id) query at the top of
+# this file paints predictions/components instantly from Apollo cache; this
+# query resolves the advisorSummary field independently and merges into the
+# same normalized BikePredictionSummary entity.
+query BikeAdvisorSummary($id: ID!) {
+  bike(id: $id) {
+    id
+    predictions {
+      bikeId
+      advisorSummary {
+        text
+        generatedAt
+        modelVersion
+      }
+    }
+  }
+}

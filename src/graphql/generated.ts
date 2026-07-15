@@ -104,6 +104,13 @@ export type AddRideInput = {
   trailSystem?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type AdvisorSummary = {
+  __typename?: 'AdvisorSummary';
+  generatedAt: Scalars['String']['output'];
+  modelVersion: Scalars['String']['output'];
+  text: Scalars['String']['output'];
+};
+
 export type BackfillWeatherResult = {
   __typename?: 'BackfillWeatherResult';
   enqueuedCount: Scalars['Int']['output'];
@@ -250,6 +257,7 @@ export type BikeNotificationPreference = {
 
 export type BikePredictionSummary = {
   __typename?: 'BikePredictionSummary';
+  advisorSummary?: Maybe<AdvisorSummary>;
   algoVersion: Scalars['String']['output'];
   bikeId: Scalars['ID']['output'];
   bikeName: Scalars['String']['output'];
@@ -1109,7 +1117,6 @@ export type SharedInstallEvent = {
 export type SharedServiceEvent = {
   __typename?: 'SharedServiceEvent';
   component: SharedComponent;
-  notes?: Maybe<Scalars['String']['output']>;
   performedAt: Scalars['String']['output'];
 };
 
@@ -1684,6 +1691,13 @@ export type UpdateBikeNotificationPreferenceMutationVariables = Exact<{
 
 
 export type UpdateBikeNotificationPreferenceMutation = { __typename?: 'Mutation', updateBikeNotificationPreference: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } };
+
+export type BikeAdvisorSummaryQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type BikeAdvisorSummaryQuery = { __typename?: 'Query', bike?: { __typename?: 'Bike', id: string, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, advisorSummary?: { __typename?: 'AdvisorSummary', text: string, generatedAt: string, modelVersion: string } | null } | null } | null };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3127,6 +3141,57 @@ export function useUpdateBikeNotificationPreferenceMutation(baseOptions?: Apollo
 export type UpdateBikeNotificationPreferenceMutationHookResult = ReturnType<typeof useUpdateBikeNotificationPreferenceMutation>;
 export type UpdateBikeNotificationPreferenceMutationResult = Apollo.MutationResult<UpdateBikeNotificationPreferenceMutation>;
 export type UpdateBikeNotificationPreferenceMutationOptions = Apollo.BaseMutationOptions<UpdateBikeNotificationPreferenceMutation, UpdateBikeNotificationPreferenceMutationVariables>;
+export const BikeAdvisorSummaryDocument = gql`
+    query BikeAdvisorSummary($id: ID!) {
+  bike(id: $id) {
+    id
+    predictions {
+      bikeId
+      advisorSummary {
+        text
+        generatedAt
+        modelVersion
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useBikeAdvisorSummaryQuery__
+ *
+ * To run a query within a React component, call `useBikeAdvisorSummaryQuery` and pass it any options that fit your needs.
+ * When your component renders, `useBikeAdvisorSummaryQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useBikeAdvisorSummaryQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useBikeAdvisorSummaryQuery(baseOptions: Apollo.QueryHookOptions<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables> & ({ variables: BikeAdvisorSummaryQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>(BikeAdvisorSummaryDocument, options);
+      }
+export function useBikeAdvisorSummaryLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>(BikeAdvisorSummaryDocument, options);
+        }
+// @ts-ignore
+export function useBikeAdvisorSummarySuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>): Apollo.UseSuspenseQueryResult<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>;
+export function useBikeAdvisorSummarySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>): Apollo.UseSuspenseQueryResult<BikeAdvisorSummaryQuery | undefined, BikeAdvisorSummaryQueryVariables>;
+export function useBikeAdvisorSummarySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>(BikeAdvisorSummaryDocument, options);
+        }
+export type BikeAdvisorSummaryQueryHookResult = ReturnType<typeof useBikeAdvisorSummaryQuery>;
+export type BikeAdvisorSummaryLazyQueryHookResult = ReturnType<typeof useBikeAdvisorSummaryLazyQuery>;
+export type BikeAdvisorSummarySuspenseQueryHookResult = ReturnType<typeof useBikeAdvisorSummarySuspenseQuery>;
+export type BikeAdvisorSummaryQueryResult = Apollo.QueryResult<BikeAdvisorSummaryQuery, BikeAdvisorSummaryQueryVariables>;
 export const MeDocument = gql`
     query Me {
   me {
