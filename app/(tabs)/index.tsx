@@ -24,6 +24,7 @@ import {
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
+import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors } from '../../src/constants/theme';
@@ -243,6 +244,15 @@ export default function DashboardScreen() {
             )}
           </View>
         </View>
+
+        {/* AI maintenance summary for the selected bike. Same gate as the
+            bike-detail screen (Pro + non-empty components); the widget itself
+            renders nothing when the bike is all-good or the advisor returns
+            null, so the space just collapses. Re-queries when the selected
+            bike changes. */}
+        {isPro && activeBikeId && (selectedBike?.predictions?.components?.length ?? 0) > 0 && (
+          <MaintenanceSummary bikeId={activeBikeId} />
+        )}
 
         {/* Inspect Bike Button */}
         {activeBikeId && (
