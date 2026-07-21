@@ -13,6 +13,7 @@ import { DataSourceSelector } from '../../src/components/settings/DataSourceSele
 import { NotificationPreferences } from '../../src/components/settings/NotificationPreferences';
 import { SubscriptionSection } from '../../src/components/settings/SubscriptionSection';
 import { WeatherBackfillSection } from '../../src/components/settings/WeatherBackfillSection';
+import { GarminWeatherRepairSection } from '../../src/components/settings/GarminWeatherRepairSection';
 import { BiometricUnlockSection } from '../../src/components/settings/BiometricUnlockSection';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
@@ -304,6 +305,8 @@ export default function SettingsScreen() {
       )}
 
       <WeatherBackfillSection />
+
+      <GarminWeatherRepairSection />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences</Text>
