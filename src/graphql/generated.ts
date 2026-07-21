@@ -548,6 +548,12 @@ export type DeleteRideResult = {
   ok: Scalars['Boolean']['output'];
 };
 
+export type GarminWeatherBackfillResult = {
+  __typename?: 'GarminWeatherBackfillResult';
+  ridesToRepair: Scalars['Int']['output'];
+  status: Scalars['String']['output'];
+};
+
 export type ImportNotificationState = {
   __typename?: 'ImportNotificationState';
   sessionId?: Maybe<Scalars['ID']['output']>;
@@ -595,6 +601,7 @@ export type Mutation = {
   addComponent: Component;
   addRide: Ride;
   assignBikeToRides: BulkAssignResult;
+  backfillGarminWeather: GarminWeatherBackfillResult;
   backfillWeatherForMyRides: BackfillWeatherResult;
   bulkUpdateBikeComponentInstalls: BulkUpdateBikeComponentInstallsResult;
   bulkUpdateComponentBaselines: Array<Component>;
@@ -1466,6 +1473,7 @@ export type User = {
   createdAt: Scalars['String']['output'];
   distanceUnit?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
+  garminRidesMissingCoords: Scalars['Int']['output'];
   hasAcceptedCurrentTerms: Scalars['Boolean']['output'];
   hasPassword: Scalars['Boolean']['output'];
   hoursDisplayPreference?: Maybe<Scalars['String']['output']>;
@@ -1555,6 +1563,16 @@ export type AddRideMutationVariables = Exact<{
 
 
 export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+
+export type BackfillGarminWeatherMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type BackfillGarminWeatherMutation = { __typename?: 'Mutation', backfillGarminWeather: { __typename?: 'GarminWeatherBackfillResult', status: string, ridesToRepair: number } };
+
+export type GarminRidesMissingCoordsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GarminRidesMissingCoordsQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, garminRidesMissingCoords: number } | null };
 
 export type BackfillWeatherForMyRidesMutationVariables = Exact<{ [key: string]: never; }>;
 
@@ -2120,6 +2138,82 @@ export function useAddRideMutation(baseOptions?: Apollo.MutationHookOptions<AddR
 export type AddRideMutationHookResult = ReturnType<typeof useAddRideMutation>;
 export type AddRideMutationResult = Apollo.MutationResult<AddRideMutation>;
 export type AddRideMutationOptions = Apollo.BaseMutationOptions<AddRideMutation, AddRideMutationVariables>;
+export const BackfillGarminWeatherDocument = gql`
+    mutation BackfillGarminWeather {
+  backfillGarminWeather {
+    status
+    ridesToRepair
+  }
+}
+    `;
+export type BackfillGarminWeatherMutationFn = Apollo.MutationFunction<BackfillGarminWeatherMutation, BackfillGarminWeatherMutationVariables>;
+
+/**
+ * __useBackfillGarminWeatherMutation__
+ *
+ * To run a mutation, you first call `useBackfillGarminWeatherMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useBackfillGarminWeatherMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [backfillGarminWeatherMutation, { data, loading, error }] = useBackfillGarminWeatherMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useBackfillGarminWeatherMutation(baseOptions?: Apollo.MutationHookOptions<BackfillGarminWeatherMutation, BackfillGarminWeatherMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<BackfillGarminWeatherMutation, BackfillGarminWeatherMutationVariables>(BackfillGarminWeatherDocument, options);
+      }
+export type BackfillGarminWeatherMutationHookResult = ReturnType<typeof useBackfillGarminWeatherMutation>;
+export type BackfillGarminWeatherMutationResult = Apollo.MutationResult<BackfillGarminWeatherMutation>;
+export type BackfillGarminWeatherMutationOptions = Apollo.BaseMutationOptions<BackfillGarminWeatherMutation, BackfillGarminWeatherMutationVariables>;
+export const GarminRidesMissingCoordsDocument = gql`
+    query GarminRidesMissingCoords {
+  me {
+    id
+    garminRidesMissingCoords
+  }
+}
+    `;
+
+/**
+ * __useGarminRidesMissingCoordsQuery__
+ *
+ * To run a query within a React component, call `useGarminRidesMissingCoordsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGarminRidesMissingCoordsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGarminRidesMissingCoordsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGarminRidesMissingCoordsQuery(baseOptions?: Apollo.QueryHookOptions<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>(GarminRidesMissingCoordsDocument, options);
+      }
+export function useGarminRidesMissingCoordsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>(GarminRidesMissingCoordsDocument, options);
+        }
+// @ts-ignore
+export function useGarminRidesMissingCoordsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>): Apollo.UseSuspenseQueryResult<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>;
+export function useGarminRidesMissingCoordsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>): Apollo.UseSuspenseQueryResult<GarminRidesMissingCoordsQuery | undefined, GarminRidesMissingCoordsQueryVariables>;
+export function useGarminRidesMissingCoordsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>(GarminRidesMissingCoordsDocument, options);
+        }
+export type GarminRidesMissingCoordsQueryHookResult = ReturnType<typeof useGarminRidesMissingCoordsQuery>;
+export type GarminRidesMissingCoordsLazyQueryHookResult = ReturnType<typeof useGarminRidesMissingCoordsLazyQuery>;
+export type GarminRidesMissingCoordsSuspenseQueryHookResult = ReturnType<typeof useGarminRidesMissingCoordsSuspenseQuery>;
+export type GarminRidesMissingCoordsQueryResult = Apollo.QueryResult<GarminRidesMissingCoordsQuery, GarminRidesMissingCoordsQueryVariables>;
 export const BackfillWeatherForMyRidesDocument = gql`
     mutation BackfillWeatherForMyRides {
   backfillWeatherForMyRides {

@@ -1,0 +1,13 @@
+mutation BackfillGarminWeather {
+  backfillGarminWeather {
+    status
+    ridesToRepair
+  }
+}
+
+query GarminRidesMissingCoords {
+  me {
+    id
+    garminRidesMissingCoords
+  }
+}
