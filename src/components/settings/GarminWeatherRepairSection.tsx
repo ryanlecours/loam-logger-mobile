@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useApolloClient } from '@apollo/client';
 import { colors } from '../../constants/theme';
 import { useUserTier } from '../../hooks/useUserTier';
-import { useIntegrationConnect } from '../../hooks/useIntegrationConnect';
 import {
   useGarminRidesMissingCoordsQuery,
   useBackfillGarminWeatherMutation,
@@ -17,12 +16,7 @@ import {
 // so wait before refetching the rides list to let the new weather tiles appear.
 const REFETCH_DELAY_MS = 30_000;
 
-type BackfillStatus =
-  | 'STARTED'
-  | 'ALREADY_RUNNING'
-  | 'NEEDS_RECONNECT'
-  | 'NOT_CONNECTED'
-  | 'NOTHING_TO_DO';
+type BackfillStatus = 'STARTED' | 'ALREADY_RUNNING' | 'NOT_CONNECTED' | 'NOTHING_TO_DO';
 
 // Garmin rides imported before the coordinate fix have no location data, so
 // they never got weather. This prompt re-imports them from Garmin (throttled
@@ -32,7 +26,6 @@ export function GarminWeatherRepairSection() {
   const { isPro } = useUserTier();
   const apolloClient = useApolloClient();
   const { data } = useGarminRidesMissingCoordsQuery({ fetchPolicy: 'cache-and-network' });
-  const { connect, connecting } = useIntegrationConnect('garmin');
   const [status, setStatus] = useState<BackfillStatus | null>(null);
   const [backfill, { loading }] = useBackfillGarminWeatherMutation();
 
@@ -78,15 +71,12 @@ export function GarminWeatherRepairSection() {
   };
 
   const inProgress = status === 'STARTED' || status === 'ALREADY_RUNNING';
-  const needsReconnect = status === 'NEEDS_RECONNECT';
 
   const subtitle = (() => {
     switch (status) {
       case 'STARTED':
       case 'ALREADY_RUNNING':
         return "Re-importing from Garmin. Weather will appear as your rides come back — this can take a few minutes.";
-      case 'NEEDS_RECONNECT':
-        return 'Reconnect Garmin to grant permission for importing historical data, then try again.';
       case 'NOT_CONNECTED':
         return 'Connect your Garmin account to import weather for past rides.';
       case 'NOTHING_TO_DO':
@@ -96,7 +86,7 @@ export function GarminWeatherRepairSection() {
     }
   })();
 
-  const buttonDisabled = loading || connecting || inProgress || status === 'NOTHING_TO_DO';
+  const buttonDisabled = loading || inProgress || status === 'NOTHING_TO_DO';
 
   return (
     <View style={styles.section}>
@@ -109,43 +99,26 @@ export function GarminWeatherRepairSection() {
             <Text style={styles.subtitle}>{subtitle}</Text>
           </View>
         </View>
-        {needsReconnect ? (
-          <TouchableOpacity
-            style={[styles.button, { borderColor: colors.primary }]}
-            onPress={connect}
-            disabled={connecting}
-          >
-            {connecting ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <>
-                <Ionicons name="link-outline" size={16} color={colors.primary} />
-                <Text style={[styles.buttonText, { color: colors.primary }]}>Reconnect Garmin</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.button, { borderColor: isPro ? colors.primary : colors.textMuted }]}
-            onPress={onPress}
-            disabled={buttonDisabled}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <>
-                <Ionicons
-                  name={isPro ? 'cloud-download-outline' : 'lock-closed-outline'}
-                  size={16}
-                  color={isPro ? colors.primary : colors.textMuted}
-                />
-                <Text style={[styles.buttonText, { color: isPro ? colors.primary : colors.textMuted }]}>
-                  {!isPro ? 'Pro feature' : inProgress ? 'Importing…' : 'Re-import'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.button, { borderColor: isPro ? colors.primary : colors.textMuted }]}
+          onPress={onPress}
+          disabled={buttonDisabled}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <>
+              <Ionicons
+                name={isPro ? 'cloud-download-outline' : 'lock-closed-outline'}
+                size={16}
+                color={isPro ? colors.primary : colors.textMuted}
+              />
+              <Text style={[styles.buttonText, { color: isPro ? colors.primary : colors.textMuted }]}>
+                {!isPro ? 'Pro feature' : inProgress ? 'Importing…' : 'Re-import'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
