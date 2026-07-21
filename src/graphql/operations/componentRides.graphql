@@ -1,0 +1,66 @@
+query ComponentRides($componentId: ID!, $take: Int, $after: ID) {
+  componentRides(componentId: $componentId, take: $take, after: $after) {
+    componentId
+    anchor
+    countedHours
+    hoursUsed
+    countedRideCount
+    hasMore
+    entries {
+      counted
+      adjustment
+      beforeAnchor
+      ride {
+        id
+        startTime
+        durationSeconds
+        distanceMeters
+        elevationGainMeters
+        averageHr
+        rideType
+        bikeId
+        location
+        trailSystem
+        notes
+        garminActivityId
+        stravaActivityId
+        whoopWorkoutId
+        suuntoWorkoutId
+        weather {
+          id
+          tempC
+          feelsLikeC
+          precipitationMm
+          windSpeedKph
+          humidity
+          wmoCode
+          condition
+        }
+      }
+    }
+  }
+}
+
+# component { id hoursUsed } lets Apollo renormalize the cached Component
+# (normalized by id) so the bike screen's hours refresh without a manual write.
+mutation SetComponentRideAdjustment($componentId: ID!, $rideId: ID!, $kind: ComponentRideAdjustmentKind!) {
+  setComponentRideAdjustment(componentId: $componentId, rideId: $rideId, kind: $kind) {
+    component {
+      id
+      hoursUsed
+    }
+    rideId
+    counted
+  }
+}
+
+mutation ClearComponentRideAdjustment($componentId: ID!, $rideId: ID!) {
+  clearComponentRideAdjustment(componentId: $componentId, rideId: $rideId) {
+    component {
+      id
+      hoursUsed
+    }
+    rideId
+    counted
+  }
+}

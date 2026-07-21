@@ -11,6 +11,30 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.0.9 — 2026-07-21
+
+### App Store "What's New"
+
+New: See the rides behind each part's hours
+Tap a component to see every ride that adds up to its tracked hours. Swapped a
+wheel or fork for a few rides? You can now remove a ride from a part — or apply
+a ride from another bike — so each part's hours reflect what you actually rode.
+
+Improvements
+- Behind-the-scenes fixes and polish
+
+### Internal
+- `feat(gear)`: component ride attribution. New pushed route
+  `app/component-rides/[componentId]` with Counted-rides (Remove/Restore =
+  EXCLUDE/clear) and Add-rides (Apply = INCLUDE, with search + date filter)
+  tabs, opened from a "View rides behind these hours" action on
+  `ComponentDetailSheet`. Per-row in-flight tracked with a `Set` (no cross-row
+  double-submit); no optimistic updates — refetch `ComponentRides` + `Bike`
+  after each change.
+- Client-only port: reuses the shared `componentRides` query and
+  `set`/`clearComponentRideAdjustment` mutations (new `componentRides.graphql`
+  + codegen). No backend changes.
+
 ## 1.0.7 — 2026-07-16
 
 ### App Store "What's New"

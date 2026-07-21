@@ -200,6 +200,12 @@ function RootLayoutNav() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="component-rides"
+          options={{
+            headerShown: false,
+          }}
+        />
         <Stack.Screen name="oauth" />
         <Stack.Screen name="billing-success" options={{ headerShown: false }} />
         <Stack.Screen name="billing-cancelled" options={{ headerShown: false }} />

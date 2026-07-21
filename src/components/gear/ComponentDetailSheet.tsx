@@ -31,6 +31,8 @@ interface ComponentDetailSheetProps {
   onClose: () => void;
   onLogService: () => void;
   onReplace: () => void;
+  /** Opens the full-screen "rides behind this component's hours" view. */
+  onViewRides: () => void;
   /**
    * Fires when a user taps a service log row in the embedded history list.
    * Parent should render an EditServiceSheet as a sibling to this one —
@@ -71,6 +73,7 @@ export function ComponentDetailSheet({
   onClose,
   onLogService,
   onReplace,
+  onViewRides,
   onEditServiceLog,
 }: ComponentDetailSheetProps) {
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
@@ -553,6 +556,18 @@ export function ComponentDetailSheet({
                 )}
               </ScrollView>
 
+              {/* View the individual rides that sum to this component's hours */}
+              <TouchableOpacity
+                onPress={onViewRides}
+                disabled={snoozing || snoozeSuccess}
+                style={styles.viewRidesButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                <Text style={styles.viewRidesText}>View rides behind these hours</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+
               {/* Actions */}
               <View style={styles.actions}>
                 <TouchableOpacity
@@ -956,6 +971,24 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     paddingVertical: 4,
     paddingLeft: 22,
+  },
+  viewRidesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  viewRidesText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   actions: {
     flexDirection: 'row',
