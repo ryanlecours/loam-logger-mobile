@@ -444,6 +444,37 @@ export type ComponentPrediction = {
   why?: Maybe<Scalars['String']['output']>;
 };
 
+export enum ComponentRideAdjustmentKind {
+  Exclude = 'EXCLUDE',
+  Include = 'INCLUDE'
+}
+
+export type ComponentRideAdjustmentResult = {
+  __typename?: 'ComponentRideAdjustmentResult';
+  component: Component;
+  counted: Scalars['Boolean']['output'];
+  rideId: Scalars['ID']['output'];
+};
+
+export type ComponentRideEntry = {
+  __typename?: 'ComponentRideEntry';
+  adjustment?: Maybe<ComponentRideAdjustmentKind>;
+  beforeAnchor: Scalars['Boolean']['output'];
+  counted: Scalars['Boolean']['output'];
+  ride: Ride;
+};
+
+export type ComponentRidesPayload = {
+  __typename?: 'ComponentRidesPayload';
+  anchor?: Maybe<Scalars['String']['output']>;
+  componentId: Scalars['ID']['output'];
+  countedHours: Scalars['Float']['output'];
+  countedRideCount: Scalars['Int']['output'];
+  entries: Array<ComponentRideEntry>;
+  hasMore: Scalars['Boolean']['output'];
+  hoursUsed: Scalars['Float']['output'];
+};
+
 export type ComponentSnapshot = {
   __typename?: 'ComponentSnapshot';
   brand: Scalars['String']['output'];
@@ -567,6 +598,7 @@ export type Mutation = {
   backfillWeatherForMyRides: BackfillWeatherResult;
   bulkUpdateBikeComponentInstalls: BulkUpdateBikeComponentInstallsResult;
   bulkUpdateComponentBaselines: Array<Component>;
+  clearComponentRideAdjustment: ComponentRideAdjustmentResult;
   completeCalibration: User;
   createBillingPortalSession: BillingPortalResult;
   createCheckoutSession: CheckoutSessionResult;
@@ -590,9 +622,11 @@ export type Mutation = {
   migratePairedComponents: MigratePairedComponentsResult;
   reactivateBike: Bike;
   replaceComponent: ReplaceComponentResult;
+  requestRideTrack: RideTrack;
   resetCalibration: User;
   retireBike: Bike;
   selectBikeForDowngrade: Bike;
+  setComponentRideAdjustment: ComponentRideAdjustmentResult;
   snoozeComponent: Component;
   swapComponents: SwapComponentsResult;
   triggerProviderSync: TriggerSyncResult;
@@ -655,6 +689,12 @@ export type MutationBulkUpdateBikeComponentInstallsArgs = {
 
 export type MutationBulkUpdateComponentBaselinesArgs = {
   input: BulkUpdateBaselinesInput;
+};
+
+
+export type MutationClearComponentRideAdjustmentArgs = {
+  componentId: Scalars['ID']['input'];
+  rideId: Scalars['ID']['input'];
 };
 
 
@@ -750,6 +790,11 @@ export type MutationReplaceComponentArgs = {
 };
 
 
+export type MutationRequestRideTrackArgs = {
+  rideId: Scalars['ID']['input'];
+};
+
+
 export type MutationRetireBikeArgs = {
   id: Scalars['ID']['input'];
   status: BikeStatus;
@@ -758,6 +803,13 @@ export type MutationRetireBikeArgs = {
 
 export type MutationSelectBikeForDowngradeArgs = {
   bikeId: Scalars['ID']['input'];
+};
+
+
+export type MutationSetComponentRideAdjustmentArgs = {
+  componentId: Scalars['ID']['input'];
+  kind: ComponentRideAdjustmentKind;
+  rideId: Scalars['ID']['input'];
 };
 
 
@@ -874,12 +926,14 @@ export type Query = {
   bikeNotes: BikeNotesPage;
   bikes: Array<Bike>;
   calibrationState?: Maybe<CalibrationState>;
+  componentRides: ComponentRidesPayload;
   components: Array<Component>;
   importNotificationState?: Maybe<ImportNotificationState>;
   me?: Maybe<User>;
   /** @deprecated Referral program removed; returns zeros */
   referralStats: ReferralStats;
   ride?: Maybe<Ride>;
+  rideTrack: RideTrack;
   rideTypes: Array<RideType>;
   rides: Array<Ride>;
   servicePreferenceDefaults: Array<ServicePreferenceDefault>;
@@ -887,7 +941,6 @@ export type Query = {
   stravaGearMappings: Array<StravaGearMapping>;
   unassignedRides: UnassignedRidesPage;
   unmappedStravaGears: Array<StravaGearInfo>;
-  user?: Maybe<User>;
 };
 
 
@@ -915,6 +968,13 @@ export type QueryBikesArgs = {
 };
 
 
+export type QueryComponentRidesArgs = {
+  after?: InputMaybe<Scalars['ID']['input']>;
+  componentId: Scalars['ID']['input'];
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryComponentsArgs = {
   filter?: InputMaybe<ComponentFilterInput>;
 };
@@ -922,6 +982,11 @@ export type QueryComponentsArgs = {
 
 export type QueryRideArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryRideTrackArgs = {
+  rideId: Scalars['ID']['input'];
 };
 
 
@@ -941,11 +1006,6 @@ export type QueryUnassignedRidesArgs = {
   after?: InputMaybe<Scalars['ID']['input']>;
   importSessionId: Scalars['ID']['input'];
   take?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type QueryUserArgs = {
-  id: Scalars['ID']['input'];
 };
 
 export type ReferralStats = {
@@ -995,6 +1055,19 @@ export type Ride = {
   weather?: Maybe<RideWeather>;
   whoopWorkoutId?: Maybe<Scalars['String']['output']>;
 };
+
+export type RideTrack = {
+  __typename?: 'RideTrack';
+  points?: Maybe<Array<Array<Scalars['Float']['output']>>>;
+  sampledFrom?: Maybe<Scalars['Int']['output']>;
+  status: RideTrackStatus;
+};
+
+export enum RideTrackStatus {
+  Available = 'AVAILABLE',
+  Fetchable = 'FETCHABLE',
+  Unavailable = 'UNAVAILABLE'
+}
 
 export enum RideType {
   Commute = 'COMMUTE',
@@ -1582,6 +1655,32 @@ export type DeleteBikeComponentInstallMutationVariables = Exact<{
 
 
 export type DeleteBikeComponentInstallMutation = { __typename?: 'Mutation', deleteBikeComponentInstall: boolean };
+
+export type ComponentRidesQueryVariables = Exact<{
+  componentId: Scalars['ID']['input'];
+  take?: InputMaybe<Scalars['Int']['input']>;
+  after?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+
+export type ComponentRidesQuery = { __typename?: 'Query', componentRides: { __typename?: 'ComponentRidesPayload', componentId: string, anchor?: string | null, countedHours: number, hoursUsed: number, countedRideCount: number, hasMore: boolean, entries: Array<{ __typename?: 'ComponentRideEntry', counted: boolean, adjustment?: ComponentRideAdjustmentKind | null, beforeAnchor: boolean, ride: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, trailSystem?: string | null, notes?: string | null, garminActivityId?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } }> } };
+
+export type SetComponentRideAdjustmentMutationVariables = Exact<{
+  componentId: Scalars['ID']['input'];
+  rideId: Scalars['ID']['input'];
+  kind: ComponentRideAdjustmentKind;
+}>;
+
+
+export type SetComponentRideAdjustmentMutation = { __typename?: 'Mutation', setComponentRideAdjustment: { __typename?: 'ComponentRideAdjustmentResult', rideId: string, counted: boolean, component: { __typename?: 'Component', id: string, hoursUsed: number } } };
+
+export type ClearComponentRideAdjustmentMutationVariables = Exact<{
+  componentId: Scalars['ID']['input'];
+  rideId: Scalars['ID']['input'];
+}>;
+
+
+export type ClearComponentRideAdjustmentMutation = { __typename?: 'Mutation', clearComponentRideAdjustment: { __typename?: 'ComponentRideAdjustmentResult', rideId: string, counted: boolean, component: { __typename?: 'Component', id: string, hoursUsed: number } } };
 
 export type DeleteRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2627,6 +2726,171 @@ export function useDeleteBikeComponentInstallMutation(baseOptions?: Apollo.Mutat
 export type DeleteBikeComponentInstallMutationHookResult = ReturnType<typeof useDeleteBikeComponentInstallMutation>;
 export type DeleteBikeComponentInstallMutationResult = Apollo.MutationResult<DeleteBikeComponentInstallMutation>;
 export type DeleteBikeComponentInstallMutationOptions = Apollo.BaseMutationOptions<DeleteBikeComponentInstallMutation, DeleteBikeComponentInstallMutationVariables>;
+export const ComponentRidesDocument = gql`
+    query ComponentRides($componentId: ID!, $take: Int, $after: ID) {
+  componentRides(componentId: $componentId, take: $take, after: $after) {
+    componentId
+    anchor
+    countedHours
+    hoursUsed
+    countedRideCount
+    hasMore
+    entries {
+      counted
+      adjustment
+      beforeAnchor
+      ride {
+        id
+        startTime
+        durationSeconds
+        distanceMeters
+        elevationGainMeters
+        averageHr
+        rideType
+        bikeId
+        location
+        trailSystem
+        notes
+        garminActivityId
+        stravaActivityId
+        whoopWorkoutId
+        suuntoWorkoutId
+        weather {
+          id
+          tempC
+          feelsLikeC
+          precipitationMm
+          windSpeedKph
+          humidity
+          wmoCode
+          condition
+        }
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useComponentRidesQuery__
+ *
+ * To run a query within a React component, call `useComponentRidesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useComponentRidesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useComponentRidesQuery({
+ *   variables: {
+ *      componentId: // value for 'componentId'
+ *      take: // value for 'take'
+ *      after: // value for 'after'
+ *   },
+ * });
+ */
+export function useComponentRidesQuery(baseOptions: Apollo.QueryHookOptions<ComponentRidesQuery, ComponentRidesQueryVariables> & ({ variables: ComponentRidesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ComponentRidesQuery, ComponentRidesQueryVariables>(ComponentRidesDocument, options);
+      }
+export function useComponentRidesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ComponentRidesQuery, ComponentRidesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ComponentRidesQuery, ComponentRidesQueryVariables>(ComponentRidesDocument, options);
+        }
+// @ts-ignore
+export function useComponentRidesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ComponentRidesQuery, ComponentRidesQueryVariables>): Apollo.UseSuspenseQueryResult<ComponentRidesQuery, ComponentRidesQueryVariables>;
+export function useComponentRidesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ComponentRidesQuery, ComponentRidesQueryVariables>): Apollo.UseSuspenseQueryResult<ComponentRidesQuery | undefined, ComponentRidesQueryVariables>;
+export function useComponentRidesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ComponentRidesQuery, ComponentRidesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ComponentRidesQuery, ComponentRidesQueryVariables>(ComponentRidesDocument, options);
+        }
+export type ComponentRidesQueryHookResult = ReturnType<typeof useComponentRidesQuery>;
+export type ComponentRidesLazyQueryHookResult = ReturnType<typeof useComponentRidesLazyQuery>;
+export type ComponentRidesSuspenseQueryHookResult = ReturnType<typeof useComponentRidesSuspenseQuery>;
+export type ComponentRidesQueryResult = Apollo.QueryResult<ComponentRidesQuery, ComponentRidesQueryVariables>;
+export const SetComponentRideAdjustmentDocument = gql`
+    mutation SetComponentRideAdjustment($componentId: ID!, $rideId: ID!, $kind: ComponentRideAdjustmentKind!) {
+  setComponentRideAdjustment(
+    componentId: $componentId
+    rideId: $rideId
+    kind: $kind
+  ) {
+    component {
+      id
+      hoursUsed
+    }
+    rideId
+    counted
+  }
+}
+    `;
+export type SetComponentRideAdjustmentMutationFn = Apollo.MutationFunction<SetComponentRideAdjustmentMutation, SetComponentRideAdjustmentMutationVariables>;
+
+/**
+ * __useSetComponentRideAdjustmentMutation__
+ *
+ * To run a mutation, you first call `useSetComponentRideAdjustmentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetComponentRideAdjustmentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setComponentRideAdjustmentMutation, { data, loading, error }] = useSetComponentRideAdjustmentMutation({
+ *   variables: {
+ *      componentId: // value for 'componentId'
+ *      rideId: // value for 'rideId'
+ *      kind: // value for 'kind'
+ *   },
+ * });
+ */
+export function useSetComponentRideAdjustmentMutation(baseOptions?: Apollo.MutationHookOptions<SetComponentRideAdjustmentMutation, SetComponentRideAdjustmentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetComponentRideAdjustmentMutation, SetComponentRideAdjustmentMutationVariables>(SetComponentRideAdjustmentDocument, options);
+      }
+export type SetComponentRideAdjustmentMutationHookResult = ReturnType<typeof useSetComponentRideAdjustmentMutation>;
+export type SetComponentRideAdjustmentMutationResult = Apollo.MutationResult<SetComponentRideAdjustmentMutation>;
+export type SetComponentRideAdjustmentMutationOptions = Apollo.BaseMutationOptions<SetComponentRideAdjustmentMutation, SetComponentRideAdjustmentMutationVariables>;
+export const ClearComponentRideAdjustmentDocument = gql`
+    mutation ClearComponentRideAdjustment($componentId: ID!, $rideId: ID!) {
+  clearComponentRideAdjustment(componentId: $componentId, rideId: $rideId) {
+    component {
+      id
+      hoursUsed
+    }
+    rideId
+    counted
+  }
+}
+    `;
+export type ClearComponentRideAdjustmentMutationFn = Apollo.MutationFunction<ClearComponentRideAdjustmentMutation, ClearComponentRideAdjustmentMutationVariables>;
+
+/**
+ * __useClearComponentRideAdjustmentMutation__
+ *
+ * To run a mutation, you first call `useClearComponentRideAdjustmentMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useClearComponentRideAdjustmentMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [clearComponentRideAdjustmentMutation, { data, loading, error }] = useClearComponentRideAdjustmentMutation({
+ *   variables: {
+ *      componentId: // value for 'componentId'
+ *      rideId: // value for 'rideId'
+ *   },
+ * });
+ */
+export function useClearComponentRideAdjustmentMutation(baseOptions?: Apollo.MutationHookOptions<ClearComponentRideAdjustmentMutation, ClearComponentRideAdjustmentMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ClearComponentRideAdjustmentMutation, ClearComponentRideAdjustmentMutationVariables>(ClearComponentRideAdjustmentDocument, options);
+      }
+export type ClearComponentRideAdjustmentMutationHookResult = ReturnType<typeof useClearComponentRideAdjustmentMutation>;
+export type ClearComponentRideAdjustmentMutationResult = Apollo.MutationResult<ClearComponentRideAdjustmentMutation>;
+export type ClearComponentRideAdjustmentMutationOptions = Apollo.BaseMutationOptions<ClearComponentRideAdjustmentMutation, ClearComponentRideAdjustmentMutationVariables>;
 export const DeleteRideDocument = gql`
     mutation DeleteRide($id: ID!) {
   deleteRide(id: $id) {
