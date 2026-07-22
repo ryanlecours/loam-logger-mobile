@@ -440,7 +440,6 @@ const styles = StyleSheet.create({
   upgradeBanner: {
     paddingHorizontal: 16,
     marginTop: 16,
-    marginBottom: 16,
   },
   bikeImageContainer: {
     alignItems: 'center',
@@ -482,7 +481,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 10,
-    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -511,7 +509,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     marginHorizontal: 16,
-    marginBottom: 20,
+    marginTop: 16,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -523,7 +521,7 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
