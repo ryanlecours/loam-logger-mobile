@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getBackfillHistory,
@@ -73,6 +74,7 @@ export function ImportRidesSheet({
   provider,
   onSuccess,
 }: ImportRidesSheetProps) {
+  const insets = useSafeAreaInsets();
   const { isPro } = useUserTier();
   const [step, setStep] = useState<Step>('select');
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export function ImportRidesSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -388,7 +390,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '75%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,

@@ -244,40 +244,61 @@ export default function DashboardScreen() {
           />
         }
       >
-        {/* Bike Header */}
+        {/* Bike header. The photo is part of the identity line rather than a
+            160pt band of its own: it was the largest element on a screen about
+            service state, carried no information (not tappable, no health), and
+            pushed the actual gear signal a full thumb-scroll down. At 56pt it
+            still tells a multi-bike rider which bike they are looking at, which
+            is the only job it had. */}
         <View style={styles.headerSection}>
           <TouchableOpacity
-            style={styles.bikeNameRow}
+            style={styles.identityRow}
             onPress={() => setShowBikeSelector(true)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Selected bike: ${displayName}. Change bike.`}
           >
-            <Text style={styles.bikeName}>{displayName}</Text>
-            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <View style={styles.subtitleRow}>
-            <Text style={styles.subtitle}>
-              {typedBikes.length > 1
-                ? `${typedBikes.length} bikes  ·  Component Wear Tracker`
-                : 'Component Wear Tracker'}
-            </Text>
-            <View style={[styles.tierBadge, isPro ? styles.tierBadgePro : styles.tierBadgeFree]}>
-              <Text style={[styles.tierBadgeText, isPro ? styles.tierBadgeTextPro : styles.tierBadgeTextFree]}>
-                {isFoundingRider ? 'Founding Rider' : isPro ? 'Pro' : 'Free'}
-              </Text>
+            {selectedBike?.thumbnailUrl ? (
+              <Image
+                source={{ uri: selectedBike.thumbnailUrl }}
+                style={styles.avatar}
+                resizeMode="cover"
+                accessibilityElementsHidden
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Ionicons name="bicycle-outline" size={26} color={colors.textMuted} />
+              </View>
+            )}
+            <View style={styles.identityCopy}>
+              <View style={styles.bikeNameRow}>
+                <Text style={styles.bikeName} numberOfLines={1}>
+                  {displayName}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+              </View>
+              <View style={styles.subtitleRow}>
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {typedBikes.length > 1
+                    ? `${typedBikes.length} bikes  ·  Component Wear Tracker`
+                    : 'Component Wear Tracker'}
+                </Text>
+                <View
+                  style={[styles.tierBadge, isPro ? styles.tierBadgePro : styles.tierBadgeFree]}
+                >
+                  <Text
+                    style={[
+                      styles.tierBadgeText,
+                      isPro ? styles.tierBadgeTextPro : styles.tierBadgeTextFree,
+                    ]}
+                  >
+                    {isFoundingRider ? 'Founding Rider' : isPro ? 'Pro' : 'Free'}
+                  </Text>
+                </View>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
-
-        {/* Bike Image */}
-        {selectedBike?.thumbnailUrl && (
-          <View style={styles.bikeImageContainer}>
-            <Image
-              source={{ uri: selectedBike.thumbnailUrl }}
-              style={styles.bikeImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
 
         {/* Bike health. This row is the reason the screen exists, so it holds
             nothing else: it used to sit beside account-wide hours and distance,
@@ -322,6 +343,26 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* The components behind the counts above, immediately below them.
+            These used to sit under the paywall and the ride list, roughly a
+            full screen from the number that summarizes them, so the count and
+            its detail could not be read as one thought. */}
+        {attentionComponents.length > 0 && (
+          <View style={styles.section}>
+            {attentionComponents.map((comp) => (
+              <DashboardComponentCard
+                key={comp.componentId}
+                name={formatComponentType(comp.componentType)}
+                installDate={undefined}
+                currentHours={comp.currentHours}
+                serviceIntervalHours={comp.serviceIntervalHours}
+                status={comp.status ?? 'UNKNOWN'}
+                onPress={() => setSelectedPrediction(comp)}
+              />
+            ))}
+          </View>
+        )}
+
         {/* AI maintenance summary for the selected bike. Same gate as the
             bike-detail screen (Pro + non-empty components); the widget itself
             renders nothing when the bike is all-good or the advisor returns
@@ -360,27 +401,6 @@ export default function DashboardScreen() {
           onConnectPress={() => router.push('/(tabs)/settings' as Href)}
           onAddRidePress={() => router.push('/ride/add' as Href)}
         />
-
-        {/* Needs Attention Section */}
-        {attentionComponents.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="warning" size={16} color={attentionTone.on} />
-              <Text style={styles.sectionTitle}>NEEDS ATTENTION</Text>
-            </View>
-            {attentionComponents.map((comp) => (
-              <DashboardComponentCard
-                key={comp.componentId}
-                name={formatComponentType(comp.componentType)}
-                installDate={undefined}
-                currentHours={comp.currentHours}
-                serviceIntervalHours={comp.serviceIntervalHours}
-                status={comp.status ?? 'UNKNOWN'}
-                onPress={() => setSelectedPrediction(comp)}
-              />
-            ))}
-          </View>
-        )}
 
         {/* The screen's one timeframe control, sitting directly above the only
             block it governs. It used to live at the top of the scroll, where it
@@ -503,7 +523,34 @@ const styles = StyleSheet.create({
   headerSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 16,
+    // Tighter than the gap between blocks: the header and the health row are
+    // one thought (this bike, its state), so they sit closer to each other
+    // than to anything below.
+    paddingBottom: 12,
+  },
+  identityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    // The whole row is the bike switcher, so it carries the 44pt floor rather
+    // than relying on the text's own height.
+    minHeight: 56,
+  },
+  identityCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+  },
+  avatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   bikeNameRow: {
     flexDirection: 'row',
@@ -511,7 +558,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   bikeName: {
-    fontSize: 26,
+    flexShrink: 1,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.textPrimary,
   },
@@ -522,7 +570,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subtitle: {
-    fontSize: 14,
+    flexShrink: 1,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   tierBadge: {
@@ -550,15 +599,6 @@ const styles = StyleSheet.create({
   upgradeBanner: {
     paddingHorizontal: 16,
     marginTop: 16,
-  },
-  bikeImageContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  bikeImage: {
-    width: '100%',
-    height: 160,
   },
   timeframeTabs: {
     flexDirection: 'row',
@@ -648,18 +688,9 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    letterSpacing: 1,
+    // Tight to the health row above: the counts and the cards that explain
+    // them are one group. The old "NEEDS ATTENTION" header is gone with it,
+    // since the row directly above already names these three states.
+    marginTop: 12,
   },
 });

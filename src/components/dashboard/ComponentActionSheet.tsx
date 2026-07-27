@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ComponentPrediction,
@@ -38,6 +39,7 @@ export function ComponentActionSheet({
   onReplace,
   onActionComplete,
 }: ComponentActionSheetProps) {
+  const insets = useSafeAreaInsets();
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
@@ -127,7 +129,7 @@ export function ComponentActionSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -379,7 +381,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,

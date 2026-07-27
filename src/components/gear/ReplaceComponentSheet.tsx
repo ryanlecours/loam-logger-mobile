@@ -12,6 +12,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -42,6 +43,7 @@ export function ReplaceComponentSheet({
   onClose,
   onReplaced,
 }: ReplaceComponentSheetProps) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('spare');
   const [selectedSpareId, setSelectedSpareId] = useState<string | null>(null);
   const [brand, setBrand] = useState('');
@@ -174,7 +176,7 @@ export function ReplaceComponentSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -356,7 +358,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,

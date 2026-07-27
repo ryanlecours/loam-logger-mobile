@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeCalibrationSection } from './BikeCalibrationSection';
 import { colors, radius } from '../../constants/theme';
@@ -29,6 +30,7 @@ interface CalibrationSheetProps {
 }
 
 export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
+  const insets = useSafeAreaInsets();
   const { data, loading } = useCalibrationStateQuery({
     fetchPolicy: 'cache-and-network',
     skip: !visible,
@@ -196,7 +198,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               <View style={styles.header}>
@@ -309,7 +311,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,

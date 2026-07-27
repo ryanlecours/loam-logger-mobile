@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsFragment } from '../../graphql/generated';
 import { colors, radius } from '../../constants/theme';
@@ -20,6 +21,7 @@ export function BikeSelectorSheet({
   onAddBike,
   onClose,
 }: BikeSelectorSheetProps) {
+  const insets = useSafeAreaInsets();
   const getBikeStats = (bike: BikeFieldsFragment) => {
     const components = bike.components || [];
     const totalHours = components.reduce((sum, c) => sum + (c.hoursUsed || 0), 0);
@@ -32,7 +34,7 @@ export function BikeSelectorSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]} onStartShouldSetResponder={() => true}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Ionicons name="bicycle" size={20} color={colors.primary} />
@@ -102,7 +104,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 34,
     maxHeight: '70%',
   },
   header: {

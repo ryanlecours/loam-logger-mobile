@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useUnmappedStravaGearsQuery,
@@ -32,6 +33,7 @@ export function StravaGearMappingSheet({
   bikeName,
   onMappingCreated,
 }: StravaGearMappingSheetProps) {
+  const insets = useSafeAreaInsets();
   const { data, loading: gearsLoading } = useUnmappedStravaGearsQuery({
     skip: !visible,
     fetchPolicy: 'network-only',
@@ -79,7 +81,7 @@ export function StravaGearMappingSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               <View style={styles.header}>
@@ -157,7 +159,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '50%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,

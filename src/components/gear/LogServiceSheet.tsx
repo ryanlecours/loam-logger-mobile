@@ -11,6 +11,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { ComponentFieldsFragment, useLogComponentServiceMutation } from '../../graphql/generated';
@@ -33,6 +34,7 @@ export function LogServiceSheet({
   onServiceLogged,
   preSelectedId,
 }: LogServiceSheetProps) {
+  const insets = useSafeAreaInsets();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     preSelectedId ? new Set([preSelectedId]) : new Set()
   );
@@ -130,7 +132,7 @@ export function LogServiceSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               <View style={styles.header}>
@@ -272,7 +274,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
