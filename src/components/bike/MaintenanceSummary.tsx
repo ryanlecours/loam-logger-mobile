@@ -3,8 +3,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useBikeAdvisorSummaryQuery } from '../../graphql/generated';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, space } from '../../constants/theme';
 import { GarminDerivedNote } from '../attribution/GarminAttribution';
+import { ErrorState } from '../common/ErrorState';
+import { describeError } from '../../utils/errorCopy';
 
 interface MaintenanceSummaryProps {
   bikeId: string;
@@ -25,7 +27,7 @@ interface MaintenanceSummaryProps {
  * mistake the summary prose for human-authored maintenance advice.
  */
 export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
-  const { data, loading, error } = useBikeAdvisorSummaryQuery({
+  const { data, loading, error, refetch } = useBikeAdvisorSummaryQuery({
     variables: { id: bikeId },
     fetchPolicy: 'cache-and-network',
     // No `skip` here — parent screen gates on isPro + non-empty components.
@@ -76,9 +78,22 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
     );
   }
 
+  // A genuine query failure is not the same as "the advisor declined to say
+  // anything", and it must not look like it. Collapsing on error is how a
+  // rider ends up trusting a silence that only means the request fell over.
+  if (error && !summary?.text) {
+    const copy = describeError(error, 'service summary');
+    return (
+      <View style={styles.errorWrap}>
+        <ErrorState variant="card" title={copy.title} body={copy.body} onRetry={() => refetch()} />
+      </View>
+    );
+  }
+
   if (!summary?.text) {
-    // Free-tier user, empty bike, trivial state (ALL_GOOD), or transient
-    // server-side failure. Widget disappears; the space collapses.
+    // Free-tier user, empty bike, or a trivial ALL_GOOD state: the server
+    // declined to produce a summary on purpose. Widget disappears; the space
+    // collapses. This is the only silent path, and it is not a failure.
     return null;
   }
 
@@ -100,6 +115,10 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
 }
 
 const styles = StyleSheet.create({
+  errorWrap: {
+    marginTop: space.xl,
+    marginHorizontal: space.xl,
+  },
   attribution: {
     marginTop: 6,
   },

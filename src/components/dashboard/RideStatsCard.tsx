@@ -13,7 +13,9 @@ import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { useShareRideOverlay } from '../../hooks/useShareRideOverlay';
-import { colors, radius } from '../../constants/theme';
+import { colors, radius, space } from '../../constants/theme';
+import { ErrorState } from '../common/ErrorState';
+import { describeError } from '../../utils/errorCopy';
 import { conditionIcon, conditionLabel, conditionTint } from '../../lib/weather';
 import type { WeatherCondition } from '../../lib/weather';
 
@@ -53,7 +55,7 @@ export function RideStatsCard() {
   const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(
     new Set(['summary'])
   );
-  const { stats, loading } = useRideStats(timeframe);
+  const { stats, loading, error, refetch } = useRideStats(timeframe);
   // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
   // not a component. See comment in useShareRideOverlay — returning JSX as
   // a component-from-useCallback re-mounts the off-screen capture node on
@@ -125,6 +127,19 @@ export function RideStatsCard() {
     );
   }
 
+  // A failed read used to collapse into the same nothing as "no rides yet",
+  // which quietly tells a rider with 400 rides that they have none.
+  if (error && stats.totalRides === 0) {
+    const copy = describeError(error, 'ride stats');
+    return (
+      <View style={styles.errorWrap}>
+        <ErrorState variant="card" title={copy.title} body={copy.body} onRetry={() => refetch()} />
+      </View>
+    );
+  }
+
+  // Genuinely no rides. Collapsing is correct here: the dashboard's recent-rides
+  // block already owns the "connect a data source" story.
   if (stats.totalRides === 0) {
     return null;
   }
@@ -509,14 +524,20 @@ export function RideStatsCard() {
 }
 
 const styles = StyleSheet.create({
+  errorWrap: {
+    marginHorizontal: space.xl,
+    marginTop: space.xl,
+  },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginTop: 16,
-    shadowColor: '#000',
+    borderRadius: radius.md,
+    marginHorizontal: space.xl,
+    marginTop: space.xl,
+    // Forest-tinted, per DESIGN.md. A pure-black shadow at 5% was invisible
+    // against an obsidian background anyway.
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 2,
     overflow: 'hidden',

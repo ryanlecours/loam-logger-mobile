@@ -11,7 +11,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
+import {
+  ComponentPrediction,
+  useSnoozeComponentMutation,
+  useUpdateComponentMutation,
+} from '../../graphql/generated';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
 import { colors, radius } from '../../constants/theme';
@@ -38,8 +42,13 @@ export function ComponentActionSheet({
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
   const [snoozeSuccess, setSnoozeSuccess] = useState(false);
+  const [preSnoozeInterval, setPreSnoozeInterval] = useState<number | null>(null);
+  const [snoozeError, setSnoozeError] = useState<string | null>(null);
 
   const [snoozeComponent, { loading: snoozing }] = useSnoozeComponentMutation({
+    refetchQueries: ['Gear', 'GearLight'],
+  });
+  const [updateComponent, { loading: undoing }] = useUpdateComponentMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
 
@@ -48,31 +57,62 @@ export function ComponentActionSheet({
     setShowCustomInput(false);
     setCustomHours('');
     setSnoozeSuccess(false);
+    setPreSnoozeInterval(null);
+    setSnoozeError(null);
     onClose();
   }, [onClose]);
 
   const handleSnooze = useCallback(async (hours: number) => {
     if (!prediction) return;
+    setSnoozeError(null);
     try {
+      // Remember the interval we are about to overwrite, so Undo has something
+      // to restore. Captured before the mutation, not read back after it.
+      setPreSnoozeInterval(prediction.serviceIntervalHours ?? null);
       await snoozeComponent({
         variables: { id: prediction.componentId, hours },
       });
       setSnoozeSuccess(true);
-      setTimeout(() => {
-        handleClose();
-        onActionComplete();
-      }, 1000);
+      // Deliberately no auto-close. Snoozing pushes a service date out; that is
+      // the kind of change a rider should get to take back, and a 1000ms timer
+      // closing the sheet gave them no chance to.
+      onActionComplete();
     } catch (err) {
       console.error('Failed to snooze component:', err);
+      setSnoozeError('That did not save. Check your signal and try again.');
     }
-  }, [prediction, snoozeComponent, handleClose, onActionComplete]);
+  }, [prediction, snoozeComponent, onActionComplete]);
+
+  const handleUndoSnooze = useCallback(async () => {
+    if (!prediction || preSnoozeInterval === null) return;
+    setSnoozeError(null);
+    try {
+      await updateComponent({
+        variables: {
+          id: prediction.componentId,
+          input: { serviceDueAtHours: preSnoozeInterval },
+        },
+      });
+      setSnoozeSuccess(false);
+      setShowSnoozeOptions(false);
+      setPreSnoozeInterval(null);
+      onActionComplete();
+    } catch (err) {
+      console.error('Failed to undo snooze:', err);
+      setSnoozeError('Could not undo that. Try again.');
+    }
+  }, [prediction, preSnoozeInterval, updateComponent, onActionComplete]);
 
   if (!prediction) return null;
 
   const typeName = formatComponentType(prediction.componentType);
   const location = formatComponentType(prediction.location ?? '');
   const brandModel = [prediction.brand, prediction.model].filter(Boolean).join(' ');
-  const recommendedHours = prediction.serviceIntervalHours ?? 50;
+  // No invented fallback. A component with no service interval has no
+  // "recommended" snooze, and presenting one (this used to read "Snooze 50h")
+  // is invented precision in a product whose whole claim is that its numbers
+  // are explainable. Without an interval the rider gets the custom field only.
+  const recommendedHours = prediction.serviceIntervalHours ?? null;
   // Pro-only prediction fields come back null for free-tier users.
   const hoursRemaining = prediction.hoursRemaining;
   const ridesRemaining = prediction.ridesRemainingEstimate;
@@ -170,25 +210,39 @@ export function ComponentActionSheet({
                 {showSnoozeOptions && !snoozeSuccess && (
                   <View style={styles.snoozeSection}>
                     <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
+                    {recommendedHours === null && (
+                      <Text style={styles.snoozeHint}>
+                        This component has no service interval set, so there is nothing to
+                        recommend. Enter the hours you want to add.
+                      </Text>
+                    )}
                     <View style={styles.snoozeOptions}>
-                      <TouchableOpacity
-                        style={styles.snoozePresetButton}
-                        onPress={() => handleSnooze(recommendedHours)}
-                        disabled={snoozing}
-                      >
-                        {snoozing && !showCustomInput ? (
-                          <ActivityIndicator size="small" color={colors.onPrimary} />
-                        ) : (
-                          <Text style={styles.snoozePresetText}>
-                            Snooze {recommendedHours}h
-                          </Text>
-                        )}
-                      </TouchableOpacity>
+                      {recommendedHours !== null && (
+                        <TouchableOpacity
+                          style={styles.snoozePresetButton}
+                          onPress={() => handleSnooze(recommendedHours)}
+                          disabled={snoozing}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Snooze for ${recommendedHours} hours`}
+                          accessibilityState={{ disabled: snoozing }}
+                        >
+                          {snoozing && !showCustomInput ? (
+                            <ActivityIndicator size="small" color={colors.onPrimary} />
+                          ) : (
+                            <Text style={styles.snoozePresetText}>
+                              Snooze {recommendedHours}h
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
 
-                      {!showCustomInput ? (
+                      {!showCustomInput && recommendedHours !== null ? (
                         <TouchableOpacity
                           onPress={() => setShowCustomInput(true)}
                           disabled={snoozing}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel="Enter a custom snooze length"
                         >
                           <Text style={styles.customLink}>Custom</Text>
                         </TouchableOpacity>
@@ -224,11 +278,49 @@ export function ComponentActionSheet({
                   </View>
                 )}
 
-                {/* Snooze success feedback */}
+                {snoozeError && (
+                  <View style={styles.snoozeErrorRow} accessibilityRole="alert">
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={16}
+                      color={colors.criticalOn}
+                      accessibilityElementsHidden
+                    />
+                    <Text style={styles.snoozeErrorText}>{snoozeError}</Text>
+                  </View>
+                )}
+
+                {/* Snooze confirmation, with a way back out of it. */}
                 {snoozeSuccess && (
                   <View style={styles.snoozeSuccess}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
-                    <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color={colors.positiveOn}
+                      accessibilityElementsHidden
+                    />
+                    <View style={styles.snoozeSuccessCopy}>
+                      <Text style={styles.snoozeSuccessText}>Service pushed back</Text>
+                      <Text style={styles.snoozeSuccessSub}>
+                        We&apos;ll stop flagging this component until then.
+                      </Text>
+                    </View>
+                    {preSnoozeInterval !== null && (
+                      <TouchableOpacity
+                        style={styles.undoButton}
+                        onPress={handleUndoSnooze}
+                        disabled={undoing}
+                        accessibilityRole="button"
+                        accessibilityLabel="Undo snooze"
+                        accessibilityState={{ disabled: undoing }}
+                      >
+                        {undoing ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <Text style={styles.undoText}>Undo</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </ScrollView>
@@ -425,15 +517,56 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.5,
   },
+  snoozeHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  snoozeErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  snoozeErrorText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.criticalOn,
+  },
   snoozeSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     paddingVertical: 16,
+  },
+  snoozeSuccessCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   snoozeSuccessText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: colors.positiveOn,
+  },
+  snoozeSuccessSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  undoButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  undoText: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.positiveOn,
   },

@@ -85,6 +85,7 @@ export default tseslint.config([
     // so the adopted surface cannot drift back. Add files to this list as they
     // migrate; the goal is for it to grow to cover app/ and src/.
     files: [
+      'src/components/common/ErrorState.tsx',
       'src/components/dashboard/DashboardComponentCard.tsx',
       'src/components/dashboard/EmptyBikeState.tsx',
       'src/components/dashboard/RecentRidesList.tsx',

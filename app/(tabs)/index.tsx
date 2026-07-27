@@ -26,9 +26,12 @@ import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponen
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
+import { ErrorState } from '../../src/components/common/ErrorState';
 import { useUserTier } from '../../src/hooks/useUserTier';
+import { usePersistedBikeSelection } from '../../src/hooks/usePersistedBikeSelection';
 import { colors, radius } from '../../src/constants/theme';
 import { formatComponentType } from '../../src/utils/formatComponentType';
+import { describeError } from '../../src/utils/errorCopy';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: '7d', label: '7D' },
@@ -45,11 +48,12 @@ export default function DashboardScreen() {
     bikes,
     spareComponents,
     loading: bikesLoading,
+    error: bikesError,
     refetch: refetchBikes,
   } = useBikesWithPredictions();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const [showBikeSelector, setShowBikeSelector] = useState(false);
   const [timeframe, setTimeframe] = useState<TimeframeOption>('YTD');
   const [selectedPrediction, setSelectedPrediction] = useState<ComponentPrediction | null>(null);
@@ -86,14 +90,22 @@ export default function DashboardScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchBikes(), refetchStats(), refetchRecentRides()]);
+    // A failing refetch must not leave the spinner up forever. Each read owns
+    // its own error surface, so swallowing here is safe.
+    await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
     setRefreshing(false);
+  }, [refetchBikes, refetchStats, refetchRecentRides]);
+
+  const onRetry = useCallback(async () => {
+    setRetrying(true);
+    await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
+    setRetrying(false);
   }, [refetchBikes, refetchStats, refetchRecentRides]);
 
   const typedBikes = bikes as BikeFieldsFragment[];
 
-  // Select first bike by default
-  const activeBikeId = selectedBikeId || typedBikes[0]?.id || null;
+  const { activeBikeId, selectBike, hydrated: selectionHydrated } =
+    usePersistedBikeSelection(typedBikes);
   const selectedBike = typedBikes.find((b) => b.id === activeBikeId) || null;
 
   // Free tier gets the binary READY / NOT READY signal from dueNowCount
@@ -127,7 +139,16 @@ export default function DashboardScreen() {
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
     : 'No Bike Selected';
 
-  if (bikesLoading && !bikes.length) {
+  // Order matters, and it is the whole point of this block. Loading, then
+  // failure, then genuinely-empty. Reading `bikes.length === 0` before ruling
+  // out a failed query is what told riders with four bikes that they owned
+  // none, and offered to add their first.
+  // The hydration gate is unconditional on purpose. On a warm start Apollo has
+  // bikes cached immediately, so without it the screen would render the
+  // fallback bike's health and then swap to the remembered one. Showing a
+  // rider the wrong bike's service state, even for a frame, is worse than a
+  // brief skeleton; the read is capped at 400ms in the hook.
+  if ((bikesLoading && !typedBikes.length) || !selectionHydrated) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <DashboardSkeleton />
@@ -135,7 +156,18 @@ export default function DashboardScreen() {
     );
   }
 
-  if (typedBikes.length === 0) {
+  // Stale cached bikes beat an error screen, so this only takes over when the
+  // failure left us with nothing to show.
+  if (bikesError && !typedBikes.length) {
+    const copy = describeError(bikesError, 'gear');
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ErrorState title={copy.title} body={copy.body} onRetry={onRetry} retrying={retrying} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!bikesError && !bikesLoading && typedBikes.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <EmptyBikeState />
@@ -328,7 +360,7 @@ export default function DashboardScreen() {
         visible={showBikeSelector}
         bikes={typedBikes}
         selectedBikeId={activeBikeId}
-        onSelect={setSelectedBikeId}
+        onSelect={selectBike}
         onAddBike={() => {
           setShowBikeSelector(false);
           router.push('/bike/add' as Href);

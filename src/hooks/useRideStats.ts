@@ -188,7 +188,7 @@ const emptyWeatherBreakdown = (): WeatherBreakdown => ({
 });
 
 export function useRideStats(timeframe: TimeframeOption = '30d') {
-  const { data, loading, refetch } = useRidesPageQuery({
+  const { data, loading, error, refetch } = useRidesPageQuery({
     variables: { take: RIDES_FETCH_CAP },
     fetchPolicy: 'cache-and-network',
   });
@@ -456,6 +456,9 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
   return {
     stats: statsWithWeather,
     loading,
+    // Surfaced so callers can tell "no rides yet" from "we could not load your
+    // rides". Collapsing both into an empty card hides a failure as a fact.
+    error,
     refetch,
   };
 }
