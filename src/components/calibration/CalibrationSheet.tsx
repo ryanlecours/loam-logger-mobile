@@ -282,7 +282,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <ActivityIndicator color={colors.textPrimary} />
+                    <ActivityIndicator color={colors.onPrimary} />
                   ) : (
                     <Text style={styles.completeText}>
                       {calibratedCount > 0 ? 'Complete Calibration' : 'Done'}
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   completeText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

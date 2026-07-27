@@ -441,7 +441,7 @@ export default function SettingsScreen() {
           disabled={deleting}
         >
           {deleting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={colors.textPrimary} />
           ) : (
             <Text style={[styles.buttonText, styles.logoutText]}>Delete Account</Text>
           )}
@@ -508,15 +508,15 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   logoutButton: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.critical,
   },
   logoutText: {
-    color: '#fff',
+    color: colors.textPrimary,
   },
   integrationRow: {
     flexDirection: 'row',
@@ -570,13 +570,13 @@ const styles = StyleSheet.create({
   },
   disconnectButton: {
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   disconnectText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   segmentTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   legalRow: {
     flexDirection: 'row',
@@ -663,12 +663,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
   },
   dangerSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.danger,
+    color: colors.criticalOn,
     marginBottom: 12,
     textTransform: 'uppercase',
   },

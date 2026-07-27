@@ -366,7 +366,7 @@ export default function EditRideScreen() {
         disabled={updating}
       >
         {updating ? (
-          <ActivityIndicator color={colors.textPrimary} />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.submitButtonText}>Save Changes</Text>
         )}
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   backButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -283,7 +283,7 @@ export default function AddBikeScreen() {
             disabled={adding}
           >
             {adding ? (
-              <ActivityIndicator color={colors.textPrimary} />
+              <ActivityIndicator color={colors.onPrimary} />
             ) : (
               <>
                 <Ionicons name="add" size={20} color={colors.textPrimary} />
@@ -384,7 +384,7 @@ export default function AddBikeScreen() {
               disabled={!query.trim() || searching}
             >
               {searching ? (
-                <ActivityIndicator color={colors.textPrimary} size="small" />
+                <ActivityIndicator color={colors.onPrimary} size="small" />
               ) : (
                 <Text style={styles.searchButtonText}>Search</Text>
               )}
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   searchButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   confirmButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

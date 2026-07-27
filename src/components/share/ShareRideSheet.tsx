@@ -175,7 +175,7 @@ export function ShareRideSheet({ visible, onClose, values, onConfirm, sharing }:
                         ]}
                       >
                         {checked && !disabled && (
-                          <Ionicons name="checkmark" size={16} color="#fff" />
+                          <Ionicons name="checkmark" size={16} color={colors.onPrimary} />
                         )}
                       </View>
                     </TouchableOpacity>
@@ -204,10 +204,10 @@ export function ShareRideSheet({ visible, onClose, values, onConfirm, sharing }:
                   disabled={!anySelected || sharing}
                 >
                   {sharing ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={colors.onPrimary} />
                   ) : (
                     <>
-                      <Ionicons name="share-outline" size={18} color="#fff" />
+                      <Ionicons name="share-outline" size={18} color={colors.onPrimary} />
                       <Text style={styles.shareButtonText}>Share</Text>
                     </>
                   )}
@@ -362,6 +362,6 @@ const styles = StyleSheet.create({
   shareButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.onPrimary,
   },
 });

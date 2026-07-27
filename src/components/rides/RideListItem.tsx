@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   sourceBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.textPrimary,
   },
   statsRow: {
     flexDirection: 'row',

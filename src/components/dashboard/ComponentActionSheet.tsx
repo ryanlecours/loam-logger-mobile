@@ -124,7 +124,7 @@ export function ComponentActionSheet({
                       <Ionicons
                         name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
                         size={20}
-                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
+                        color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
                       />
                       <Text style={styles.statValue}>
                         {hoursRemaining <= 0
@@ -177,7 +177,7 @@ export function ComponentActionSheet({
                         disabled={snoozing}
                       >
                         {snoozing && !showCustomInput ? (
-                          <ActivityIndicator size="small" color={colors.textPrimary} />
+                          <ActivityIndicator size="small" color={colors.onPrimary} />
                         ) : (
                           <Text style={styles.snoozePresetText}>
                             Snooze {recommendedHours}h
@@ -213,7 +213,7 @@ export function ComponentActionSheet({
                             disabled={snoozing || !customHours || Number(customHours) < 1}
                           >
                             {snoozing ? (
-                              <ActivityIndicator size="small" color={colors.textPrimary} />
+                              <ActivityIndicator size="small" color={colors.onPrimary} />
                             ) : (
                               <Text style={styles.customApplyText}>Apply</Text>
                             )}
@@ -227,7 +227,7 @@ export function ComponentActionSheet({
                 {/* Snooze success feedback */}
                 {snoozeSuccess && (
                   <View style={styles.snoozeSuccess}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
                     <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
                   </View>
                 )}
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   snoozePresetText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   customLink: {
     fontSize: 14,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   customApplyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
   snoozeSuccessText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.good,
+    color: colors.positiveOn,
   },
   actions: {
     flexDirection: 'row',

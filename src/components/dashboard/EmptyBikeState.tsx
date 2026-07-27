@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

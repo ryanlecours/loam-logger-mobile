@@ -114,6 +114,15 @@ export default function DashboardScreen() {
     );
   }, [selectedBike]);
 
+  // The readiness card and the section header speak in the health ramp, so
+  // they take the tone of the most severe component on the bike rather than a
+  // single generic "warning" color.
+  const attentionTone = useMemo(() => {
+    if (attentionComponents.some((c) => c.status === 'OVERDUE')) return colors.health.overdue;
+    if (attentionComponents.some((c) => c.status === 'DUE_NOW')) return colors.health.dueNow;
+    return colors.health.dueSoon;
+  }, [attentionComponents]);
+
   const displayName = selectedBike
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
     : 'No Bike Selected';
@@ -225,21 +234,25 @@ export default function DashboardScreen() {
           <View style={styles.statCard}>
             {attentionCount === 0 ? (
               <>
-                <Ionicons name="checkmark-circle-outline" size={18} color={colors.good} />
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color={colors.health.allGood.on}
+                />
                 <Text style={[styles.statValue, { fontSize: 15 }]}>Ready to</Text>
-                <Text style={[styles.statLabel, { color: colors.good }]}>RIDE</Text>
+                <Text style={[styles.statLabel, { color: colors.health.allGood.on }]}>RIDE</Text>
               </>
             ) : !isPro ? (
               <>
-                <Ionicons name="warning-outline" size={18} color={colors.warning} />
+                <Ionicons name="warning-outline" size={18} color={attentionTone.on} />
                 <Text style={[styles.statValue, { fontSize: 15 }]}>Not Ready</Text>
-                <Text style={[styles.statLabel, { color: colors.warning }]}>SERVICE DUE</Text>
+                <Text style={[styles.statLabel, { color: attentionTone.on }]}>SERVICE DUE</Text>
               </>
             ) : (
               <>
-                <Ionicons name="warning-outline" size={18} color={colors.warning} />
+                <Ionicons name="warning-outline" size={18} color={attentionTone.on} />
                 <Text style={styles.statValue}>{attentionCount}</Text>
-                <Text style={styles.statLabel}>NEED ATTENTION</Text>
+                <Text style={[styles.statLabel, { color: attentionTone.on }]}>NEED ATTENTION</Text>
               </>
             )}
           </View>
@@ -288,7 +301,7 @@ export default function DashboardScreen() {
         {attentionComponents.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="warning" size={16} color={colors.monitor} />
+              <Ionicons name="warning" size={16} color={attentionTone.on} />
               <Text style={styles.sectionTitle}>NEEDS ATTENTION</Text>
             </View>
             {attentionComponents.map((comp) => (
@@ -432,10 +445,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   tierBadgeTextPro: {
-    color: colors.primary,
+    color: colors.positiveOn,
   },
   tierBadgeTextFree: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
   },
   upgradeBanner: {
     paddingHorizontal: 16,
@@ -475,7 +488,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   timeframeTabTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   statsRow: {
     flexDirection: 'row',
@@ -517,7 +530,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   section: {
     paddingHorizontal: 16,

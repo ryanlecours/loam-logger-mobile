@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   segmentTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   thresholdRow: {
     marginTop: 4,

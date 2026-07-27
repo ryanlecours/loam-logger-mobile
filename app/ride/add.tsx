@@ -313,7 +313,7 @@ export default function AddRideScreen() {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color={colors.textPrimary} />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.submitButtonText}>Add Ride</Text>
         )}
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

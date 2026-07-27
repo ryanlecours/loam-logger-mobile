@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   upgradeButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   restoreButton: {
     alignItems: 'center',

@@ -472,10 +472,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: colors.dangerBg,
+    backgroundColor: colors.criticalBg,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 13,
   },
   totals: {
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   },
   driftHint: {
     fontSize: 12,
-    color: colors.warning,
+    color: colors.cautionOn,
     marginTop: 8,
   },
   filters: {

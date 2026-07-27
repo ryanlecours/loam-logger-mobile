@@ -102,10 +102,13 @@ export function RideStatsCard() {
     return `${h}h ${m}m`;
   };
 
+  // Trend direction is neutral information, not component health. The +/- sign
+  // carries the meaning; color only lifts an increase out of the row. Riding
+  // less than last week is not a warning, so it never wears a warning color.
   const formatTrend = (value: number | null): { text: string; color: string } => {
     if (value === null) return { text: '--', color: colors.textMuted };
     const sign = value >= 0 ? '+' : '';
-    const color = value > 0 ? colors.good : value < 0 ? colors.danger : colors.textMuted;
+    const color = value > 0 ? colors.positiveOn : colors.textSecondary;
     return { text: `${sign}${value}%`, color };
   };
 
@@ -301,12 +304,12 @@ export function RideStatsCard() {
           </View>
           <View style={styles.streakRow}>
             <View style={styles.streakItem}>
-              <Ionicons name="flame-outline" size={16} color="#f97316" />
+              <Ionicons name="flame-outline" size={16} color={colors.accentWarm} />
               <Text style={styles.streakValue}>{stats.currentStreak}</Text>
               <Text style={styles.streakLabel}>Current streak</Text>
             </View>
             <View style={styles.streakItem}>
-              <Ionicons name="trophy-outline" size={16} color="#eab308" />
+              <Ionicons name="trophy-outline" size={16} color={colors.accentPearl} />
               <Text style={styles.streakValue}>{stats.longestStreak}</Text>
               <Text style={styles.streakLabel}>Longest streak</Text>
             </View>
@@ -345,7 +348,7 @@ export function RideStatsCard() {
             onPress={() => toggleSection('heartRate')}
           >
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="heart-outline" size={18} color={colors.danger} />
+              <Ionicons name="heart-outline" size={18} color={colors.primary} />
               <Text style={styles.sectionTitle}>Heart Rate</Text>
             </View>
             <Ionicons
@@ -686,14 +689,16 @@ const styles = StyleSheet.create({
   hrItem: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: colors.dangerBg,
+    // Heart rate is a biometric, not a status. It used to borrow the overdue
+    // fill, which made a normal ride read like an alarm.
+    backgroundColor: colors.primaryMuted,
     padding: 12,
     borderRadius: 8,
   },
   hrValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.danger,
+    color: colors.positiveOn,
   },
   hrLabel: {
     fontSize: 11,

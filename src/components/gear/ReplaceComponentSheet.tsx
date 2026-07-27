@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: colors.card,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -30,7 +30,7 @@ export function CalibrationComponentRow({
   if (isCalibrated) {
     return (
       <View style={[styles.row, styles.rowCalibrated]}>
-        <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+        <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
         <View style={styles.content}>
           <Text style={[styles.typeName, styles.textCalibrated]}>{label}</Text>
           {brandModel ? (
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 13,
-    color: colors.good,
+    color: colors.positiveOn,
     fontWeight: '500',
   },
   actions: {

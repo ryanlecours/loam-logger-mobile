@@ -170,7 +170,7 @@ export default function SignupScreen() {
               disabled={!canSubmit || loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.textPrimary} />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <Text style={styles.buttonText}>Sign Up</Text>
               )}
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 13,
     marginTop: -8,
     marginBottom: 16,
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

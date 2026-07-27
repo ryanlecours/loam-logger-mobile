@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   warning: {
-    color: colors.warning,
+    color: colors.cautionOn,
   },
   // Data-source attribution inline in the row subtitle — visible without
   // interaction, as the Garmin guidelines require.
@@ -191,6 +191,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   actionTextPrimary: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
 });

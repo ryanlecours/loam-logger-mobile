@@ -47,7 +47,7 @@ export function DowngradeSelectionModal() {
     <Modal visible transparent animationType="fade" onRequestClose={() => {}}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
-          <Ionicons name="alert-circle-outline" size={32} color={colors.monitor} style={styles.icon} />
+          <Ionicons name="alert-circle-outline" size={32} color={colors.cautionOn} style={styles.icon} />
           <Text style={styles.title}>Your plan has changed</Text>
           <Text style={styles.subtitle}>
             Your Free plan allows 1 bike. Choose which bike to keep — the others will be archived and can be restored if you upgrade.
@@ -98,7 +98,7 @@ export function DowngradeSelectionModal() {
             disabled={!selectedBikeId || selecting}
           >
             {selecting ? (
-              <ActivityIndicator size="small" color={colors.textPrimary} />
+              <ActivityIndicator size="small" color={colors.onPrimary} />
             ) : (
               <Text style={styles.confirmText}>Keep This Bike</Text>
             )}
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   buttonDisabled: {
     opacity: 0.5,

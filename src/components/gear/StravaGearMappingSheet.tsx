@@ -100,7 +100,7 @@ export function StravaGearMappingSheet({
                   </View>
                 ) : unmappedGears.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Ionicons name="checkmark-circle" size={48} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={48} color={colors.positiveOn} />
                     <Text style={styles.emptyText}>All Strava bikes are mapped</Text>
                   </View>
                 ) : (

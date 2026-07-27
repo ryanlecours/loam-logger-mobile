@@ -242,7 +242,7 @@ export function LogServiceSheet({
                   disabled={selectedIds.size === 0 || loading}
                 >
                   {loading ? (
-                    <ActivityIndicator color={colors.textPrimary} />
+                    <ActivityIndicator color={colors.onPrimary} />
                   ) : (
                     <>
                       <Ionicons name="checkmark" size={20} color={colors.textPrimary} />
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   logButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

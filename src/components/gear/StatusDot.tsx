@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { colors, healthTone } from '../../constants/theme';
 
 interface StatusDotProps {
   /** Null/undefined (e.g. free-tier gated predictions) renders nothing. */
@@ -6,20 +7,12 @@ interface StatusDotProps {
   size?: number;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  ALL_GOOD: '#22c55e',
-  DUE_SOON: '#eab308',
-  DUE_NOW: '#f97316',
-  OVERDUE: '#ef4444',
-  UNKNOWN: '#9ca3af',
-};
-
 export function StatusDot({ status, size = 10 }: StatusDotProps) {
   // No status (free tier hides predictions) — render nothing rather than
   // implying a known state with a gray dot.
   if (!status) return null;
 
-  const color = STATUS_COLORS[status] || STATUS_COLORS.UNKNOWN;
+  const tone = healthTone(status);
 
   return (
     <View
@@ -29,7 +22,7 @@ export function StatusDot({ status, size = 10 }: StatusDotProps) {
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: color,
+          backgroundColor: tone.base,
         },
       ]}
     />
@@ -38,10 +31,10 @@ export function StatusDot({ status, size = 10 }: StatusDotProps) {
 
 const styles = StyleSheet.create({
   dot: {
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
+    shadowOpacity: 0.35,
+    shadowRadius: 2,
     elevation: 1,
   },
 });

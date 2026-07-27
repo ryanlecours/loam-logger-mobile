@@ -73,7 +73,7 @@ export function BikeCalibrationSection({
           <Text style={styles.bikeName}>{bikeName}</Text>
           {allCalibrated ? (
             <View style={styles.doneBadge}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.good} />
+              <Ionicons name="checkmark-circle" size={14} color={colors.positiveOn} />
               <Text style={styles.doneText}>All set</Text>
             </View>
           ) : (
@@ -160,7 +160,7 @@ export function BikeCalibrationSection({
 
       {isExpanded && allCalibrated && (
         <View style={styles.allDone}>
-          <Ionicons name="checkmark-circle-outline" size={32} color={colors.good} />
+          <Ionicons name="checkmark-circle-outline" size={32} color={colors.positiveOn} />
           <Text style={styles.allDoneText}>All components calibrated</Text>
         </View>
       )}
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   doneText: {
     fontSize: 13,
-    color: colors.good,
+    color: colors.positiveOn,
     fontWeight: '500',
   },
   bulkAction: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   applyButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },

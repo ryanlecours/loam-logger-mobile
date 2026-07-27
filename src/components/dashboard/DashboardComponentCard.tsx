@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, healthTone } from '../../constants/theme';
+import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 
 interface DashboardComponentCardProps {
   name: string;
@@ -10,16 +11,6 @@ interface DashboardComponentCardProps {
   status: string;
   onReset?: () => void;
   onPress?: () => void;
-}
-
-function getStatusInfo(status: string, percentage: number) {
-  if (percentage >= 75 || status === 'DUE_NOW' || status === 'OVERDUE') {
-    return { label: 'Monitor', color: colors.monitor, barColor: colors.monitor };
-  }
-  if (percentage >= 60 || status === 'DUE_SOON') {
-    return { label: 'Monitor', color: colors.monitor, barColor: colors.monitor };
-  }
-  return { label: 'Good', color: colors.good, barColor: colors.good };
 }
 
 export function DashboardComponentCard({
@@ -34,7 +25,7 @@ export function DashboardComponentCard({
   const percentage = serviceIntervalHours > 0
     ? Math.min(100, Math.round((currentHours / serviceIntervalHours) * 100))
     : 0;
-  const statusInfo = getStatusInfo(status, percentage);
+  const tone = healthTone(status);
 
   return (
     <TouchableOpacity
@@ -58,13 +49,18 @@ export function DashboardComponentCard({
       </View>
 
       <View style={styles.progressContainer}>
-        <View style={styles.progressTrack}>
+        <View
+          style={styles.progressTrack}
+          accessibilityRole="progressbar"
+          accessibilityLabel={`${name} service interval used`}
+          accessibilityValue={{ min: 0, max: 100, now: percentage }}
+        >
           <View
             style={[
               styles.progressBar,
               {
                 width: `${percentage}%`,
-                backgroundColor: statusInfo.barColor,
+                backgroundColor: tone.base,
               },
             ]}
           />
@@ -73,11 +69,9 @@ export function DashboardComponentCard({
 
       <View style={styles.footer}>
         <Text style={styles.hoursText}>
-          {currentHours.toFixed(0)}h  /  {serviceIntervalHours.toFixed(0)}h
+          {currentHours.toFixed(0)}h  /  {serviceIntervalHours.toFixed(0)}h  ·  {percentage}%
         </Text>
-        <Text style={[styles.statusText, { color: statusInfo.color }]}>
-          {percentage}%  ·  {statusInfo.label}
-        </Text>
+        <ComponentHealthBadge status={status} size="small" />
       </View>
     </TouchableOpacity>
   );
@@ -117,24 +111,21 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     backgroundColor: colors.cardBorder,
-    borderRadius: 3,
+    borderRadius: 999,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 999,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   hoursText: {
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
 });

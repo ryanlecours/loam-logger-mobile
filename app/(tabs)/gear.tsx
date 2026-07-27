@@ -55,7 +55,7 @@ export default function GearScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.criticalOn} />
         <Text style={styles.errorTitle}>Failed to load bikes</Text>
         <Text style={styles.errorText}>{error.message}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

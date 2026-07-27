@@ -52,7 +52,7 @@ export default function PricingScreen() {
         <Stack.Screen options={{ title: 'Pro' }} />
         <View style={styles.proContent}>
           <View style={styles.proIconContainer}>
-            <Ionicons name="checkmark-circle" size={64} color={colors.good} />
+            <Ionicons name="checkmark-circle" size={64} color={colors.positiveOn} />
           </View>
           <Text style={styles.proTitle}>
             {isFoundingRider ? 'Founding Rider' : "You're on Pro!"}

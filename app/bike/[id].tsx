@@ -160,7 +160,7 @@ export default function BikeDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Error' }} />
-        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.criticalOn} />
         <Text style={styles.errorTitle}>
           {error ? 'Failed to load bike' : 'Bike not found'}
         </Text>
@@ -566,8 +566,8 @@ export default function BikeDetailScreen() {
             style={styles.actionButton}
             onPress={handleRetireSell}
           >
-            <Ionicons name="archive-outline" size={20} color={colors.warning} />
-            <Text style={[styles.actionButtonText, { color: colors.warning }]}>Retire / Sell</Text>
+            <Ionicons name="archive-outline" size={20} color={colors.cautionOn} />
+            <Text style={[styles.actionButtonText, { color: colors.cautionOn }]}>Retire / Sell</Text>
           </TouchableOpacity>
         )}
 
@@ -575,7 +575,7 @@ export default function BikeDetailScreen() {
           style={styles.dangerButton}
           onPress={handleDelete}
         >
-          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <Ionicons name="trash-outline" size={20} color={colors.criticalOn} />
           <Text style={styles.dangerButtonText}>Delete Bike</Text>
         </TouchableOpacity>
       </View>
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: colors.warning,
+    color: colors.health.dueNow.on,
     fontWeight: '500',
   },
   specsGrid: {
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   attentionBadge: {
-    backgroundColor: colors.warningBg,
+    backgroundColor: colors.health.dueNow.bg,
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
   attentionBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.warning,
+    color: colors.health.dueNow.on,
   },
   emptyComponents: {
     padding: 24,
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   emptyPrimaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -883,9 +883,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.dangerBg,
+    backgroundColor: colors.criticalBg,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   dangerButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.danger,
+    color: colors.criticalOn,
   },
   upgradeOverlay: {
     flex: 1,

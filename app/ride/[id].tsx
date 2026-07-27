@@ -239,7 +239,7 @@ export default function RideDetailScreen() {
         <Ionicons
           name="alert-circle-outline"
           size={48}
-          color={error ? colors.danger : colors.textMuted}
+          color={error ? colors.criticalOn : colors.textMuted}
         />
         <Text style={styles.errorText}>
           {error ? 'Failed to load ride' : 'Ride not found'}
@@ -461,10 +461,10 @@ export default function RideDetailScreen() {
           disabled={deleting}
         >
           {deleting ? (
-            <ActivityIndicator size="small" color={colors.danger} />
+            <ActivityIndicator size="small" color={colors.criticalOn} />
           ) : (
             <>
-              <Ionicons name="trash-outline" size={18} color={colors.danger} />
+              <Ionicons name="trash-outline" size={18} color={colors.criticalOn} />
               <Text style={styles.deleteButtonText}>Delete</Text>
             </>
           )}
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   backButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -680,13 +680,13 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
     paddingVertical: 12,
     borderRadius: 8,
   },
   deleteButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.danger,
+    color: colors.criticalOn,
   },
 });

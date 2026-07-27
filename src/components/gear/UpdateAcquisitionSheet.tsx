@@ -129,7 +129,7 @@ export function UpdateAcquisitionSheet({
               {result ? (
                 <View style={styles.body}>
                   <View style={styles.resultRow}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.resultTitle}>
                         Moved {result.installsMoved} install date
@@ -209,7 +209,7 @@ export function UpdateAcquisitionSheet({
                       disabled={loading}
                     >
                       {loading ? (
-                        <ActivityIndicator color={colors.textPrimary} />
+                        <ActivityIndicator color={colors.onPrimary} />
                       ) : (
                         <Text style={styles.saveButtonText}>Update</Text>
                       )}
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateLabel: { fontSize: 14, color: colors.textSecondary },
   dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.primary },
+  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.positiveOn },
   cascadeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
   cascadeLabel: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
   cascadeHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
@@ -250,5 +250,5 @@ const styles = StyleSheet.create({
   cancelButtonText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
   saveButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10 },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
 });

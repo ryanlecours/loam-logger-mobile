@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, healthTone } from '../../constants/theme';
 
 interface ComponentHealthBadgeProps {
   /** Null/undefined (e.g. free-tier gated predictions) renders nothing. */
@@ -7,12 +7,11 @@ interface ComponentHealthBadgeProps {
   size?: 'small' | 'medium';
 }
 
-const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  ALL_GOOD: { bg: colors.goodBg, text: colors.good, label: 'Good' },
-  DUE_SOON: { bg: colors.monitorBg, text: colors.monitor, label: 'Due Soon' },
-  DUE_NOW: { bg: colors.warningBg, text: colors.warning, label: 'Due Now' },
-  OVERDUE: { bg: colors.dangerBg, text: colors.danger, label: 'Overdue' },
-  UNKNOWN: { bg: 'rgba(156, 163, 175, 0.15)', text: colors.unknown, label: 'Unknown' },
+const STATUS_LABELS: Record<string, string> = {
+  ALL_GOOD: 'All good',
+  DUE_SOON: 'Due soon',
+  DUE_NOW: 'Due now',
+  OVERDUE: 'Overdue',
 };
 
 export function ComponentHealthBadge({ status, size = 'medium' }: ComponentHealthBadgeProps) {
@@ -20,31 +19,59 @@ export function ComponentHealthBadge({ status, size = 'medium' }: ComponentHealt
   // implying a known state.
   if (!status) return null;
 
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.UNKNOWN;
+  const tone = healthTone(status);
+  const label = STATUS_LABELS[status] ?? 'Unknown';
   const isSmall = size === 'small';
 
   return (
-    <View style={[styles.badge, { backgroundColor: config.bg }, isSmall && styles.badgeSmall]}>
-      <Text style={[styles.text, { color: config.text }, isSmall && styles.textSmall]}>
-        {config.label}
-      </Text>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: tone.bg, borderColor: tone.border },
+        isSmall && styles.badgeSmall,
+      ]}
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`Service status: ${label}`}
+    >
+      {/* The dot uses the lightened tint, not the base fill: mahogany-light
+          reads at only 2.93:1 as an 8px mark on our card surface. */}
+      <View style={[styles.dot, { backgroundColor: tone.on }, isSmall && styles.dotSmall]} />
+      <Text style={[styles.text, { color: tone.on }, isSmall && styles.textSmall]}>{label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
   },
   badgeSmall: {
+    gap: 5,
     paddingHorizontal: 8,
     paddingVertical: 2,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dotSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   text: {
     fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   textSmall: {
     fontSize: 11,

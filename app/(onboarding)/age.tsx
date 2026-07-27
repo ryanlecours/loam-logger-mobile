@@ -132,10 +132,10 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   inputError: {
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

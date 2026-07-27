@@ -96,7 +96,7 @@ export function LockScreen() {
           disabled={unlocking}
         >
           {unlocking ? (
-            <ActivityIndicator color={colors.textPrimary} />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
             <>
               <Ionicons name="finger-print" size={22} color={colors.textPrimary} />
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   unlockButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

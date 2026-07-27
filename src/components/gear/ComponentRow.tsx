@@ -119,11 +119,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   hoursOverdue: {
-    color: colors.danger,
+    color: colors.health.overdue.on,
     fontWeight: '600',
   },
   hoursDueNow: {
-    color: colors.warning,
+    color: colors.health.dueNow.on,
     fontWeight: '500',
   },
   brandModel: {
@@ -140,8 +140,9 @@ const styles = StyleSheet.create({
   restrictedLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.monitor,
-    backgroundColor: colors.monitorBg,
+    // Pro gating is commercial, not component health — keep it neutral.
+    color: colors.textSecondary,
+    backgroundColor: colors.surface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

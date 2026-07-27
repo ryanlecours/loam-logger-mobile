@@ -135,7 +135,7 @@ export default function ResetPasswordScreen() {
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color={colors.textPrimary} />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <Text style={styles.buttonText}>Reset Password</Text>
               )}
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

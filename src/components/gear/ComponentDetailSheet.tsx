@@ -53,16 +53,21 @@ function formatDate(dateString: string | null | undefined): string {
   });
 }
 
+/**
+ * Prediction confidence is a data-quality signal, not component health, so it
+ * stays off the health ramp. Low confidence means "treat this estimate
+ * loosely", not "something is wrong with your bike".
+ */
 function formatConfidence(confidence: string | null | undefined): { label: string; color: string } {
   switch (confidence) {
     case 'HIGH':
-      return { label: 'High', color: '#16a34a' };
+      return { label: 'High', color: colors.positiveOn };
     case 'MEDIUM':
-      return { label: 'Medium', color: '#ca8a04' };
+      return { label: 'Medium', color: colors.textSecondary };
     case 'LOW':
-      return { label: 'Low', color: '#dc2626' };
+      return { label: 'Low', color: colors.cautionOn };
     default:
-      return { label: 'Unknown', color: '#9ca3af' };
+      return { label: 'Unknown', color: colors.textMuted };
   }
 }
 
@@ -243,21 +248,21 @@ export function ComponentDetailSheet({
                       Confidence reflects how much data Loam Logger has to estimate when this component will need service.
                     </Text>
                     <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: '#16a34a' }]} />
+                      <View style={[styles.confidenceDot, { backgroundColor: colors.positiveOn }]} />
                       <View style={styles.confidenceLevelContent}>
                         <Text style={styles.confidenceLevelLabel}>High</Text>
                         <Text style={styles.confidenceLevelDesc}>Service date was set during calibration, or multiple service logs provide a clear pattern.</Text>
                       </View>
                     </View>
                     <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: '#ca8a04' }]} />
+                      <View style={[styles.confidenceDot, { backgroundColor: colors.textSecondary }]} />
                       <View style={styles.confidenceLevelContent}>
                         <Text style={styles.confidenceLevelLabel}>Medium</Text>
                         <Text style={styles.confidenceLevelDesc}>Wear was estimated using a slider or limited ride data. Accuracy improves as you log more rides and services.</Text>
                       </View>
                     </View>
                     <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: '#dc2626' }]} />
+                      <View style={[styles.confidenceDot, { backgroundColor: colors.cautionOn }]} />
                       <View style={styles.confidenceLevelContent}>
                         <Text style={styles.confidenceLevelLabel}>Low</Text>
                         <Text style={styles.confidenceLevelDesc}>Using default service intervals. Log a service or calibrate your components to improve accuracy.</Text>
@@ -281,7 +286,7 @@ export function ComponentDetailSheet({
                       <Ionicons
                         name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
                         size={20}
-                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
+                        color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
                       />
                       {savingInterval ? (
                         <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
@@ -491,7 +496,7 @@ export function ComponentDetailSheet({
                         disabled={snoozing}
                       >
                         {snoozing && !showCustomInput ? (
-                          <ActivityIndicator size="small" color={colors.textPrimary} />
+                          <ActivityIndicator size="small" color={colors.onPrimary} />
                         ) : (
                           <Text style={styles.snoozePresetText}>
                             Snooze {recommendedHours}h
@@ -527,7 +532,7 @@ export function ComponentDetailSheet({
                             disabled={snoozing || !customHours || Number(customHours) < 1}
                           >
                             {snoozing ? (
-                              <ActivityIndicator size="small" color={colors.textPrimary} />
+                              <ActivityIndicator size="small" color={colors.onPrimary} />
                             ) : (
                               <Text style={styles.customApplyText}>Apply</Text>
                             )}
@@ -541,7 +546,7 @@ export function ComponentDetailSheet({
                 {/* Snooze success feedback with undo */}
                 {snoozeSuccess && (
                   <View style={styles.snoozeSuccess}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
                     <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
                     {preSnoozeInterval !== null && (
                       <TouchableOpacity onPress={handleUndoSnooze} disabled={undoing}>
@@ -775,7 +780,7 @@ const styles = StyleSheet.create({
   snoozePresetText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   customLink: {
     fontSize: 14,
@@ -813,7 +818,7 @@ const styles = StyleSheet.create({
   customApplyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -828,7 +833,7 @@ const styles = StyleSheet.create({
   snoozeSuccessText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.good,
+    color: colors.positiveOn,
   },
   undoText: {
     fontSize: 14,

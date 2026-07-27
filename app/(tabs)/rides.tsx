@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   filterPillTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   rideCount: {
     fontSize: 13,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   emptyButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

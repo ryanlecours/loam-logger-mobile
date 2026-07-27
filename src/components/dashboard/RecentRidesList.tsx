@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   emptyPrimaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },

@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
