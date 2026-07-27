@@ -23,6 +23,7 @@ import {
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { WeatherCard } from '../../src/components/ride/WeatherCard';
+import { RideTrackMap } from '../../src/components/ride/RideTrackMap';
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { useShareRideOverlay } from '../../src/hooks/useShareRideOverlay';
 
@@ -364,6 +365,14 @@ export default function RideDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* Route Map — self-hiding. Renders only when the server has a stored
+            GPS track for this ride, which excludes manual/WHOOP/Suunto rides
+            entirely and any Garmin ride whose Activity Details carried no
+            samples. Sits inside the tap-to-edit TouchableOpacity on purpose:
+            the map is non-interactive (pointerEvents="none"), so it neither
+            swallows vertical scroll nor blocks the edit tap. */}
+        <RideTrackMap rideId={ride.id} />
 
         {/* Stats Card */}
         <View style={styles.card}>

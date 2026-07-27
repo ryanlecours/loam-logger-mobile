@@ -42,6 +42,11 @@ jobs:
             echo "✅ GraphQL generated files are present"
           fi
 
+      # Ahead of the web export so a unit failure surfaces in seconds rather
+      # than behind a full bundle.
+      - name: Test
+        run: npm test -- --ci
+
       - name: Expo export (web build validation)
         run: npx expo export --platform web
         env:
