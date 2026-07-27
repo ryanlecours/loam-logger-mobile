@@ -1,92 +1,38 @@
-import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 import { colors } from '../../constants/theme';
-import {
-  formatGarminSource,
-  GARMIN_CHART_ATTRIBUTION,
-  GARMIN_INSIGHT_ATTRIBUTION,
-  GARMIN_TRADEMARK_NOTICE,
-} from '../../constants/garminAttribution';
+import { GARMIN_INSIGHT_ATTRIBUTION } from '../../constants/garminAttribution';
 
 /**
- * Garmin attribution, in the three shapes the Garmin API Brand Guidelines call
- * for. Mirrors apps/web/src/components/attribution/GarminAttribution.tsx —
- * keep the two in step; Garmin reviews the whole product.
+ * Garmin attribution for combined or derived data.
  *
- * As on web, this never renders inside a tooltip, footnote or collapsed
- * container ("Never bury the Garmin attribution..."), and it never decides on
- * its own whether Garmin data is present — callers gate on hasGarminData().
+ * The Garmin API Brand Guidelines require Garmin to be named as a contributing
+ * source for any output "influenced materially by Garmin device-sourced data".
+ * On mobile that means component wear hours, service predictions, and the
+ * generated maintenance summary, all of which are computed from ride duration.
+ *
+ * Deliberately narrower than the web counterpart
+ * (apps/web/src/components/attribution/GarminAttribution.tsx), which also
+ * exports badge, inline-source and trademark components. Mobile does not need
+ * them and shipping unused exports invites them to drift from the web copy:
+ *  - Per-ride attribution is rendered inline by RideListItem, ride/[id] and
+ *    ComponentRideRow, which build a uniform badge list across all providers.
+ *    Routing only the Garmin badge through a separate component would break
+ *    that loop for no gain; those screens call formatGarminSource directly.
+ *  - There is no ride map on mobile, so nothing needs a source line.
+ *  - The trademark notice belongs to downstream surfaces. Mobile has no public
+ *    share page; its one export is the history PDF, which is generated HTML
+ *    rather than React and uses GARMIN_TRADEMARK_NOTICE directly
+ *    (src/lib/bikeHistoryPdf.ts).
+ *
+ * Never render this inside a tooltip, a footnote, or a collapsed container, and
+ * never render it where Garmin contributed nothing: the guidelines forbid both.
+ * Callers gate on the bike's contributingSources.
  */
-
-/**
- * Primary displays: ride rows, activity feeds, overview cards.
- * Renders "Garmin Edge 840" beside the entry's title.
- */
-export function GarminSourceBadge({
-  deviceName,
-  style,
-}: {
-  deviceName?: string | null;
-  style?: StyleProp<ViewStyle>;
-}) {
-  return (
-    <View style={[styles.badge, style]}>
-      <Text style={styles.badgeText}>{formatGarminSource(deviceName)}</Text>
-    </View>
-  );
-}
-
-/**
- * Secondary screens: ride detail, expanded views, reports.
- */
-export function GarminSourceLine({
-  deviceName,
-  style,
-}: {
-  deviceName?: string | null;
-  style?: StyleProp<TextStyle>;
-}) {
-  return (
-    <Text style={[styles.note, style]}>Data source: {formatGarminSource(deviceName)}</Text>
-  );
-}
-
-/**
- * Combined or derived data: component wear, service predictions, bike health,
- * and the generated maintenance summary. Uses Loam's muted text color rather
- * than Garmin blue — this is Loam explaining a data lineage, not a Garmin badge.
- */
-export function GarminDerivedNote({
-  variant = 'insight',
-  style,
-}: {
-  variant?: 'insight' | 'chart';
-  style?: StyleProp<TextStyle>;
-}) {
-  return (
-    <Text style={[styles.note, style]}>
-      {variant === 'chart' ? GARMIN_CHART_ATTRIBUTION : GARMIN_INSIGHT_ATTRIBUTION}
-    </Text>
-  );
-}
-
-/** Trademark notice for downstream / shared surfaces. */
-export function GarminTrademarkNotice({ style }: { style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.note, style]}>{GARMIN_TRADEMARK_NOTICE}</Text>;
+export function GarminDerivedNote({ style }: { style?: StyleProp<TextStyle> }) {
+  return <Text style={[styles.note, style]}>{GARMIN_INSIGHT_ATTRIBUTION}</Text>;
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    backgroundColor: 'rgba(0, 125, 195, 0.18)',
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    // Deliberately not uppercased: the badge carries a Garmin product name.
-    color: colors.garminOnDark,
-  },
   note: {
     fontSize: 11,
     color: colors.textMuted,

@@ -15,6 +15,13 @@
  *
  * See the web copy for the full explanation of the four attribution contexts
  * (primary displays, secondary screens, combined/derived data, downstream).
+ *
+ * PARITY OVER TREE-SHAKING. Two exports below have no mobile call site today:
+ * GARMIN_CHART_ATTRIBUTION (mobile renders no charts) and hasGarminData (the
+ * screens test ride.garminActivityId inline). They are kept so this file stays
+ * a byte-comparable mirror of the web original, which is the only mechanism
+ * stopping the two apps from drifting apart on wording Garmin reviews us
+ * against. Delete them here only if they also go on web.
  */
 
 /**

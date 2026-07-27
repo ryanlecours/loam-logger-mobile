@@ -139,6 +139,9 @@ fragment BikeFields on Bike {
   components {
     ...ComponentFields
   }
+  # Component hours and the predictions below are computed from ride duration,
+  # so the contributing providers have to be named alongside them.
+  contributingSources
   predictions {
     ...PredictionFields
   }
@@ -255,6 +258,8 @@ mutation UpdateBikeNotificationPreference($input: UpdateBikeNotificationPreferen
 query BikeAdvisorSummary($id: ID!) {
   bike(id: $id) {
     id
+    # Gates the Garmin attribution on the generated summary.
+    contributingSources
     predictions {
       bikeId
       advisorSummary {
