@@ -129,15 +129,20 @@ export function LogServiceSheet({
       transparent
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
+      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <TouchableWithoutFeedback accessible={false}>
+            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               <View style={styles.header}>
                 <Text style={styles.title}>Log Service</Text>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close log service"
+                >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -150,6 +155,8 @@ export function LogServiceSheet({
                   <TouchableOpacity
                     onPress={allSelected ? deselectAll : selectAll}
                     style={styles.selectAllButton}
+                    accessibilityRole="button"
+                    accessibilityLabel={allSelected ? 'Deselect all components' : 'Select all components'}
                   >
                     <Text style={styles.selectAllText}>
                       {allSelected ? 'Deselect All' : 'Select All'}
@@ -163,6 +170,8 @@ export function LogServiceSheet({
                 <TouchableOpacity
                   style={styles.dateButton}
                   onPress={() => setShowDatePicker(!showDatePicker)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Service date: ${serviceDate.toLocaleDateString()}. Change date.`}
                 >
                   <Ionicons name="calendar-outline" size={16} color={colors.primary} />
                   <Text style={styles.dateButtonText}>
@@ -206,8 +215,11 @@ export function LogServiceSheet({
                         ]}
                         onPress={() => toggleSelection(component.id)}
                         activeOpacity={0.7}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={label}
+                        accessibilityState={{ checked: isSelected }}
                       >
-                        <View style={styles.checkbox}>
+                        <View style={styles.checkbox} accessibilityElementsHidden>
                           {isSelected ? (
                             <Ionicons name="checkbox" size={24} color={colors.primary} />
                           ) : (
@@ -242,12 +254,24 @@ export function LogServiceSheet({
                   ]}
                   onPress={handleLogService}
                   disabled={selectedIds.size === 0 || loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    selectedIds.size === 0
+                      ? 'Log service. Select at least one component first.'
+                      : `Log service for ${selectedIds.size} component${selectedIds.size === 1 ? '' : 's'}`
+                  }
+                  accessibilityState={{ disabled: selectedIds.size === 0 || loading, busy: loading }}
                 >
                   {loading ? (
                     <ActivityIndicator color={colors.onPrimary} />
                   ) : (
                     <>
-                      <Ionicons name="checkmark" size={20} color={colors.textPrimary} />
+                      <Ionicons
+                        name="checkmark"
+                        size={20}
+                        color={colors.onPrimary}
+                        accessibilityElementsHidden
+                      />
                       <Text style={styles.logButtonText}>
                         Log Service{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
                       </Text>
@@ -297,6 +321,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   closeButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     padding: 4,
   },
   subheader: {
@@ -318,6 +344,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   dateButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -329,13 +357,15 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.primary,
+    color: colors.positiveOn,
   },
   subtitle: {
     fontSize: 14,
     color: colors.textSecondary,
   },
   selectAllButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 4,
     paddingHorizontal: 8,
   },

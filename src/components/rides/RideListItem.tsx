@@ -83,9 +83,29 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
     ? ride.notes ?? ride.location
     : ride.location;
 
+  // One spoken summary for the row. Read element by element this was up to
+  // eight stops (date, two source badges, title, distance, duration,
+  // elevation, bike) with no stated relationship between them.
+  const spoken = [
+    titleText || 'Ride',
+    dateStr,
+    distanceStr,
+    durationStr,
+    bikeName,
+    sourceBadges.length ? `from ${sourceBadges.map((b) => b.label).join(' and ')}` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.iconContainer}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={spoken}
+    >
+      <View style={styles.iconContainer} accessibilityElementsHidden>
         <Ionicons name={getRideTypeIcon(ride.rideType)} size={22} color={colors.textSecondary} />
       </View>
 

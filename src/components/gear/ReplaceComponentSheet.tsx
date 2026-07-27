@@ -173,16 +173,21 @@ export function ReplaceComponentSheet({
       transparent
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
+      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <TouchableWithoutFeedback accessible={false}>
+            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
               <View style={styles.header}>
                 <Text style={styles.title}>Replace {typeName}</Text>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close replace component"
+                >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -192,6 +197,9 @@ export function ReplaceComponentSheet({
                 <TouchableOpacity
                   style={[styles.tab, activeTab === 'spare' && styles.tabActive]}
                   onPress={() => setActiveTab('spare')}
+                  accessibilityRole="tab"
+                  accessibilityLabel="Use a spare component"
+                  accessibilityState={{ selected: activeTab === 'spare' }}
                 >
                   <Text
                     style={[styles.tabText, activeTab === 'spare' && styles.tabTextActive]}
@@ -202,6 +210,9 @@ export function ReplaceComponentSheet({
                 <TouchableOpacity
                   style={[styles.tab, activeTab === 'new' && styles.tabActive]}
                   onPress={() => setActiveTab('new')}
+                  accessibilityRole="tab"
+                  accessibilityLabel="Add a new component"
+                  accessibilityState={{ selected: activeTab === 'new' }}
                 >
                   <Text
                     style={[styles.tabText, activeTab === 'new' && styles.tabTextActive]}
@@ -235,6 +246,9 @@ export function ReplaceComponentSheet({
                             isSelected && styles.spareItemSelected,
                           ]}
                           onPress={() => setSelectedSpareId(spare.id)}
+                          accessibilityRole="radio"
+                          accessibilityLabel={spareBrandModel || 'Spare component'}
+                          accessibilityState={{ selected: isSelected }}
                         >
                           <View style={styles.spareContent}>
                             <Text style={styles.spareBrand}>
@@ -282,6 +296,8 @@ export function ReplaceComponentSheet({
                   <TouchableOpacity
                     style={styles.dateButton}
                     onPress={() => setShowDatePicker(!showDatePicker)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Install date: ${installedAt.toLocaleDateString()}. Change date.`}
                   >
                     <Ionicons name="calendar-outline" size={16} color={colors.primary} />
                     <Text style={styles.dateButtonText}>
@@ -328,6 +344,9 @@ export function ReplaceComponentSheet({
                   ]}
                   onPress={handleSubmit}
                   disabled={!canSubmit || loading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Replace component"
+                  accessibilityState={{ disabled: !canSubmit || loading, busy: loading }}
                 >
                   {loading ? (
                     <ActivityIndicator color={colors.card} />
@@ -381,6 +400,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   closeButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     padding: 4,
   },
   tabs: {
@@ -390,6 +411,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tab: {
+    minHeight: 44,
+    justifyContent: 'center',
     flex: 1,
     paddingVertical: 10,
     backgroundColor: colors.cardBorder,
@@ -473,6 +496,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dateButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -485,7 +510,7 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.primary,
+    color: colors.positiveOn,
   },
   noteSection: {
     marginTop: 20,

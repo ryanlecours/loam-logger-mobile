@@ -72,13 +72,28 @@ export function RecentRidesList({
             Connect Strava, Garmin, WHOOP, or Suunto to import past rides, or log one manually.
           </Text>
           {onConnectPress && (
-            <TouchableOpacity style={styles.emptyPrimaryButton} onPress={onConnectPress}>
-              <Ionicons name="link-outline" size={16} color={colors.textPrimary} />
+            <TouchableOpacity
+              style={styles.emptyPrimaryButton}
+              onPress={onConnectPress}
+              accessibilityRole="button"
+              accessibilityLabel="Connect a data source"
+            >
+              <Ionicons
+                name="link-outline"
+                size={16}
+                color={colors.onPrimary}
+                accessibilityElementsHidden
+              />
               <Text style={styles.emptyPrimaryButtonText}>Connect a data source</Text>
             </TouchableOpacity>
           )}
           {onAddRidePress && (
-            <TouchableOpacity style={styles.emptySecondaryButton} onPress={onAddRidePress}>
+            <TouchableOpacity
+              style={styles.emptySecondaryButton}
+              onPress={onAddRidePress}
+              accessibilityRole="button"
+              accessibilityLabel="Log a ride manually"
+            >
               <Text style={styles.emptySecondaryButtonText}>Log a ride manually</Text>
             </TouchableOpacity>
           )}
@@ -90,11 +105,25 @@ export function RecentRidesList({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>RECENT RIDES</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          RECENT RIDES
+        </Text>
         {onSeeAll && (
-          <TouchableOpacity onPress={onSeeAll} style={styles.seeAllButton}>
+          <TouchableOpacity
+            onPress={onSeeAll}
+            style={styles.seeAllButton}
+            accessibilityRole="button"
+            // "See all" alone is meaningless out of context, which is exactly
+            // how a screen reader encounters it.
+            accessibilityLabel="See all rides"
+          >
             <Text style={styles.seeAllText}>See all</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.primary}
+              accessibilityElementsHidden
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -128,6 +157,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   seeAllButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     // Bare text needs a real target: the row is only ~17pt tall on its own.
@@ -170,6 +201,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
   },
   emptyPrimaryButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary,
@@ -184,6 +217,8 @@ const styles = StyleSheet.create({
     color: colors.onPrimary,
   },
   emptySecondaryButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: space.lg,
     // 8pt clearance from the primary action above it, not 4.
     marginTop: space.md,

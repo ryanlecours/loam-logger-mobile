@@ -33,14 +33,34 @@ export function BikeSelectorSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]} onStartShouldSetResponder={() => true}>
+      {/* The scrim is a dismissal affordance for sighted taps only. VoiceOver
+          gets the explicit close button below, so exposing a full-screen
+          unlabeled button here would just be a trap in the focus order. */}
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+        accessible={false}
+        importantForAccessibility="no"
+      >
+        <View
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
+          onStartShouldSetResponder={() => true}
+          accessibilityViewIsModal
+        >
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Ionicons name="bicycle" size={20} color={colors.primary} />
-              <Text style={styles.headerTitle}>Your Bikes</Text>
+              <Ionicons name="bicycle" size={20} color={colors.primary} accessibilityElementsHidden />
+              <Text style={styles.headerTitle} accessibilityRole="header">
+                Your Bikes
+              </Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close bike list"
+            >
               <Ionicons name="close" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -60,10 +80,20 @@ export function BikeSelectorSheet({
                     onClose();
                   }}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  // One label for the row: VoiceOver should not read the name,
+                  // the hours and the parts count as three separate stops.
+                  accessibilityLabel={`${displayName}, ${stats.hours.toFixed(0)} hours, ${stats.parts} parts`}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <View style={styles.bikeInfo}>
                     {bike.thumbnailUrl ? (
-                      <Image source={{ uri: bike.thumbnailUrl }} style={styles.bikeImage} resizeMode="cover" />
+                      <Image
+                        source={{ uri: bike.thumbnailUrl }}
+                        style={styles.bikeImage}
+                        resizeMode="cover"
+                        accessibilityElementsHidden
+                      />
                     ) : (
                       <View style={styles.bikePlaceholder}>
                         <Ionicons name="bicycle" size={24} color={colors.textMuted} />
@@ -84,8 +114,14 @@ export function BikeSelectorSheet({
             })}
           </ScrollView>
 
-          <TouchableOpacity style={styles.addBikeButton} onPress={onAddBike} activeOpacity={0.7}>
-            <Ionicons name="add" size={20} color={colors.textSecondary} />
+          <TouchableOpacity
+            style={styles.addBikeButton}
+            onPress={onAddBike}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Add a bike"
+          >
+            <Ionicons name="add" size={20} color={colors.textSecondary} accessibilityElementsHidden />
             <Text style={styles.addBikeText}>Add Bike</Text>
           </TouchableOpacity>
         </View>

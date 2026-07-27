@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBorder,
   },
   actionButtonText: {
-    color: colors.primary,
+    color: colors.positiveOn,
     fontSize: 12,
     fontWeight: '600',
   },

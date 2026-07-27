@@ -13,6 +13,14 @@ interface DashboardComponentCardProps {
   onPress?: () => void;
 }
 
+/** Spoken forms of the ramp. The badge's visual label is title case; speech is not. */
+const STATUS_SPEECH: Record<string, string> = {
+  OVERDUE: 'overdue',
+  DUE_NOW: 'due now',
+  DUE_SOON: 'due soon',
+  ALL_GOOD: 'all good',
+};
+
 export function DashboardComponentCard({
   name,
   installDate,
@@ -26,6 +34,7 @@ export function DashboardComponentCard({
     ? Math.min(100, Math.round((currentHours / serviceIntervalHours) * 100))
     : 0;
   const tone = healthTone(status);
+  const spokenStatus = STATUS_SPEECH[status] ?? 'status unknown';
 
   return (
     <TouchableOpacity
@@ -33,6 +42,12 @@ export function DashboardComponentCard({
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress}
+      accessibilityRole="button"
+      // One stop for the whole card. Read as separate elements this was four
+      // fragments ("Fork", "142h / 100h · 142%", "Overdue") with no stated
+      // relationship between them.
+      accessibilityLabel={`${name}, ${spokenStatus}, ${currentHours.toFixed(0)} of ${serviceIntervalHours.toFixed(0)} hours used`}
+      accessibilityState={{ disabled: !onPress }}
     >
       <View style={styles.header}>
         <View style={styles.nameContainer}>
@@ -42,19 +57,21 @@ export function DashboardComponentCard({
           )}
         </View>
         {onReset && (
-          <TouchableOpacity onPress={onReset} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity
+            onPress={onReset}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Reset ${name} wear baseline`}
+          >
             <Ionicons name="refresh" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
 
       <View style={styles.progressContainer}>
-        <View
-          style={styles.progressTrack}
-          accessibilityRole="progressbar"
-          accessibilityLabel={`${name} service interval used`}
-          accessibilityValue={{ min: 0, max: 100, now: percentage }}
-        >
+        {/* The card label above already speaks the hours and the status, so the
+            bar is decoration to a screen reader rather than a third stop. */}
+        <View style={styles.progressTrack} accessibilityElementsHidden>
           <View
             style={[
               styles.progressBar,

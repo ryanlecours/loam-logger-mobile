@@ -47,7 +47,7 @@ export function ProChip() {
     <TouchableOpacity
       style={styles.chip}
       onPress={() => router.push('/settings-detail/pricing' as Href)}
-      hitSlop={8}
+      hitSlop={12}
       accessibilityRole="button"
       accessibilityLabel="Included with Pro, see plans"
     >
@@ -92,7 +92,15 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.cardDismiss} onPress={dismiss} hitSlop={8} accessibilityLabel="Dismiss">
+      <TouchableOpacity
+        style={styles.cardDismiss}
+        onPress={dismiss}
+        // 14pt icon: hitSlop carries it to 46pt without growing a close X that
+        // sits in the card's corner.
+        hitSlop={16}
+        accessibilityRole="button"
+        accessibilityLabel={`Dismiss: ${copy.title}`}
+      >
         <Ionicons name="close" size={14} color={colors.textMuted} />
       </TouchableOpacity>
       <Text style={styles.cardTitle}>{copy.title}</Text>
@@ -100,6 +108,8 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
       <TouchableOpacity
         style={styles.cardButton}
         onPress={() => router.push('/settings-detail/pricing' as Href)}
+        accessibilityRole="button"
+        accessibilityLabel="See Pro plans"
       >
         <Text style={styles.cardButtonText}>See Pro</Text>
       </TouchableOpacity>
@@ -144,6 +154,9 @@ const styles = StyleSheet.create({
     color: colors.onPrimary,
   },
   chip: {
+    // Deliberately not 44pt tall. This is a small inline mark sitting beside
+    // text; growing the box would wreck the line it sits in. The target comes
+    // from hitSlop instead (21 + 24 = 45pt), which is what hitSlop is for.
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -189,6 +202,8 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   cardButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     marginTop: 12,
     alignSelf: 'flex-start',
     backgroundColor: colors.primary,

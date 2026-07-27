@@ -31,6 +31,7 @@ import { usePersistedBikeSelection } from '../../src/hooks/usePersistedBikeSelec
 import { colors, radius } from '../../src/constants/theme';
 import { formatComponentType } from '../../src/utils/formatComponentType';
 import { describeError } from '../../src/utils/errorCopy';
+import { selectionTick } from '../../src/lib/haptics';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: '7d', label: '7D' },
@@ -399,8 +400,15 @@ export default function DashboardScreen() {
             style={styles.actionButton}
             onPress={() => router.push(`/bike/${activeBikeId}` as Href)}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Inspect ${displayName}`}
           >
-            <Ionicons name="search-outline" size={22} color={colors.textPrimary} />
+            <Ionicons
+              name="search-outline"
+              size={22}
+              color={colors.onPrimary}
+              accessibilityElementsHidden
+            />
             <Text style={styles.actionButtonText}>Inspect Bike</Text>
           </TouchableOpacity>
         )}
@@ -440,7 +448,12 @@ export default function DashboardScreen() {
               <TouchableOpacity
                 key={key}
                 style={[styles.timeframeTab, active && styles.timeframeTabActive]}
-                onPress={() => setTimeframe(key)}
+                onPress={() => {
+                  // The numbers below change with no transition, so the tick is
+                  // the only confirmation the tap registered.
+                  selectionTick();
+                  setTimeframe(key);
+                }}
                 activeOpacity={0.7}
                 accessibilityRole="tab"
                 accessibilityLabel={TIMEFRAME_LABELS[key]}
@@ -471,7 +484,12 @@ export default function DashboardScreen() {
         visible={showBikeSelector}
         bikes={typedBikes}
         selectedBikeId={activeBikeId}
-        onSelect={selectBike}
+        onSelect={(bikeId) => {
+          // Switching bikes rewrites the whole screen's meaning, and the sheet
+          // dismisses over it, so the tick is what marks the change as yours.
+          selectionTick();
+          selectBike(bikeId);
+        }}
         onAddBike={() => {
           setShowBikeSelector(false);
           router.push('/bike/add' as Href);
@@ -633,7 +651,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   timeframeTab: {
-    paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 14,
     borderRadius: radius.full,
     backgroundColor: colors.card,

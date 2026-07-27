@@ -21,6 +21,7 @@ import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
 import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
+import { successTick, warningTick } from '../../lib/haptics';
 
 interface ComponentActionSheetProps {
   visible: boolean;
@@ -75,12 +76,14 @@ export function ComponentActionSheet({
         variables: { id: prediction.componentId, hours },
       });
       setSnoozeSuccess(true);
+      successTick();
       // Deliberately no auto-close. Snoozing pushes a service date out; that is
       // the kind of change a rider should get to take back, and a 1000ms timer
       // closing the sheet gave them no chance to.
       onActionComplete();
     } catch (err) {
       console.error('Failed to snooze component:', err);
+      warningTick();
       setSnoozeError('That did not save. Check your signal and try again.');
     }
   }, [prediction, snoozeComponent, onActionComplete]);
@@ -126,10 +129,10 @@ export function ComponentActionSheet({
       transparent
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
+      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <TouchableWithoutFeedback accessible={false}>
+            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -143,7 +146,12 @@ export function ComponentActionSheet({
                     <Text style={styles.brandModel}>{brandModel}</Text>
                   )}
                 </View>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close component actions"
+                >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -265,6 +273,9 @@ export function ComponentActionSheet({
                               styles.customApplyButton,
                               (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
                             ]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Snooze for ${customHours || 0} hours`}
+                            accessibilityState={{ disabled: snoozing || !customHours || Number(customHours) < 1 }}
                             onPress={() => handleSnooze(Number(customHours))}
                             disabled={snoozing || !customHours || Number(customHours) < 1}
                           >
@@ -337,6 +348,9 @@ export function ComponentActionSheet({
                   ]}
                   onPress={() => setShowSnoozeOptions(true)}
                   disabled={snoozing || snoozeSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel="Looks good, snooze this service"
+                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
                 >
                   <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
                   <Text style={styles.actionButtonTextPrimary}>
@@ -348,6 +362,9 @@ export function ComponentActionSheet({
                   style={styles.actionButton}
                   onPress={onLogService}
                   disabled={snoozing || snoozeSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Log service for ${typeName}`}
+                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
                 >
                   <Ionicons name="build-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.actionButtonText}>Log Service</Text>
@@ -357,6 +374,9 @@ export function ComponentActionSheet({
                   style={styles.actionButton}
                   onPress={onReplace}
                   disabled={snoozing || snoozeSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Replace ${typeName}`}
+                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
                 >
                   <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.actionButtonText}>Replace</Text>
@@ -414,6 +434,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   closeButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     padding: 4,
     marginLeft: 12,
   },
@@ -467,6 +489,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   snoozePresetButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -485,7 +509,9 @@ const styles = StyleSheet.create({
   customRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    // Two separate targets (the field and Apply), so they need real
+    // separation, not the 6pt used for icon-to-label gaps.
+    gap: 8,
     flex: 1,
   },
   customInput: {
@@ -505,6 +531,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   customApplyButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -581,6 +609,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionButton: {
+    minHeight: 44,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -602,7 +631,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   actionButtonTextPrimary: {
-    color: colors.primary,
+    color: colors.positiveOn,
     fontSize: 12,
     fontWeight: '600',
   },

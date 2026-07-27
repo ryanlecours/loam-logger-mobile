@@ -18,6 +18,8 @@ export function EmptyBikeState() {
       <TouchableOpacity
         style={styles.button}
         onPress={() => router.push('/bike/add' as Href)}
+        accessibilityRole="button"
+        accessibilityLabel="Add your first bike"
       >
         <Ionicons name="add" size={20} color={colors.onPrimary} />
         <Text style={styles.buttonText}>Add Bike</Text>
@@ -59,6 +61,8 @@ const styles = StyleSheet.create({
     marginBottom: space.xxl,
   },
   button: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary,
