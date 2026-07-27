@@ -1,7 +1,19 @@
-// Re-exports the terms version constant
-// TODO: Import from @loam/shared when monorepo package linking is set up
-export const CURRENT_TERMS_VERSION = '1.3.0';
-export const TERMS_LAST_UPDATED = 'May 2026';
+// Re-exports the terms version constant.
+// TODO: Import from @loam/shared when monorepo package linking is set up.
+//
+// MUST MATCH libs/shared/src/legal/terms.ts in the loam-logger repo. This is
+// not cosmetic. The API computes `hasAcceptedCurrentTerms` by looking for a
+// TermsAcceptance row keyed on the SHARED version, and `acceptTerms` throws
+// "Invalid terms version" for anything that does not equal it. If this drifts
+// behind, the terms gate in app/_layout.tsx traps every authenticated user on
+// the terms screen and the Accept button can never succeed: the app becomes
+// unusable, silently, with no server error to page on.
+//
+// That is exactly what happened between 2026-07-15 (shared bumped to 1.4.0 for
+// the machine-generated-content section) and 2026-07-26, when this was still
+// on 1.3.0. Bump both repos in the same change, always.
+export const CURRENT_TERMS_VERSION = '1.4.0';
+export const TERMS_LAST_UPDATED = 'July 2026';
 
 export type LegalSection = {
   title: string;
