@@ -1,0 +1,21 @@
+# Owner-only GPS track for one ride, downsampled server-side to ~800 points.
+# Deliberately its own query rather than a field on Ride, so the stream blob is
+# never read for list queries.
+#
+# `source` and `garminDeviceName` drive the map's attribution. Attribute from
+# THESE, never from Ride.garminActivityId: a ride matched across providers
+# carries both activity ids but only one persisted stream, so the ride field
+# would credit Garmin for a Strava-recorded track.
+#
+# The web app also has a RequestRideTrack mutation that loads a stream on
+# demand for legacy Strava rides (status FETCHABLE). Mobile deliberately omits
+# it for now and simply renders nothing in that state.
+query RideTrack($rideId: ID!) {
+  rideTrack(rideId: $rideId) {
+    status
+    points
+    sampledFrom
+    source
+    garminDeviceName
+  }
+}

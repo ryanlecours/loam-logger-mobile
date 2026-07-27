@@ -1870,6 +1870,13 @@ export type RideQueryVariables = Exact<{
 
 export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
 
+export type RideTrackQueryVariables = Exact<{
+  rideId: Scalars['ID']['input'];
+}>;
+
+
+export type RideTrackQuery = { __typename?: 'Query', rideTrack: { __typename?: 'RideTrack', status: RideTrackStatus, points?: Array<Array<number>> | null, sampledFrom?: number | null, source?: string | null, garminDeviceName?: string | null } };
+
 export type RecentRidesQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
 }>;
@@ -3735,6 +3742,53 @@ export type RideQueryHookResult = ReturnType<typeof useRideQuery>;
 export type RideLazyQueryHookResult = ReturnType<typeof useRideLazyQuery>;
 export type RideSuspenseQueryHookResult = ReturnType<typeof useRideSuspenseQuery>;
 export type RideQueryResult = Apollo.QueryResult<RideQuery, RideQueryVariables>;
+export const RideTrackDocument = gql`
+    query RideTrack($rideId: ID!) {
+  rideTrack(rideId: $rideId) {
+    status
+    points
+    sampledFrom
+    source
+    garminDeviceName
+  }
+}
+    `;
+
+/**
+ * __useRideTrackQuery__
+ *
+ * To run a query within a React component, call `useRideTrackQuery` and pass it any options that fit your needs.
+ * When your component renders, `useRideTrackQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useRideTrackQuery({
+ *   variables: {
+ *      rideId: // value for 'rideId'
+ *   },
+ * });
+ */
+export function useRideTrackQuery(baseOptions: Apollo.QueryHookOptions<RideTrackQuery, RideTrackQueryVariables> & ({ variables: RideTrackQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<RideTrackQuery, RideTrackQueryVariables>(RideTrackDocument, options);
+      }
+export function useRideTrackLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<RideTrackQuery, RideTrackQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<RideTrackQuery, RideTrackQueryVariables>(RideTrackDocument, options);
+        }
+// @ts-ignore
+export function useRideTrackSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<RideTrackQuery, RideTrackQueryVariables>): Apollo.UseSuspenseQueryResult<RideTrackQuery, RideTrackQueryVariables>;
+export function useRideTrackSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RideTrackQuery, RideTrackQueryVariables>): Apollo.UseSuspenseQueryResult<RideTrackQuery | undefined, RideTrackQueryVariables>;
+export function useRideTrackSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<RideTrackQuery, RideTrackQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<RideTrackQuery, RideTrackQueryVariables>(RideTrackDocument, options);
+        }
+export type RideTrackQueryHookResult = ReturnType<typeof useRideTrackQuery>;
+export type RideTrackLazyQueryHookResult = ReturnType<typeof useRideTrackLazyQuery>;
+export type RideTrackSuspenseQueryHookResult = ReturnType<typeof useRideTrackSuspenseQuery>;
+export type RideTrackQueryResult = Apollo.QueryResult<RideTrackQuery, RideTrackQueryVariables>;
 export const RecentRidesDocument = gql`
     query RecentRides($take: Int) {
   rides(take: $take) {
