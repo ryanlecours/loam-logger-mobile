@@ -24,7 +24,8 @@ import RouteMapView from './RouteMapView';
  * streams arrive pushed at ingest and are never fetched on demand.
  */
 export function RideTrackMap({ rideId }: { rideId: string }) {
-  const { data, loading, error } = useRideTrackQuery({
+  // `error` is deliberately not read: see the `!track` guard below.
+  const { data, loading } = useRideTrackQuery({
     variables: { rideId },
     fetchPolicy: 'cache-and-network',
   });
@@ -39,10 +40,20 @@ export function RideTrackMap({ rideId }: { rideId: string }) {
     );
   }
 
-  // getRideTrack throws "Ride not found" for a missing ride and for another
-  // user's ride alike. Either way the surrounding screen has already rendered
-  // the ride, so a failed map is not worth an error state; collapse instead.
-  if (error || !track) return null;
+  // Deliberately `!track`, NOT `error || !track`.
+  //
+  // Under cache-and-network Apollo keeps `data` populated from the cache when a
+  // BACKGROUND refetch fails: the hook reports `error` truthy and `data` intact
+  // (verified for both errorPolicy 'none' and 'all'). Collapsing on `error`
+  // alone therefore made an already-rendered map vanish on a passing network
+  // blip, which is worse than the stale frame it replaced.
+  //
+  // `!track` alone is the honest test for "we truly have nothing": a first load
+  // that fails has no cached data to fall back on, so `track` is undefined and
+  // we collapse anyway. That path is intentional too, since getRideTrack throws
+  // "Ride not found" for a missing ride and another user's ride alike, and the
+  // surrounding screen already renders its own not-found state.
+  if (!track) return null;
 
   if (track.status !== RideTrackStatus.Available) return null;
 

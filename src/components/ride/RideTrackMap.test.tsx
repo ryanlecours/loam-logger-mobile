@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { MockedProvider } from '@apollo/client/testing';
+import { InMemoryCache } from '@apollo/client';
 import { RideTrackMap } from './RideTrackMap';
 import { RideTrackDocument } from '../../graphql/generated';
 
@@ -116,6 +117,72 @@ describe('RideTrackMap', () => {
     await renderWithMocks([trackMock({ status: 'FETCHABLE' })]);
 
     await waitFor(() => expect(screen.queryByText('Route')).toBeNull());
+  });
+
+  describe('network errors', () => {
+    it('renders nothing when the first load fails with nothing cached', async () => {
+      await render(
+        <MockedProvider
+          mocks={[
+            {
+              request: { query: RideTrackDocument, variables: { rideId: RIDE_ID } },
+              error: new Error('Ride not found'),
+            },
+          ]}
+        >
+          <RideTrackMap rideId={RIDE_ID} />
+        </MockedProvider>
+      );
+
+      await waitFor(() => expect(screen.queryByText('Route')).toBeNull());
+      expect(screen.queryByTestId('map-view', HIDDEN)).toBeNull();
+    });
+
+    // Regression: the guard used to be `error || !track`, which threw away a
+    // perfectly good cached track the moment a background refetch failed. With
+    // cache-and-network Apollo keeps `data` intact and merely sets `error`, so
+    // a passing network blip made an already-rendered map vanish while the
+    // user was looking at it.
+    it('keeps a cached map on screen when a background refetch fails', async () => {
+      const cache = new InMemoryCache();
+      cache.writeQuery({
+        query: RideTrackDocument,
+        variables: { rideId: RIDE_ID },
+        data: {
+          rideTrack: {
+            __typename: 'RideTrack',
+            status: 'AVAILABLE',
+            points: POINTS,
+            sampledFrom: 800,
+            source: 'garmin',
+            garminDeviceName: 'edge_840',
+          },
+        },
+      });
+
+      await render(
+        <MockedProvider
+          cache={cache}
+          mocks={[
+            {
+              request: { query: RideTrackDocument, variables: { rideId: RIDE_ID } },
+              error: new Error('network blip'),
+            },
+          ]}
+        >
+          <RideTrackMap rideId={RIDE_ID} />
+        </MockedProvider>
+      );
+
+      // Cached data paints immediately.
+      expect(screen.getByTestId('map-view', HIDDEN)).toBeTruthy();
+
+      // Let the failing background request settle, then confirm the map and
+      // its attribution both survived it.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(screen.queryByTestId('map-view', HIDDEN)).toBeTruthy();
+      expect(screen.getByText('Data source: Garmin Edge 840')).toBeTruthy();
+    });
   });
 
   describe('Garmin attribution', () => {
