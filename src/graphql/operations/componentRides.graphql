@@ -23,6 +23,7 @@ query ComponentRides($componentId: ID!, $take: Int, $after: ID) {
         trailSystem
         notes
         garminActivityId
+        garminDeviceName
         stravaActivityId
         whoopWorkoutId
         suuntoWorkoutId

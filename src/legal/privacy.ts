@@ -1,6 +1,11 @@
 import type { LegalSection } from './terms';
 
-export const PRIVACY_LAST_UPDATED = 'May 2, 2026';
+// MIRROR of apps/web/src/pages/PrivacyPolicy.tsx in the loam-logger repo.
+// The two repos share no package, so this copy is maintained by hand \u2014 any
+// edit to one must land in the other in the same session. Section numbering
+// and wording are kept identical so a reader (or a partner's legal reviewer)
+// comparing the web policy against the in-app policy sees the same document.
+export const PRIVACY_LAST_UPDATED = 'July 26, 2026';
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
   {
@@ -45,6 +50,43 @@ Loam Logger ("we," "us," or "our") is operated by Loam Labs LLC. This policy exp
 Supported providers: Garmin, Strava, WHOOP, and Suunto. Each provider has its own terms and privacy policy governing your data on their platform.`,
   },
   {
+    // Anchored on the web at /privacy#garmin-connect-data. Garmin's developer
+    // program requires a direct link to this clause, and requires written
+    // approval before any future change to it \u2014 do not edit without that.
+    title: '4a. Garmin Connect Data',
+    body: `This section describes specifically how Garmin data is collected, used, processed, stored, and shared.
+
+WHAT WE COLLECT
+
+When you connect Garmin Connect, we access the Garmin Activity API only. We do not request, receive, or store health or wellness data \u2014 no daily summaries, sleep, stress, body composition, pulse ox, respiration, heart rate variability, or Body Battery. For cycling activities only, we receive:
+
+\u2022 Activity summary: activity type and name, start time, duration, distance, elevation gain, average and maximum heart rate, starting coordinates, and the Garmin device model that recorded the activity.
+\u2022 Activity details (per-point samples), when provided: timestamp, GPS position, elevation, speed, cadence, heart rate, and power, sampled through the ride. These are used to draw your route map and to detect chairlift/shuttle segments so they are not counted as pedaling time.
+\u2022 Account identifier: your Garmin user ID, plus OAuth access and refresh tokens, used solely to maintain the connection.
+
+HOW WE USE AND PROCESS IT
+
+Ride duration from Garmin activities accrues against the components installed on your bike to produce component wear hours and service predictions. Garmin data is therefore an input to derived outputs shown throughout the app, and those outputs identify Garmin as a contributing data source. Starting coordinates are used to name the ride location and fetch historical weather for that ride. We do not sell Garmin data, use it for advertising, or share it with data brokers.
+
+THIRD PARTIES THAT PROCESS IT
+
+Garmin-derived data is stored in our database and processed by the infrastructure providers listed in Section 5 \u2014 Railway (API hosting), Neon (database), and Vercel (web hosting).
+
+Third-party AI processing: if you are on a paid plan, we generate a short plain-language maintenance summary for your bike using Anthropic, PBC (the Claude API). What is sent is the derived maintenance state \u2014 component names, accumulated hours, service intervals, and status. Raw Garmin activity data, GPS coordinates, per-point samples, Garmin account identifiers, and your name and email are not sent. Anthropic acts as our sub-processor, does not use the data to train models, and returns the summary only to you.
+
+Garmin data is not sent to our analytics or error-tracking providers. PostHog receives product events without fitness data, and Sentry receives no ride information (Sections 6 and 7).
+
+STORAGE, RETENTION, AND DELETION
+
+Garmin data is stored in the United States (see Section 12), encrypted in transit, and retained while your account is active.
+
+\u2022 If you disconnect Garmin in Loam Logger, or revoke access from your Garmin account, we revoke our access tokens, stop all further imports, and delete the raw per-point GPS tracks supplied by Garmin. Rides already imported remain as part of your own maintenance record, because deleting them would erase the component service history the app exists to keep.
+\u2022 If Garmin notifies us that you deregistered, we apply the same deletion automatically.
+\u2022 You can request full deletion of previously imported Garmin rides at any time, and deleting your Loam Logger account removes all of it.
+
+Your data on Garmin's own platform is governed by Garmin's privacy policy at garmin.com/en-US/privacy/connect/. You can review or revoke Loam Logger's access at any time from your Garmin Connect account settings.`,
+  },
+  {
     title: '5. Sharing & Third-Party Processors',
     body: `We do not sell personal data. We share data with the following categories of trusted processors under data-processing terms:
 
@@ -54,6 +96,7 @@ Supported providers: Garmin, Strava, WHOOP, and Suunto. Each provider has its ow
 \u2022 Subscription Management: RevenueCat (manages Apple and Google in-app purchases; receives your user ID, subscription status, and purchase events).
 \u2022 Payment Processing: Stripe (processes web subscription payments; receives your email and payment details).
 \u2022 Email: Resend (transactional and product emails).
+\u2022 AI Processing: Anthropic, PBC (Claude API) generates the plain-language maintenance summary shown on paid plans. It receives derived maintenance state only \u2014 component names, hours, service intervals, and status \u2014 never your name, email, GPS coordinates, raw activity data, credentials, or payment details. Anthropic does not use this data to train models.
 
 We may also disclose data if required by law or to protect rights and safety.`,
   },
@@ -83,6 +126,7 @@ You can opt out of PostHog analytics at any time from the Privacy section in you
     body: `We retain your data while your account is active and for a reasonable period afterward as needed for service integrity and legal obligations. Specifically:
 
 \u2022 Account and ride data: Retained until you delete your account.
+\u2022 Raw GPS tracks from a connected provider: Deleted when you disconnect that provider (see Section 4a for the Garmin specifics).
 \u2022 Error tracking data (Sentry): Retained for 90 days.
 \u2022 Analytics data (PostHog): Retained for up to 12 months.
 

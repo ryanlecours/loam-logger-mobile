@@ -11,6 +11,47 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.0.10 - 2026-07-26
+
+### App Store "What's New"
+
+New: See which Garmin device recorded each ride
+Rides synced from Garmin now name the watch or bike computer behind them.
+You'll see "Garmin Edge 840" rather than just "Garmin" on your rides list, on
+ride detail, and in the rides behind each part's hours.
+
+Improvements
+- Garmin Connect now appears with its proper name and app icon wherever you
+  connect or switch data sources
+- Updated Privacy Policy and Terms with more detail on how Garmin data and
+  AI-generated maintenance summaries are handled
+
+### Internal
+- Garmin Connect Developer Program production-access compliance, mirroring the
+  web app (loam-logger#255). Required before the Garmin production API key is
+  granted, which is the gate on marketing.
+- `feat(attribution)`: Garmin device-model attribution on ride rows, ride
+  detail, and component ride lists, per the Garmin API Brand Guidelines'
+  title-level and secondary-screen rules. Falls back to plain "Garmin" when
+  Garmin reports no device, which the guidelines permit.
+- Ride badges now render *every* contributing provider. A ride matched across
+  Strava and Garmin previously showed Strava alone and dropped the Garmin
+  attribution entirely. The inverse is equally binding: no Garmin mark renders
+  where Garmin contributed nothing.
+- `feat(brand)`: the official Garmin Connect app tile replaces the Ionicons
+  `watch-outline` glyph that was standing in for the Garmin mark on connect,
+  settings and OAuth screens. Full "Garmin Connect™" naming throughout; the
+  guidelines forbid abbreviating or stylizing it. Garmin blue moved onto the
+  theme token with a lightened on-dark tint for legible small text.
+- `docs(legal)`: privacy policy §4a "Garmin Connect Data" (Activity API only,
+  no health data, what is collected and what disconnection deletes), Anthropic
+  added to the processor list, and Terms §13.1 on machine-generated content
+  ported across. Mobile shipped without it despite claiming the same terms
+  version, leaving the AI sub-processor undisclosed in-app.
+- Attribution strings and legal copy are hand-mirrored from `loam-logger`;
+  this repo has no dependency on `@loam/shared`. The files carry `MIRROR`
+  notes and must be updated in both repos together.
+
 ## 1.0.9 — 2026-07-21
 
 ### App Store "What's New"

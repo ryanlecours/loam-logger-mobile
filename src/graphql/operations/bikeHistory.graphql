@@ -7,6 +7,8 @@ query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
       model
       year
       shareSlug
+      # Drives attribution in the exported PDF, which is downstream data.
+      contributingSources
     }
     rides {
       id

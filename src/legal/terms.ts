@@ -1,7 +1,19 @@
-// Re-exports the terms version constant
-// TODO: Import from @loam/shared when monorepo package linking is set up
-export const CURRENT_TERMS_VERSION = '1.3.0';
-export const TERMS_LAST_UPDATED = 'May 2026';
+// Re-exports the terms version constant.
+// TODO: Import from @loam/shared when monorepo package linking is set up.
+//
+// MUST MATCH libs/shared/src/legal/terms.ts in the loam-logger repo. This is
+// not cosmetic. The API computes `hasAcceptedCurrentTerms` by looking for a
+// TermsAcceptance row keyed on the SHARED version, and `acceptTerms` throws
+// "Invalid terms version" for anything that does not equal it. If this drifts
+// behind, the terms gate in app/_layout.tsx traps every authenticated user on
+// the terms screen and the Accept button can never succeed: the app becomes
+// unusable, silently, with no server error to page on.
+//
+// That is exactly what happened between 2026-07-15 (shared bumped to 1.4.0 for
+// the machine-generated-content section) and 2026-07-26, when this was still
+// on 1.3.0. Bump both repos in the same change, always.
+export const CURRENT_TERMS_VERSION = '1.4.0';
+export const TERMS_LAST_UPDATED = 'July 2026';
 
 export type LegalSection = {
   title: string;
@@ -191,6 +203,23 @@ Loam Labs LLC is not responsible for:
 \u2022 Decisions made based on third-party data
 
 Use of third-party services is at your own risk and subject to their respective terms.`,
+  },
+  {
+    // Mirrors Section 9.1 of the web terms (apps/web/src/legal/terms.ts in the
+    // loam-logger repo). Mobile shipped without it despite both claiming the
+    // same terms version, so the AI sub-processor was undisclosed in-app.
+    title: '13.1 Machine-Generated Content Using AI',
+    body: `Certain features of the Service produce machine-generated content using artificial intelligence (AI), including natural-language maintenance summaries. To generate this content, the Service transmits non-identifying data about your bicycle and its components \u2014 such as component types, service intervals, hours since last service, and computed status \u2014 to a third-party AI processing provider (currently Anthropic, PBC, operator of the Claude API).
+
+The following applies to all machine-generated content:
+
+\u2022 Output is produced by statistical language models and may be inaccurate, incomplete, out of date, or nonsensical, even when the underlying data is correct.
+\u2022 Machine-generated summaries are not professional advice, diagnostic output, or a safety indicator, and are subject to every disclaimer already stated in these Terms.
+\u2022 The Service does not send your name, email address, ride GPS coordinates, payment information, or account credentials to the AI provider. Data sent is limited to what is needed to describe your bicycle's maintenance state.
+\u2022 The AI provider processes the data solely to return output to the Service. Under the AI provider's current terms, submitted data is not used to train their models. Data may be retained by the AI provider for a limited period for abuse and safety review.
+\u2022 The AI provider is a sub-processor of the Service. Their terms and privacy practices are available on their website.
+
+You acknowledge that machine-generated content is an assistive feature and agree not to rely on it as the sole basis for any maintenance, repair, safety, or purchasing decision.`,
   },
   {
     title: '14. Force Majeure',

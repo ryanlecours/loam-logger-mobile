@@ -19,6 +19,7 @@ import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
 import { colors } from '../../src/constants/theme';
+import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
 
 function IntegrationRow({
   provider,
@@ -253,8 +254,10 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Connected Services</Text>
         <IntegrationRow
           provider="garmin"
-          label="Garmin"
-          brandColor="#007dc3"
+          // Full, unabbreviated app name and the theme's single Garmin blue —
+          // the guidelines forbid abbreviating or stylizing the app name.
+          label={GARMIN_CONNECT_APP_NAME}
+          brandColor={colors.garmin}
           onImportPress={() => handleImportPress('garmin')}
           onConnectionChange={handleConnectionChange}
         />

@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
 import { useRideQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
+import { formatGarminSource } from '../../src/constants/garminAttribution';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
   formatDuration,
@@ -55,25 +56,34 @@ function getRideTypeIcon(rideType: string): IconName {
   return icons[rideType] || 'bicycle-outline';
 }
 
+/** Badges for every provider that contributed data to this ride. */
 function getSourceInfo(ride: {
   garminActivityId?: string | null;
+  garminDeviceName?: string | null;
   stravaActivityId?: string | null;
   whoopWorkoutId?: string | null;
   suuntoWorkoutId?: string | null;
-}): { label: string; color: string } | null {
+}): { label: string; color: string }[] {
+  const badges: { label: string; color: string }[] = [];
   if (ride.stravaActivityId) {
-    return { label: 'Synced from Strava', color: colors.strava };
+    badges.push({ label: 'Synced from Strava', color: colors.strava });
   }
+  // Attributed as "Garmin [device model]", not "Synced from Garmin": the
+  // guidelines require the device model on detail screens and treat a reworded
+  // attribution as noncompliant. Emitted whenever Garmin data is present, even
+  // alongside another provider — a cross-provider ride still contains Garmin
+  // device-sourced data, and dropping the attribution there is exactly the
+  // kind of omission the guidelines are aimed at.
   if (ride.garminActivityId) {
-    return { label: 'Synced from Garmin', color: colors.garmin };
+    badges.push({ label: formatGarminSource(ride.garminDeviceName), color: colors.garmin });
   }
   if (ride.whoopWorkoutId) {
-    return { label: 'Synced from WHOOP', color: colors.whoop };
+    badges.push({ label: 'Synced from WHOOP', color: colors.whoop });
   }
   if (ride.suuntoWorkoutId) {
-    return { label: 'Synced from Suunto', color: colors.suunto };
+    badges.push({ label: 'Synced from Suunto', color: colors.suunto });
   }
-  return null;
+  return badges;
 }
 
 export default function RideDetailScreen() {
@@ -334,11 +344,14 @@ export default function RideDetailScreen() {
               />
               <Text style={styles.typeLabel}>{getRideTypeLabel(ride.rideType)}</Text>
             </View>
-            {sourceInfo && (
-              <View style={[styles.sourceBadge, { backgroundColor: sourceInfo.color }]}>
-                <Text style={styles.sourceBadgeText}>{sourceInfo.label}</Text>
+            {sourceInfo.map((badge) => (
+              <View
+                key={badge.label}
+                style={[styles.sourceBadge, { backgroundColor: badge.color }]}
+              >
+                <Text style={styles.sourceBadgeText}>{badge.label}</Text>
               </View>
-            )}
+            ))}
           </View>
 
           <Text style={styles.date}>{formattedDate}</Text>

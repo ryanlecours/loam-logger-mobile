@@ -11,6 +11,7 @@ query RidesPage($take: Int, $after: ID, $filter: RidesFilterInput) {
     location
     notes
     garminActivityId
+    garminDeviceName
     stravaActivityId
     whoopWorkoutId
     suuntoWorkoutId

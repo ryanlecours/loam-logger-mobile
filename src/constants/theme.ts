@@ -29,9 +29,14 @@ export const colors = {
   tabActive: '#4f7a5a',
   tabInactive: '#6b7280',
 
-  // Data sources
+  // Data sources — a partner's own badge only, never Loam UI
+  // (DESIGN.md, "The Guest Jersey Rule").
   strava: '#fc4c02',
-  garmin: '#007dc3',
+  garmin: '#007DC3',
+  // Garmin's brand blue is too dark to read as small text on our dark
+  // surfaces. Fills and lockups use `garmin`; text and icon glyphs on dark use
+  // this lightened tint. Mirrors --brand-garmin-on-dark on web.
+  garminOnDark: '#4FB8E8',
   whoop: '#00a651',
   suunto: '#0072CE',
 

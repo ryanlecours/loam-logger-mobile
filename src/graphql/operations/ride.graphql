@@ -11,6 +11,7 @@ query Ride($id: ID!) {
     location
     notes
     garminActivityId
+    garminDeviceName
     stravaActivityId
     whoopWorkoutId
     suuntoWorkoutId

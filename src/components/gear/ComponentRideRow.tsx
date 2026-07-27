@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
+import { formatGarminSource } from '../../constants/garminAttribution';
 import { formatDuration, formatRideDate } from '../../utils/greetingMessages';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -17,6 +18,7 @@ export interface AttributionRide {
   notes?: string | null;
   bikeId?: string | null;
   garminActivityId?: string | null;
+  garminDeviceName?: string | null;
 }
 
 interface ComponentRideRowProps {
@@ -89,6 +91,17 @@ export function ComponentRideRow({
         <Text style={styles.subtitle} numberOfLines={1}>
           {formatRideDate(ride.startTime)} · {formatDuration(ride.durationSeconds)}
           {suffix ? ` · ${suffix}` : ''}
+          {/* Per-entry Garmin attribution. This list is a secondary/detail
+              view under the Garmin API Brand Guidelines, which require the
+              attribution in expanded views too — per entry or globally in a
+              header. Per entry is the honest choice here, since a component's
+              hours can mix providers. */}
+          {ride.garminActivityId && (
+            <Text style={styles.attribution}>
+              {' · '}
+              {formatGarminSource(ride.garminDeviceName)}
+            </Text>
+          )}
           {beforeAnchor && <Text style={styles.warning}> · predates last service</Text>}
         </Text>
       </View>
@@ -149,6 +162,11 @@ const styles = StyleSheet.create({
   },
   warning: {
     color: colors.warning,
+  },
+  // Data-source attribution inline in the row subtitle — visible without
+  // interaction, as the Garmin guidelines require.
+  attribution: {
+    color: colors.garminOnDark,
   },
   action: {
     paddingVertical: 6,

@@ -1,6 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
+import { GARMIN_CONNECT_APP_NAME } from '../../constants/garminAttribution';
+import { GarminConnectMark } from '../attribution/GarminConnectMark';
 
 interface ConnectedAccount {
   provider: string;
@@ -14,11 +16,16 @@ interface DataSourceSelectorProps {
   loading: boolean;
 }
 
-const PROVIDER_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  garmin: { label: 'Garmin', color: '#007dc3', icon: 'watch-outline' },
-  strava: { label: 'Strava', color: '#fc4c02', icon: 'bicycle-outline' },
-  whoop: { label: 'WHOOP', color: '#00a651', icon: 'pulse-outline' },
-  suunto: { label: 'Suunto', color: '#0072CE', icon: 'watch-outline' },
+// Garmin carries no `icon`: it renders the official Garmin Connect tile
+// instead of an Ionicons stand-in, and its label is the full, unabbreviated
+// app name — both required by the Garmin API Brand Guidelines when displaying
+// a connection. Colors come from the theme token so the app has one Garmin
+// blue rather than the three that were previously in circulation.
+const PROVIDER_CONFIG: Record<string, { label: string; color: string; icon?: string }> = {
+  garmin: { label: GARMIN_CONNECT_APP_NAME, color: colors.garmin },
+  strava: { label: 'Strava', color: colors.strava, icon: 'bicycle-outline' },
+  whoop: { label: 'WHOOP', color: colors.whoop, icon: 'pulse-outline' },
+  suunto: { label: 'Suunto', color: colors.suunto, icon: 'watch-outline' },
 };
 
 export function DataSourceSelector({
@@ -58,11 +65,15 @@ export function DataSourceSelector({
               ) : (
                 <>
                   <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
-                    <Ionicons
-                      name={config.icon as React.ComponentProps<typeof Ionicons>['name']}
-                      size={24}
-                      color={config.color}
-                    />
+                    {config.icon ? (
+                      <Ionicons
+                        name={config.icon as React.ComponentProps<typeof Ionicons>['name']}
+                        size={24}
+                        color={config.color}
+                      />
+                    ) : (
+                      <GarminConnectMark size={24} />
+                    )}
                   </View>
                   <Text style={[styles.cardLabel, isActive && { color: config.color, fontWeight: '700' }]}>
                     {config.label}

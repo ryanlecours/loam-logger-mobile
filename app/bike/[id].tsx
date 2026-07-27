@@ -7,6 +7,7 @@ import { TouchableOpacity } from 'react-native';
 import { useBikeQuery, useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
 import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthBadge';
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
+import { GarminDerivedNote } from '../../src/components/attribution/GarminAttribution';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailSheet';
 import { EditServiceSheet, type EditableServiceLog } from '../../src/components/gear/EditServiceSheet';
@@ -431,6 +432,14 @@ export default function BikeDetailScreen() {
             </Text>
           )}
         </View>
+        {/* Wear hours and every due/overdue prediction below are computed from
+            ride duration, so any provider that contributed rides has to be
+            named as a source. Sits under the heading, above the data it
+            describes: the Garmin API Brand Guidelines require attribution to be
+            visually associated with the data and never behind a disclosure. */}
+        {bike?.contributingSources?.includes('garmin') && (
+          <GarminDerivedNote style={styles.sectionAttribution} />
+        )}
         <View style={styles.componentsList}>
           {componentGroups.length === 0 ? (
             <View style={styles.emptyComponents}>
@@ -721,6 +730,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    paddingBottom: 8,
+  },
+  sectionAttribution: {
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   sectionTitle: {

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useBikeAdvisorSummaryQuery } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
+import { GarminDerivedNote } from '../attribution/GarminAttribution';
 
 interface MaintenanceSummaryProps {
   bikeId: string;
@@ -58,6 +59,13 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
   }, [error, bikeId]);
 
   const summary = data?.bike?.predictions?.advisorSummary;
+  // This summary is LLM output built from predictions, which are built from
+  // ride duration. Where Garmin rides contributed those hours, the Garmin API
+  // Brand Guidelines require Garmin to be named as a contributing source for
+  // any output "influenced materially by Garmin device-sourced data". Stays
+  // false for bikes with no Garmin rides: the guidelines equally forbid Garmin
+  // branding where its data is absent.
+  const hasGarminSource = data?.bike?.contributingSources?.includes('garmin') ?? false;
 
   if (loading && !summary) {
     return (
@@ -86,11 +94,15 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
         />
         <Text style={styles.footerText}>Machine-generated using AI</Text>
       </View>
+      {hasGarminSource && <GarminDerivedNote style={styles.attribution} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  attribution: {
+    marginTop: 6,
+  },
   section: {
     marginTop: 16,
     marginHorizontal: 16,
