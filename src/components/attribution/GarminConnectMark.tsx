@@ -31,7 +31,13 @@ export function GarminConnectMark({
       // would not be bundled. Same treatment as the other bundled images.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       source={require('../../../assets/garmin-connect-app-tile.png')}
-      style={[{ width: size, height: size, borderRadius: size * 0.22 }, style]}
+      // No borderRadius. The tile ships with its own rounded corners already
+      // cut into the artwork as transparency, measured at 14.9% of its width.
+      // The 22% mask that used to be here was LARGER than that, so it clipped
+      // into Garmin's visible mark rather than tracing its existing edge.
+      // Rendering the asset untouched is both correct and simpler: it already
+      // reads as a rounded square on any surface.
+      style={[{ width: size, height: size }, style]}
       resizeMode="contain"
       // Decorative: the adjacent label already names Garmin Connect.
       accessibilityRole="image"
