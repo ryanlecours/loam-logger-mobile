@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
 import { colors } from '../../src/constants/theme';
+import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
 import type { IntegrationProvider } from '../../src/api/integrations';
 
 interface ProviderConfig {
@@ -22,10 +23,12 @@ interface ProviderConfig {
 }
 
 const PROVIDERS: ProviderConfig[] = [
-  { provider: 'strava', label: 'Strava', brandColor: '#fc4c02' },
-  { provider: 'garmin', label: 'Garmin', brandColor: '#007dc3' },
-  { provider: 'whoop', label: 'WHOOP', brandColor: '#00a651' },
-  { provider: 'suunto', label: 'Suunto', brandColor: '#0072CE' },
+  { provider: 'strava', label: 'Strava', brandColor: colors.strava },
+  // Full app name, per the Garmin API Brand Guidelines' rule against
+  // abbreviating or stylizing it when displaying a connection.
+  { provider: 'garmin', label: GARMIN_CONNECT_APP_NAME, brandColor: colors.garmin },
+  { provider: 'whoop', label: 'WHOOP', brandColor: colors.whoop },
+  { provider: 'suunto', label: 'Suunto', brandColor: colors.suunto },
 ];
 
 function ConnectRow({ provider, label, brandColor }: ProviderConfig) {

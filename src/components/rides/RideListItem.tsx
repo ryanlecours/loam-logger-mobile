@@ -8,6 +8,7 @@ import {
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors } from '../../constants/theme';
+import { formatGarminSource } from '../../constants/garminAttribution';
 import { WeatherBadge } from '../weather/WeatherBadge';
 
 interface RideListItemProps {
@@ -41,20 +42,29 @@ function getRideTypeIcon(rideType: string): IconName {
   }
 }
 
-function getSourceBadge(ride: RideItem): { label: string; color: string } | null {
+/**
+ * Badges for every provider that contributed data to this ride.
+ *
+ * Returns a list rather than a single ranked source because a ride matched
+ * across providers still contains Garmin device-sourced data, and the Garmin
+ * API Brand Guidelines require attribution wherever that data appears. Garmin
+ * is labelled "Garmin [device model]" as those guidelines specify.
+ */
+function getSourceBadges(ride: RideItem): { label: string; color: string }[] {
+  const badges: { label: string; color: string }[] = [];
   if (ride.stravaActivityId) {
-    return { label: 'Strava', color: colors.strava };
+    badges.push({ label: 'Strava', color: colors.strava });
   }
   if (ride.garminActivityId) {
-    return { label: 'Garmin', color: colors.garmin };
+    badges.push({ label: formatGarminSource(ride.garminDeviceName), color: colors.garmin });
   }
   if (ride.whoopWorkoutId) {
-    return { label: 'WHOOP', color: colors.whoop };
+    badges.push({ label: 'WHOOP', color: colors.whoop });
   }
   if (ride.suuntoWorkoutId) {
-    return { label: 'Suunto', color: colors.suunto };
+    badges.push({ label: 'Suunto', color: colors.suunto });
   }
-  return null;
+  return badges;
 }
 
 export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
@@ -63,7 +73,7 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
   const durationStr = formatDuration(ride.durationSeconds);
   const distanceStr = formatDistance(ride.distanceMeters);
   const elevationStr = formatElevation(ride.elevationGainMeters, distanceUnit);
-  const sourceBadge = getSourceBadge(ride);
+  const sourceBadges = getSourceBadges(ride);
 
   // Garmin's activity name lands in our `notes` column during ingest (Garmin
   // doesn't reliably populate `location`, so for those rides this is the only
@@ -82,11 +92,14 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Text style={styles.date}>{dateStr}</Text>
-          {sourceBadge && (
-            <View style={[styles.sourceBadge, { backgroundColor: sourceBadge.color }]}>
-              <Text style={styles.sourceBadgeText}>{sourceBadge.label}</Text>
+          {sourceBadges.map((badge) => (
+            <View
+              key={badge.label}
+              style={[styles.sourceBadge, { backgroundColor: badge.color }]}
+            >
+              <Text style={styles.sourceBadgeText}>{badge.label}</Text>
             </View>
-          )}
+          ))}
         </View>
 
         <View style={styles.statsRow}>
