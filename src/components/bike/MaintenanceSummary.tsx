@@ -6,6 +6,7 @@ import { useBikeAdvisorSummaryQuery } from '../../graphql/generated';
 import { colors, radius, space } from '../../constants/theme';
 import { GarminDerivedNote } from '../attribution/GarminAttribution';
 import { ErrorState } from '../common/ErrorState';
+import { Skeleton, SkeletonGroup } from '../common/Skeleton';
 import { describeError } from '../../utils/errorCopy';
 
 interface MaintenanceSummaryProps {
@@ -71,10 +72,10 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
 
   if (loading && !summary) {
     return (
-      <View style={styles.section}>
-        <View style={styles.skeletonLine} />
-        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
-      </View>
+      <SkeletonGroup label="Loading the service summary" style={styles.section}>
+        <Skeleton width="100%" height={14} />
+        <Skeleton width="60%" height={14} style={styles.skeletonLineShort} />
+      </SkeletonGroup>
     );
   }
 
@@ -147,16 +148,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontStyle: 'italic',
   },
-  // Skeleton — static gray lines. If perceived latency ever becomes an issue
-  // (Haiku is fast enough that it usually doesn't), swap for an Animated
-  // shimmer. Two lines because the prompt caps output at 1–2 sentences.
-  skeletonLine: {
-    height: 14,
-    backgroundColor: colors.cardBorder,
-    borderRadius: radius.full,
-    marginTop: 4,
-  },
+  // Two lines because the prompt caps output at 1-2 sentences. The shimmer the
+  // old comment here anticipated now lives in the shared Skeleton component.
   skeletonLineShort: {
-    width: '60%',
+    marginTop: space.md,
   },
 });

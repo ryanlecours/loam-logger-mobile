@@ -895,15 +895,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.criticalOn,
   },
-  upgradeOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  upgradeContent: {
-    maxWidth: 400,
-    alignSelf: 'center',
-    width: '100%',
-  },
 });

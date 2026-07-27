@@ -9,6 +9,7 @@ import { useShareRideOverlay } from '../../hooks/useShareRideOverlay';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { ErrorState } from '../common/ErrorState';
 import { describeError } from '../../utils/errorCopy';
+import { Skeleton, SkeletonGroup } from '../common/Skeleton';
 import { colors, radius, space } from '../../constants/theme';
 
 interface RideStatsCardProps {
@@ -70,10 +71,27 @@ export function RideStatsCard({
   };
 
   if (loading && stats.totalRides === 0) {
+    // Placeholders in the shape of the metrics that are coming, rather than the
+    // words "Loading your riding...". Raw loading text was the one spot on this
+    // screen still telling the rider to wait instead of showing them the shape
+    // of the answer.
     return (
-      <View style={styles.card}>
-        <Text style={styles.loadingText}>Loading your riding...</Text>
-      </View>
+      <SkeletonGroup label="Loading your riding totals" style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Skeleton width={92} height={12} />
+            <Skeleton width={120} height={12} style={styles.captionSkeleton} />
+          </View>
+        </View>
+        <View style={styles.grid}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={styles.metric}>
+              <Skeleton width={52} height={20} />
+              <Skeleton width={38} height={11} style={styles.metricLabelSkeleton} />
+            </View>
+          ))}
+        </View>
+      </SkeletonGroup>
     );
   }
 
@@ -247,6 +265,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: space.hair,
   },
+  captionSkeleton: {
+    marginTop: space.hair,
+  },
+  metricLabelSkeleton: {
+    marginTop: space.hair,
+  },
   bikes: {
     gap: space.lg,
   },
@@ -284,12 +308,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     color: colors.textMuted,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: space.xl,
   },
   insightsLink: {
     flexDirection: 'row',

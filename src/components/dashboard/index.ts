@@ -1,6 +1,3 @@
-export { DashboardGreeting } from './DashboardGreeting';
-export { BikeHealthCard } from './BikeHealthCard';
-export { BikeCarousel } from './BikeCarousel';
 export { DashboardSkeleton } from './DashboardSkeleton';
 export { EmptyBikeState } from './EmptyBikeState';
 export { RecentRidesList } from './RecentRidesList';

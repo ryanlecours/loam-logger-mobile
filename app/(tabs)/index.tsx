@@ -256,7 +256,12 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            // tintColor is iOS-only. Without `colors` and `progressBackgroundColor`
+            // Android drew a platform-default blue spinner on an obsidian
+            // background, the one piece of stock Material left in the app.
             tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.card}
           />
         }
       >

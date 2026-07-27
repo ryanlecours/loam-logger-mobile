@@ -4,6 +4,7 @@ import { BikeFieldsFragment } from '../../graphql/generated';
 import { RideListItem } from '../rides/RideListItem';
 import type { RideItem } from '../../hooks/useRidesPaginated';
 import { colors, radius, space, type } from '../../constants/theme';
+import { Skeleton, SkeletonGroup } from '../common/Skeleton';
 
 // Reuse the rides-tab row shape so the dashboard preview renders with the
 // same RideListItem component. Single source of truth means visual changes
@@ -44,17 +45,17 @@ export function RecentRidesList({
         <View style={styles.header}>
           <Text style={styles.title}>RECENT RIDES</Text>
         </View>
-        <View style={styles.card}>
+        <SkeletonGroup label="Loading your recent rides" style={styles.card}>
           {[1, 2, 3].map((i) => (
             <View key={i} style={styles.skeletonRow}>
-              <View style={styles.skeletonIcon} />
+              <Skeleton width={36} height={36} />
               <View style={styles.skeletonContent}>
-                <View style={styles.skeletonLine} />
-                <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                <Skeleton width="60%" height={14} />
+                <Skeleton width="40%" height={12} style={styles.skeletonLineShort} />
               </View>
             </View>
           ))}
-        </View>
+        </SkeletonGroup>
       </View>
     );
   }
@@ -232,28 +233,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: space.xl,
+    gap: space.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-  },
-  skeletonIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-    backgroundColor: colors.skeleton,
-    marginRight: space.lg,
   },
   skeletonContent: {
     flex: 1,
   },
-  skeletonLine: {
-    height: 14,
-    backgroundColor: colors.skeleton,
-    borderRadius: radius.full,
-    width: '60%',
-    marginBottom: space.md,
-  },
   skeletonLineShort: {
-    width: '40%',
-    marginBottom: 0,
+    marginTop: space.md,
   },
 });
