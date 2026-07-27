@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeCalibrationSection } from './BikeCalibrationSection';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import {
   useCalibrationStateQuery,
   useLogBulkComponentServiceMutation,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -342,13 +342,13 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     backgroundColor: colors.cardBorder,
-    borderRadius: 3,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 3,
+    borderRadius: radius.full,
   },
   progressText: {
     fontSize: 12,
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 12,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 10,
+    borderRadius: radius.md,
   },
   infoText: {
     flex: 1,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   dismissButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     alignItems: 'center',
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   completeButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
   },

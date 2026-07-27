@@ -7,7 +7,7 @@ import { useGearLightQuery, BikeFieldsLightFragment } from '../../src/graphql/ge
 import { BikeCard } from '../../src/components/gear/BikeCard';
 import { EmptyGearState } from '../../src/components/gear/EmptyGearState';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function GearScreen() {
   const router = useRouter();
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   retryText: {
     color: colors.onPrimary,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   inactiveBikeWrapper: {

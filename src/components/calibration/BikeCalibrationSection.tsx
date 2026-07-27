@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { CalibrationComponentRow } from './CalibrationComponentRow';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import type { ComponentPrediction } from '../../graphql/generated';
 
 interface BikeCalibrationSectionProps {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   applyButton: {
     backgroundColor: colors.primary,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.full,
     alignItems: 'center',
   },
   applyButtonDisabled: {

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatGarminSource } from '../../constants/garminAttribution';
 import { formatDuration, formatRideDate } from '../../utils/greetingMessages';
 
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   action: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: radius.full,
     minWidth: 76,
     alignItems: 'center',
   },

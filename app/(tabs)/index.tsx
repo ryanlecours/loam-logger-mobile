@@ -27,7 +27,7 @@ import { CalibrationSheet } from '../../src/components/calibration/CalibrationSh
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { formatComponentType } from '../../src/utils/formatComponentType';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   tierBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   tierBadgePro: {
     backgroundColor: colors.primaryMuted,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   timeframeTab: {
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 16,
+    borderRadius: radius.full,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.full,
     gap: 8,
   },
   actionButtonText: {

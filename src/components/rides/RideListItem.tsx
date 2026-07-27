@@ -7,7 +7,7 @@ import {
   formatElevation,
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatGarminSource } from '../../constants/garminAttribution';
 import { WeatherBadge } from '../weather/WeatherBadge';
 
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   sourceBadgeText: {
     fontSize: 10,

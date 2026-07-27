@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsFragment } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface BikeSelectorSheetProps {
   visible: boolean;
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   activeDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
     marginLeft: 12,
   },
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderStyle: 'dashed',

@@ -25,7 +25,7 @@ import {
 import type { IntegrationProvider } from '../../api/integrations';
 import { useUserTier } from '../../hooks/useUserTier';
 import { UpsellCard } from '../common/UpgradePrompt';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface ImportRidesSheetProps {
   visible: boolean;
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   headerAccent: {
     width: 4,
     height: 24,
-    borderRadius: 2,
+    borderRadius: radius.full,
     marginRight: 12,
   },
   title: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 8,
   },
   importButtonDisabled: {
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   completeIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,

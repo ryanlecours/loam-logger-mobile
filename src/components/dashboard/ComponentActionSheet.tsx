@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
 
 interface ComponentActionSheetProps {
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   snoozePresetText: {
     fontSize: 14,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   customApplyText: {
     fontSize: 14,
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.cardBorder,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 4,
   },
   actionButtonPrimary: {

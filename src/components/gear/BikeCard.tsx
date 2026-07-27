@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsLightFragment } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface BikeCardProps {
   bike: BikeFieldsLightFragment;
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   components: {

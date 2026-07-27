@@ -21,7 +21,7 @@ import {
   ComponentRideAdjustmentKind,
 } from '../../src/graphql/generated';
 import { ComponentRideRow } from '../../src/components/gear/ComponentRideRow';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 const PAGE_SIZE = 50;
 const ADD_RIDES_TAKE = 300;
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
     backgroundColor: colors.card,
   },
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },

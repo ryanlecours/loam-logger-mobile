@@ -15,7 +15,7 @@ import { useRidesPaginated, RideItem } from '../../src/hooks/useRidesPaginated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { RideListItem } from '../../src/components/rides';
 import type { RidesFilterInput } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 type DateRange = '30days' | '3months' | '6months' | '1year' | 'all';
 
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: radius.full,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   emptyIconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     backgroundColor: colors.card,
     justifyContent: 'center',
     alignItems: 'center',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.full,
     gap: 6,
   },
   emptyButtonText: {
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     bottom: 16,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',

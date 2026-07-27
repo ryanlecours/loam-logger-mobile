@@ -18,7 +18,7 @@ import { BiometricUnlockSection } from '../../src/components/settings/BiometricU
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
 
 function IntegrationRow({
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginVertical: 8,
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   disconnectButton: {
     borderWidth: 1,
     borderColor: colors.criticalBorder,
-    borderRadius: 8,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   proBadgeText: {
     fontSize: 10,

@@ -11,7 +11,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { isUnauthorizedError } from '../../src/utils/errors';
 import { LegalDocument } from '../../src/components/legal/LegalDocument';
 import { TERMS_SECTIONS, CURRENT_TERMS_VERSION } from '../../src/legal/terms';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function TermsScreen() {
   const { refetchUser, logout } = useAuth();
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
   },

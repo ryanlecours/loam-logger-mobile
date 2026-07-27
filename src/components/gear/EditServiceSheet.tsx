@@ -19,7 +19,7 @@ import {
   useUpdateServiceLogMutation,
   useDeleteServiceLogMutation,
 } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 export interface EditableServiceLog {
   id: string;
@@ -249,7 +249,7 @@ export function EditServiceSheet({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, maxHeight: '90%' },
-  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
+  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: radius.full, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 4 },
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   closeButton: { padding: 4 },
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   bodyContent: { paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateLabel: { fontSize: 14, color: colors.textSecondary },
-  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
+  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: radius.sm, paddingVertical: 6, paddingHorizontal: 12 },
   dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.positiveOn },
   fieldRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   fieldBlock: { gap: 6 },
@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
   input: { backgroundColor: colors.background, borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder, paddingVertical: 8, paddingHorizontal: 12, color: colors.textPrimary, fontSize: 14, minWidth: 100, textAlign: 'right' },
   notesInput: { textAlign: 'left', minHeight: 72, textAlignVertical: 'top' },
   footer: { flexDirection: 'row', gap: 12, padding: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.cardBorder },
-  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: colors.criticalBorder },
+  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1, borderColor: colors.criticalBorder },
   deleteButtonText: { color: colors.criticalOn, fontSize: 14, fontWeight: '600' },
-  saveButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10 },
+  saveButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: radius.full },
   saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
 });

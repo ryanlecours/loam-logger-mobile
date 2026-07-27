@@ -18,7 +18,7 @@ import {
   ComponentFieldsFragment,
   useInstallComponentMutation,
 } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { isTierError, getTierErrorMessage } from '../../utils/tierErrors';
 import { formatComponentType } from '../../utils/formatComponentType';
 import type { ApolloError } from '@apollo/client';
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     backgroundColor: colors.cardBorder,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
   },
   tabActive: {
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: radius.md,
     marginBottom: 8,
   },
   spareItemSelected: {
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     padding: 14,
     fontSize: 16,
     borderWidth: 1,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignSelf: 'flex-start',
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 8,
   },
   submitButtonDisabled: {

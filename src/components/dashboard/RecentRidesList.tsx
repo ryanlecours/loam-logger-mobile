@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsFragment } from '../../graphql/generated';
 import { RideListItem } from '../rides/RideListItem';
 import type { RideItem } from '../../hooks/useRidesPaginated';
-import { colors } from '../../constants/theme';
+import { colors, radius, space, type } from '../../constants/theme';
 
 // Reuse the rides-tab row shape so the dashboard preview renders with the
 // same RideListItem component. Single source of truth means visual changes
@@ -114,98 +114,98 @@ export function RecentRidesList({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    marginTop: space.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: space.xl,
+    marginBottom: space.md,
   },
   title: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...type.eyebrow,
     color: colors.textSecondary,
-    letterSpacing: 1,
   },
   seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Bare text needs a real target: the row is only ~17pt tall on its own.
+    paddingVertical: space.lg,
+    paddingLeft: space.lg,
   },
   seeAllText: {
-    fontSize: 14,
+    ...type.footnote,
     color: colors.primary,
-    marginRight: 2,
+    marginRight: space.hair,
   },
   card: {
     backgroundColor: colors.card,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    marginHorizontal: space.xl,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
   emptyCard: {
     backgroundColor: colors.card,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    marginHorizontal: space.xl,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    padding: 32,
+    padding: space.section,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...type.calloutStrong,
     color: colors.textSecondary,
-    marginTop: 12,
+    marginTop: space.lg,
   },
   emptySubtext: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: space.xs,
     textAlign: 'center',
     lineHeight: 18,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.md,
   },
   emptyPrimaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-    marginTop: 16,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.full,
+    gap: space.sm,
+    marginTop: space.xl,
   },
   emptyPrimaryButtonText: {
+    ...type.footnoteStrong,
     color: colors.onPrimary,
-    fontSize: 14,
-    fontWeight: '600',
   },
   emptySecondaryButton: {
-    paddingVertical: 10,
-    marginTop: 4,
+    paddingVertical: space.lg,
+    // 8pt clearance from the primary action above it, not 4.
+    marginTop: space.md,
   },
   emptySecondaryButtonText: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textMuted,
     textDecorationLine: 'underline',
   },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: space.xl,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   skeletonIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     backgroundColor: colors.skeleton,
-    marginRight: 12,
+    marginRight: space.lg,
   },
   skeletonContent: {
     flex: 1,
@@ -213,9 +213,9 @@ const styles = StyleSheet.create({
   skeletonLine: {
     height: 14,
     backgroundColor: colors.skeleton,
-    borderRadius: 4,
+    borderRadius: radius.full,
     width: '60%',
-    marginBottom: 8,
+    marginBottom: space.md,
   },
   skeletonLineShort: {
     width: '40%',

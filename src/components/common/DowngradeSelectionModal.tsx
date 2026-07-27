@@ -13,7 +13,7 @@ import {
 import { gql, useMutation } from '@apollo/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useGearLightQuery, useMeQuery } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 const SELECT_BIKE = gql`
   mutation SelectBikeForDowngrade($bikeId: ID!) {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     marginBottom: 8,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   radio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.textMuted,
     justifyContent: 'center',
@@ -210,12 +210,12 @@ const styles = StyleSheet.create({
   radioDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
   },
   confirmButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 14,
     alignItems: 'center',
   },

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, healthTone } from '../../constants/theme';
+import { colors, healthTone, radius, space, type } from '../../constants/theme';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 
 interface DashboardComponentCardProps {
@@ -80,52 +80,51 @@ export function DashboardComponentCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    padding: 16,
-    marginBottom: 10,
+    padding: space.xl,
+    marginBottom: space.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: space.lg,
   },
   nameContainer: {
     flex: 1,
   },
   name: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...type.bodyStrong,
     color: colors.textPrimary,
   },
   installDate: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: space.hair,
   },
   progressContainer: {
-    marginBottom: 10,
+    marginBottom: space.lg,
   },
   progressTrack: {
-    height: 6,
+    height: space.sm,
     backgroundColor: colors.cardBorder,
-    borderRadius: 999,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    borderRadius: 999,
+    borderRadius: radius.full,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    gap: space.md,
   },
   hoursText: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textSecondary,
   },
 });

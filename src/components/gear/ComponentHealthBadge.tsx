@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, healthTone } from '../../constants/theme';
+import { healthTone, radius, space, type } from '../../constants/theme';
 
 interface ComponentHealthBadgeProps {
   /** Null/undefined (e.g. free-tier gated predictions) renders nothing. */
@@ -46,34 +46,32 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.xs,
+    borderRadius: radius.full,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
   badgeSmall: {
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    gap: space.xs,
+    paddingHorizontal: space.md,
+    paddingVertical: space.hair,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: space.md,
+    height: space.md,
+    borderRadius: radius.full,
   },
   dotSmall: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: space.sm,
+    height: space.sm,
+    borderRadius: radius.full,
   },
   text: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...type.captionStrong,
     letterSpacing: 0.2,
   },
-  textSmall: {
-    fontSize: 11,
-  },
+  // Smaller label, wider tracking, per DESIGN.md's Trail Marker Rule.
+  textSmall: type.labelSmall,
 });

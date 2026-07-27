@@ -174,6 +174,81 @@ export const colors = {
   skeletonHighlight: '#26262C',
 };
 
+/**
+ * Spacing scale, in points.
+ *
+ * A 4pt grid with two sub-grid steps (2 and 6) that DESIGN.md's own working
+ * steps sanction (0.375rem / 0.5rem). Names are t-shirt sizes because the
+ * codebase reads them inline; the point value is the contract.
+ *
+ * `hair` is for the 2pt gap between a value and its label, and nothing else.
+ * If you need a step that is not here, the layout is probably the thing that
+ * needs fixing, not the scale.
+ */
+export const space = {
+  hair: 2,
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  xxl: 20,
+  xxxl: 24,
+  section: 32,
+  page: 40,
+} as const;
+
+/**
+ * Corner radii, in points.
+ *
+ * DESIGN.md: radius grows with the surface, 0.5rem is the system minimum, and
+ * anything you are meant to press is fully rounded ("The Worn-Smooth Rule").
+ * There is deliberately no value below `sm`.
+ *
+ * `full` is the pill: use it for action buttons, status and tier badges, chips,
+ * progress bars and tracks, sheet handles, dots, and circular avatars. On a
+ * square it produces a circle, which is more robust than hand-computing
+ * `size / 2` every time a dimension changes.
+ */
+export const radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 999,
+} as const;
+
+/**
+ * Type scale. Sizes are points, so they scale with the user's Dynamic Type
+ * setting; never disable that to protect a layout.
+ *
+ * Tracking follows DESIGN.md's Trail Marker Rule: tight on large type, wide on
+ * small uppercase labels, nothing in between letter-spaced.
+ *
+ * Known debt: the tree uses 14, 15 and 16 as three near-identical body sizes
+ * (145, 53 and 89 occurrences). They are all represented here so adoption does
+ * not change any layout, but collapsing them belongs to a typeset pass.
+ */
+export const type = {
+  display: { fontSize: 32, fontWeight: '700', letterSpacing: -0.6 },
+  headline: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  title: { fontSize: 20, fontWeight: '700', letterSpacing: -0.2 },
+  subtitle: { fontSize: 18, fontWeight: '600' },
+  body: { fontSize: 16, fontWeight: '400' },
+  bodyStrong: { fontSize: 16, fontWeight: '600' },
+  callout: { fontSize: 15, fontWeight: '400' },
+  calloutStrong: { fontSize: 15, fontWeight: '600' },
+  footnote: { fontSize: 14, fontWeight: '400' },
+  footnoteStrong: { fontSize: 14, fontWeight: '600' },
+  caption: { fontSize: 13, fontWeight: '400' },
+  captionStrong: { fontSize: 13, fontWeight: '600' },
+  label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.6 },
+  labelSmall: { fontSize: 11, fontWeight: '600', letterSpacing: 0.9 },
+  /** Uppercase section eyebrow. Pair with `textTransform: 'uppercase'`. */
+  eyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  eyebrowSmall: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+} as const;
+
 /** Health status keys as returned by the API. */
 export type HealthStatus = keyof typeof colors.health;
 

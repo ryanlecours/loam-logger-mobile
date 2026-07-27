@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { getBiometricCapability, getBiometricLabel } from '../lib/biometric';
-import { colors } from '../constants/theme';
+import { colors, radius } from '../constants/theme';
 
 /**
  * Full-screen unlock prompt shown on cold boot when the user has opted into
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     width: '100%',
   },

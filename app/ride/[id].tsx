@@ -13,7 +13,7 @@ import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
 import { useRideQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { formatGarminSource } from '../../src/constants/garminAttribution';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   backButtonText: {
     color: colors.onPrimary,
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   sourceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   sourceBadgeText: {
     fontSize: 11,
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   shareButtonText: {
     fontSize: 15,
@@ -682,7 +682,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.criticalBorder,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   deleteButtonText: {
     fontSize: 15,

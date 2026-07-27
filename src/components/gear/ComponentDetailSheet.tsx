@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: radius.md,
   },
   notesLabel: {
     fontSize: 12,
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   snoozePresetText: {
     fontSize: 14,
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   customApplyText: {
     fontSize: 14,
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
   intervalActionButton: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radius.full,
     backgroundColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
   },
   confidenceInfoCard: {
     backgroundColor: colors.surface,
-    borderRadius: 10,
+    borderRadius: radius.md,
     padding: 14,
     marginTop: 8,
     borderWidth: 1,
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
   confidenceDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
     marginTop: 5,
   },
   confidenceLevelContent: {
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primaryMuted,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 4,
   },
   actionButtonLooksGood: {

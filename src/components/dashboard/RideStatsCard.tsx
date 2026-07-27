@@ -13,7 +13,7 @@ import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
 import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { useShareRideOverlay } from '../../hooks/useShareRideOverlay';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { conditionIcon, conditionLabel, conditionTint } from '../../lib/weather';
 import type { WeatherCondition } from '../../lib/weather';
 
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: colors.background,
-    borderRadius: 6,
+    borderRadius: radius.full,
   },
   dropdownText: {
     fontSize: 13,
@@ -759,13 +759,13 @@ const styles = StyleSheet.create({
   bikeBarContainer: {
     height: 6,
     backgroundColor: colors.cardBorder,
-    borderRadius: 3,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   bikeBar: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 3,
+    borderRadius: radius.full,
   },
   bikeStats: {
     alignItems: 'flex-end',

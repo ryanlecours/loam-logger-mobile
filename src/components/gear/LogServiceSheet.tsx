@@ -15,7 +15,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { Ionicons } from '@expo/vector-icons';
 import { ComponentFieldsFragment, useLogComponentServiceMutation } from '../../graphql/generated';
 import { StatusDot } from './StatusDot';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
 
 interface LogServiceSheetProps {
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 8,
   },
   logButtonDisabled: {

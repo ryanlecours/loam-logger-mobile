@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { UPSELL_COPY, type UpsellFeature } from '../../constants/upsellCopy';
 
 interface UpgradePromptProps {
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     alignSelf: 'flex-start',
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },

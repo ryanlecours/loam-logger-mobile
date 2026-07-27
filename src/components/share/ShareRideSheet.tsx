@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { RideShareCard, type RideShareCardProps } from './RideShareCard';
 
 /**
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     marginBottom: 16,
   },
   title: {
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: radius.sm,
     borderWidth: 2,
     borderColor: colors.cardBorder,
     backgroundColor: 'transparent',
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     alignItems: 'center',
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
   },
   shareButtonDisabled: {

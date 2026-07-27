@@ -15,7 +15,7 @@ import {
   useUnmappedStravaGearsQuery,
   useCreateStravaGearMappingMutation,
 } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface StravaGearMappingSheetProps {
   visible: boolean;
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,

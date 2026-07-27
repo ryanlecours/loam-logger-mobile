@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useBikeAdvisorSummaryQuery } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { GarminDerivedNote } from '../attribution/GarminAttribution';
 
 interface MaintenanceSummaryProps {
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   skeletonLine: {
     height: 14,
     backgroundColor: colors.cardBorder,
-    borderRadius: 4,
+    borderRadius: radius.full,
     marginTop: 4,
   },
   skeletonLineShort: {

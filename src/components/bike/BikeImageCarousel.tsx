@@ -10,7 +10,7 @@ import {
   type ViewToken,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import type { SpokesImage } from '../../hooks/useOnboarding';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     marginTop: -20,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   dot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
     backgroundColor: colors.textMuted,
   },
   dotActive: {

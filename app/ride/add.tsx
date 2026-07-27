@@ -17,7 +17,7 @@ import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useAddRideMutation } from '../../src/graphql/generated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../src/components/common/PickerSelect';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.card,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.card,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginTop: 12,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cancelButton: {
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center' as const,
     marginTop: 12,

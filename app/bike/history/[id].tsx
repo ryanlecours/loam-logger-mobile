@@ -13,7 +13,7 @@ import {
 import { useDistanceUnit } from '../../../src/hooks/useDistanceUnit';
 import { useUserTier } from '../../../src/hooks/useUserTier';
 import { UpsellCard } from '../../../src/components/common/UpgradePrompt';
-import { colors } from '../../../src/constants/theme';
+import { colors, radius } from '../../../src/constants/theme';
 import {
   bikeName,
   componentDisplay,
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 18,
     height: 18,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     marginRight: 10,
@@ -728,10 +728,10 @@ const styles = StyleSheet.create({
   bulkBody: { paddingHorizontal: 20, paddingVertical: 8, gap: 12 },
   bulkHint: { fontSize: 12, color: colors.textMuted },
   bulkFooter: { flexDirection: 'row', gap: 12, padding: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.cardBorder },
-  bulkCancelButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder },
+  bulkCancelButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.full, borderWidth: 1, borderColor: colors.cardBorder },
   bulkCancelText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  bulkApplyButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10 },
+  bulkApplyButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: radius.full },
   bulkApplyText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
-  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, alignSelf: 'flex-start' },
+  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: radius.sm, paddingVertical: 10, paddingHorizontal: 14, alignSelf: 'flex-start' },
   dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.positiveOn },
 });

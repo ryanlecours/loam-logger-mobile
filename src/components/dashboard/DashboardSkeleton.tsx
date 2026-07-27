@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 export function DashboardSkeleton() {
   return (
@@ -14,7 +14,7 @@ export function DashboardSkeleton() {
       <View style={styles.statsRow}>
         {[1, 2, 3].map((i) => (
           <View key={i} style={styles.statCard}>
-            <View style={[styles.skeleton, { width: 20, height: 20, borderRadius: 10 }]} />
+            <View style={[styles.skeleton, { width: 20, height: 20, borderRadius: radius.full }]} />
             <View style={[styles.skeleton, { width: 50, height: 24, marginTop: 8 }]} />
             <View style={[styles.skeleton, { width: 30, height: 12, marginTop: 4 }]} />
           </View>
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     backgroundColor: colors.skeleton,
-    borderRadius: 6,
+    borderRadius: radius.full,
   },
   greetingLine: {
     width: '60%',
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     height: 48,
     marginHorizontal: 16,
     marginBottom: 20,
-    borderRadius: 12,
+    borderRadius: radius.full,
   },
   sectionSkeleton: {
     paddingHorizontal: 16,

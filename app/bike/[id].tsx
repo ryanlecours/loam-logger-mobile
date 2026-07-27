@@ -16,7 +16,7 @@ import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponen
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { formatComponentType } from '../../src/utils/formatComponentType';
 
 const COMPONENT_GROUP_MAP: Record<string, string> = {
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   retryText: {
     color: colors.onPrimary,
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   },
   attentionBadge: {
     backgroundColor: colors.health.dueNow.bg,
-    borderRadius: 10,
+    borderRadius: radius.full,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.full,
     gap: 6,
     marginTop: 16,
   },
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.full,
     gap: 8,
   },
   actionButtonText: {
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.criticalBorder,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     gap: 8,
   },
   dangerButtonText: {

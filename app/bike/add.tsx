@@ -18,7 +18,7 @@ import { searchBikes, getBikeById, SpokesSearchResult } from '../../src/api/spok
 import { useAddBikeMutation, useGearLightQuery, useUnmappedStravaGearsLazyQuery, useMeQuery, AcquisitionCondition } from '../../src/graphql/generated';
 import { SpokesBike, SpokesImage } from '../../src/hooks/useOnboarding';
 import { StravaGearMappingSheet } from '../../src/components/gear/StravaGearMappingSheet';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   searchButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 80,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: radius.full,
     gap: 8,
   },
   confirmButtonText: {

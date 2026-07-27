@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { BikeFieldsFragment } from '../../graphql/generated';
 import { BikeHealthCard } from './BikeHealthCard';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32; // 16px margin on each side
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   indicator: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
     backgroundColor: colors.cardBorder,
   },
   indicatorActive: {

@@ -17,7 +17,7 @@ import {
   PasswordRequirements,
   checkPasswordRequirements,
 } from '../../src/components/PasswordRequirements';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,

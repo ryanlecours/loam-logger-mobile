@@ -17,7 +17,7 @@ import {
   useCreateStravaGearMappingMutation,
   useDeleteStravaGearMappingMutation,
 } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function StravaMappingsScreen() {
   const { data: mappingsData, loading: mappingsLoading } = useStravaGearMappingsQuery({
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: colors.strava,
-    borderRadius: 10,
+    borderRadius: radius.full,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
