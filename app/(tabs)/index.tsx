@@ -175,21 +175,36 @@ export default function DashboardScreen() {
     return counts;
   }, [attentionComponents]);
 
-  // Per-component statuses are Pro-gated and come back null on free, which
-  // would make the derived counts read as a clean bike. The summary's
-  // `dueNowCount` is served to every tier, so free falls back to it.
+  /**
+   * What a free rider is owed: the components they have ridden past their own
+   * service interval, by name.
+   *
+   * The API's `degradeSummaryForFreeTier` nulls only the predictive fields
+   * (status, hoursRemaining, confidence, why). It deliberately keeps the raw
+   * counters, so "hours since service has passed the interval" is a fact the
+   * client can derive without touching the Pro forecast. It is also the exact
+   * condition the engine calls OVERDUE (`hoursRemaining <= 0`), just computed
+   * from numbers free users already hold.
+   *
+   * This replaces a fallback to `dueNowCount`, which was wrong twice over: it
+   * carries no component names, and the engine counts DUE_NOW as
+   * `0 < hoursRemaining <= 2h`, so an overdue fork appears in neither
+   * `dueNowCount` nor `dueSoonCount`. A free rider 40 hours past a fork
+   * service was being told "Ready to ride".
+   */
+  const pastIntervalComponents = useMemo(() => {
+    const comps = selectedBike?.predictions?.components ?? [];
+    return comps.filter(
+      (c) => c.serviceIntervalHours > 0 && c.hoursSinceService >= c.serviceIntervalHours
+    );
+  }, [selectedBike]);
+
   const attentionCount = isPro
     ? healthCounts.overdue + healthCounts.dueNow + healthCounts.dueSoon
-    : (selectedBike?.predictions?.dueNowCount ?? 0);
+    : pastIntervalComponents.length;
 
-  // The readiness card and the section header speak in the health ramp, so
-  // they take the tone of the most severe component on the bike rather than a
-  // single generic "warning" color.
-  const attentionTone = useMemo(() => {
-    if (attentionComponents.some((c) => c.status === 'OVERDUE')) return colors.health.overdue;
-    if (attentionComponents.some((c) => c.status === 'DUE_NOW')) return colors.health.dueNow;
-    return colors.health.dueSoon;
-  }, [attentionComponents]);
+  /** The cards under the health row: real statuses on Pro, derived facts on free. */
+  const listedComponents = isPro ? attentionComponents : pastIntervalComponents;
 
   const displayName = selectedBike
     ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
@@ -312,24 +327,26 @@ export default function DashboardScreen() {
               color={colors.health.allGood.on}
               accessibilityElementsHidden
             />
+            {/* Free tier cannot see the due-soon lookahead, so it must not
+                claim the bike is ready, only that nothing is past due. */}
             <Text style={styles.readyText} accessibilityRole="header">
-              Ready to ride
+              {isPro ? 'Ready to ride' : 'Nothing past due'}
             </Text>
           </View>
         ) : !isPro ? (
-          // Free tier: per-component statuses come back null, so the honest
-          // signal is the binary one the server still provides. Inventing a
-          // three-state breakdown here would be showing a precision the
-          // account does not have.
-          <View style={[styles.healthRow, styles.healthRowSingle]}>
-            <Ionicons
-              name="warning-outline"
-              size={20}
-              color={attentionTone.on}
-              accessibilityElementsHidden
+          // Free tier gets the fact it can be given (what is past its interval,
+          // by name, below) and sees exactly what Pro adds in the slot where it
+          // would appear, rather than a withheld answer.
+          <View style={styles.healthRow}>
+            <HealthTile
+              count={pastIntervalComponents.length}
+              label="Past due"
+              tone={colors.health.overdue}
             />
-            <Text style={[styles.readyText, { color: attentionTone.on }]}>Service due</Text>
-            <ProChip />
+            <View style={styles.healthTile}>
+              <ProChip />
+              <Text style={styles.healthLabel}>Due soon</Text>
+            </View>
           </View>
         ) : (
           <View style={styles.healthRow}>
@@ -347,16 +364,20 @@ export default function DashboardScreen() {
             These used to sit under the paywall and the ride list, roughly a
             full screen from the number that summarizes them, so the count and
             its detail could not be read as one thought. */}
-        {attentionComponents.length > 0 && (
+        {listedComponents.length > 0 && (
           <View style={styles.section}>
-            {attentionComponents.map((comp) => (
+            {listedComponents.map((comp) => (
               <DashboardComponentCard
                 key={comp.componentId}
                 name={formatComponentType(comp.componentType)}
                 installDate={undefined}
                 currentHours={comp.currentHours}
                 serviceIntervalHours={comp.serviceIntervalHours}
-                status={comp.status ?? 'UNKNOWN'}
+                // On free the status field is null, but every component in this
+                // list is past its interval by the engine's own definition of
+                // OVERDUE, so labelling it as such states a fact rather than
+                // leaking the gated forecast.
+                status={isPro ? (comp.status ?? 'UNKNOWN') : 'OVERDUE'}
                 onPress={() => setSelectedPrediction(comp)}
               />
             ))}
@@ -384,9 +405,14 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Names what Pro adds instead of what free lacks. The old copy opened
+            with "Unlock", which this project's own tone rules ban, and claimed
+            "all 23+ components", a number nothing on this screen substantiates.
+            What is actually gated is the forecast: hours remaining, and the
+            due-soon lookahead. */}
         {!isPro && (
           <View style={styles.upgradeBanner}>
-            <UpgradePrompt message="Unlock service predictions, due-soon warnings, and all 23+ components with Pro." />
+            <UpgradePrompt message="Pro tells you how many hours each part has left, and flags what's coming due, so a wrench night beats a trailside fix." />
           </View>
         )}
 

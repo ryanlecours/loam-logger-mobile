@@ -18,14 +18,18 @@ export function UpgradePrompt({ message, onUpgrade }: UpgradePromptProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Ionicons name="lock-closed" size={18} color={colors.primary} />
-        <Text style={styles.message}>{message}</Text>
-      </View>
+      {/* No padlock. A lock says "you are shut out"; the copy already says
+          what Pro adds, and the icon was doing the emotional work of making
+          the absence feel like a fault. */}
+      <Text style={styles.message}>{message}</Text>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-          <Ionicons name="arrow-up-circle-outline" size={16} color={colors.textPrimary} />
-          <Text style={styles.upgradeText}>Upgrade to Pro</Text>
+        <TouchableOpacity
+          style={styles.upgradeButton}
+          onPress={handleUpgrade}
+          accessibilityRole="button"
+          accessibilityLabel="See Pro plans"
+        >
+          <Text style={styles.upgradeText}>See Pro</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -44,9 +48,9 @@ export function ProChip() {
       style={styles.chip}
       onPress={() => router.push('/settings-detail/pricing' as Href)}
       hitSlop={8}
-      accessibilityLabel="Pro feature, see plans"
+      accessibilityRole="button"
+      accessibilityLabel="Included with Pro, see plans"
     >
-      <Ionicons name="lock-closed" size={9} color={colors.primary} />
       <Text style={styles.chipText}>Pro</Text>
     </TouchableOpacity>
   );
@@ -105,23 +109,17 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
 
 const styles = StyleSheet.create({
   container: {
-    // Commercial messaging lives in the sage family, never the health ramp —
-    // a paywall must not wear the same color as a worn component.
+    // Commercial messaging lives in the sage family, never the health ramp.
+    // A paywall must not wear the same color as a worn component.
     backgroundColor: colors.primaryMuted,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
+    gap: 14,
   },
   message: {
-    flex: 1,
     fontSize: 14,
     color: colors.textPrimary,
     lineHeight: 20,
@@ -134,13 +132,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   upgradeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: radius.full,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
   },
   upgradeText: {
     fontSize: 13,

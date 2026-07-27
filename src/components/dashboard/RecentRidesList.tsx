@@ -69,7 +69,7 @@ export function RecentRidesList({
           <Ionicons name="bicycle-outline" size={32} color={colors.textMuted} />
           <Text style={styles.emptyText}>No rides yet</Text>
           <Text style={styles.emptySubtext}>
-            Connect Strava, Garmin, WHOOP, or Suunto to import past rides — or log one manually.
+            Connect Strava, Garmin, WHOOP, or Suunto to import past rides, or log one manually.
           </Text>
           {onConnectPress && (
             <TouchableOpacity style={styles.emptyPrimaryButton} onPress={onConnectPress}>
