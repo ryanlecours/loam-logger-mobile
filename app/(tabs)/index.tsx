@@ -3,7 +3,6 @@ import { useRouter, Href } from 'expo-router';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
 import {
@@ -25,7 +24,7 @@ import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
-import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
+import { UpgradePrompt, ProChip } from '../../src/components/common/UpgradePrompt';
 import { ErrorState } from '../../src/components/common/ErrorState';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { usePersistedBikeSelection } from '../../src/hooks/usePersistedBikeSelection';
@@ -40,10 +39,42 @@ const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: 'YTD', label: 'YTD' },
 ];
 
+/** Spoken-out labels: "7D" is fine to read, useless to hear. */
+const TIMEFRAME_LABELS: Record<string, string> = {
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+  YTD: 'Year to date',
+};
+
+function HealthTile({
+  count,
+  label,
+  tone,
+}: {
+  count: number;
+  label: string;
+  tone: { on: string; bg: string; border: string };
+}) {
+  const idle = count === 0;
+  return (
+    <View
+      style={[
+        styles.healthTile,
+        !idle && { backgroundColor: tone.bg, borderColor: tone.border },
+      ]}
+      accessible
+      accessibilityLabel={`${count} ${label}`}
+    >
+      <Text style={[styles.healthCount, !idle && { color: tone.on }]}>{count}</Text>
+      <Text style={[styles.healthLabel, !idle && { color: tone.on }]}>{label}</Text>
+    </View>
+  );
+}
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { isPro, isFoundingRider } = useUserTier();
-  const { distanceUnit } = useDistanceUnit();
   const {
     bikes,
     spareComponents,
@@ -86,7 +117,16 @@ export default function DashboardScreen() {
     }
   }, [calibrationData]);
 
-  const { stats: rideStats, refetch: refetchStats } = useRideStats(timeframe);
+  // One instance for the screen. This hook was previously mounted twice on the
+  // dashboard (here and inside RideStatsCard), so every timeframe change
+  // recomputed streaks, records and location buckets over up to 500 rides
+  // twice on the JS thread.
+  const {
+    stats: rideStats,
+    loading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useRideStats(timeframe);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -108,16 +148,6 @@ export default function DashboardScreen() {
     usePersistedBikeSelection(typedBikes);
   const selectedBike = typedBikes.find((b) => b.id === activeBikeId) || null;
 
-  // Free tier gets the binary READY / NOT READY signal from dueNowCount
-  // alone; the finer-grained dueSoonCount stays Pro-only.
-  const attentionCount = useMemo(() => {
-    const predictions = selectedBike?.predictions;
-    if (!predictions) return 0;
-    const dueNow = predictions.dueNowCount ?? 0;
-    if (!isPro) return dueNow;
-    return dueNow + (predictions.dueSoonCount ?? 0);
-  }, [selectedBike, isPro]);
-
   // Get components needing attention
   const attentionComponents = useMemo(() => {
     if (!selectedBike?.predictions?.components) return [];
@@ -125,6 +155,32 @@ export default function DashboardScreen() {
       (p) => p.status === 'DUE_NOW' || p.status === 'DUE_SOON' || p.status === 'OVERDUE'
     );
   }, [selectedBike]);
+
+  /**
+   * The top row's counts, derived from the component list rather than from
+   * `predictions.dueNowCount` / `dueSoonCount`.
+   *
+   * Two reasons. The summary has no overdue bucket, so an overdue fork used to
+   * be invisible up here; and counting from a different source than the list
+   * below meant the badge number and the list length could disagree in front
+   * of the rider.
+   */
+  const healthCounts = useMemo(() => {
+    const counts = { overdue: 0, dueNow: 0, dueSoon: 0 };
+    for (const c of attentionComponents) {
+      if (c.status === 'OVERDUE') counts.overdue += 1;
+      else if (c.status === 'DUE_NOW') counts.dueNow += 1;
+      else if (c.status === 'DUE_SOON') counts.dueSoon += 1;
+    }
+    return counts;
+  }, [attentionComponents]);
+
+  // Per-component statuses are Pro-gated and come back null on free, which
+  // would make the derived counts read as a clean bike. The summary's
+  // `dueNowCount` is served to every tier, so free falls back to it.
+  const attentionCount = isPro
+    ? healthCounts.overdue + healthCounts.dueNow + healthCounts.dueSoon
+    : (selectedBike?.predictions?.dueNowCount ?? 0);
 
   // The readiness card and the section header speak in the health ramp, so
   // they take the tone of the most severe component on the bike rather than a
@@ -223,72 +279,48 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Timeframe Tabs */}
-        <View style={styles.timeframeTabs}>
-          {TIMEFRAME_OPTIONS.map(({ key, label }) => (
-            <TouchableOpacity
-              key={key}
-              style={[
-                styles.timeframeTab,
-                timeframe === key && styles.timeframeTabActive,
-              ]}
-              onPress={() => setTimeframe(key)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.timeframeTabText,
-                  timeframe === key && styles.timeframeTabTextActive,
-                ]}
-              >
-                {label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Stat Cards */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Ionicons name="time-outline" size={18} color={colors.primary} />
-            <Text style={styles.statValue}>{rideStats.totalHours.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>HRS</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="trending-up-outline" size={18} color={colors.primary} />
-            <Text style={styles.statValue}>
-              {distanceUnit === 'km'
-                ? Math.round(rideStats.totalDistance / 1000).toLocaleString()
-                : Math.round(rideStats.totalDistance / 1609.344).toLocaleString()}
+        {/* Bike health. This row is the reason the screen exists, so it holds
+            nothing else: it used to sit beside account-wide hours and distance,
+            which put a number about every bike next to a number about this one,
+            under this bike's name and photo. */}
+        {attentionCount === 0 ? (
+          <View style={[styles.healthRow, styles.healthRowSingle]}>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={20}
+              color={colors.health.allGood.on}
+              accessibilityElementsHidden
+            />
+            <Text style={styles.readyText} accessibilityRole="header">
+              Ready to ride
             </Text>
-            <Text style={styles.statLabel}>{distanceUnit === 'km' ? 'KM' : 'MI'}</Text>
           </View>
-          <View style={styles.statCard}>
-            {attentionCount === 0 ? (
-              <>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={18}
-                  color={colors.health.allGood.on}
-                />
-                <Text style={[styles.statValue, { fontSize: 15 }]}>Ready to</Text>
-                <Text style={[styles.statLabel, { color: colors.health.allGood.on }]}>RIDE</Text>
-              </>
-            ) : !isPro ? (
-              <>
-                <Ionicons name="warning-outline" size={18} color={attentionTone.on} />
-                <Text style={[styles.statValue, { fontSize: 15 }]}>Not Ready</Text>
-                <Text style={[styles.statLabel, { color: attentionTone.on }]}>SERVICE DUE</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="warning-outline" size={18} color={attentionTone.on} />
-                <Text style={styles.statValue}>{attentionCount}</Text>
-                <Text style={[styles.statLabel, { color: attentionTone.on }]}>NEED ATTENTION</Text>
-              </>
-            )}
+        ) : !isPro ? (
+          // Free tier: per-component statuses come back null, so the honest
+          // signal is the binary one the server still provides. Inventing a
+          // three-state breakdown here would be showing a precision the
+          // account does not have.
+          <View style={[styles.healthRow, styles.healthRowSingle]}>
+            <Ionicons
+              name="warning-outline"
+              size={20}
+              color={attentionTone.on}
+              accessibilityElementsHidden
+            />
+            <Text style={[styles.readyText, { color: attentionTone.on }]}>Service due</Text>
+            <ProChip />
           </View>
-        </View>
+        ) : (
+          <View style={styles.healthRow}>
+            <HealthTile count={healthCounts.overdue} label="Overdue" tone={colors.health.overdue} />
+            <HealthTile count={healthCounts.dueNow} label="Due now" tone={colors.health.dueNow} />
+            <HealthTile
+              count={healthCounts.dueSoon}
+              label="Due soon"
+              tone={colors.health.dueSoon}
+            />
+          </View>
+        )}
 
         {/* AI maintenance summary for the selected bike. Same gate as the
             bike-detail screen (Pro + non-empty components); the widget itself
@@ -350,8 +382,41 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Ride Stats */}
-        <RideStatsCard />
+        {/* The screen's one timeframe control, sitting directly above the only
+            block it governs. It used to live at the top of the scroll, where it
+            appeared to control the health row it does not touch, while a second
+            control inside the stats card drove the same hook with a different
+            default. */}
+        <View style={styles.timeframeTabs}>
+          {TIMEFRAME_OPTIONS.map(({ key, label }) => {
+            const active = timeframe === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.timeframeTab, active && styles.timeframeTabActive]}
+                onPress={() => setTimeframe(key)}
+                activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityLabel={TIMEFRAME_LABELS[key]}
+                accessibilityState={{ selected: active }}
+              >
+                <Text
+                  style={[styles.timeframeTabText, active && styles.timeframeTabTextActive]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <RideStatsCard
+          stats={rideStats}
+          loading={statsLoading}
+          error={statsError}
+          onRetry={refetchStats}
+          timeframeLabel={TIMEFRAME_LABELS[timeframe]}
+        />
 
       </ScrollView>
 
@@ -522,31 +587,48 @@ const styles = StyleSheet.create({
   timeframeTabTextActive: {
     color: colors.onPrimary,
   },
-  statsRow: {
+  healthRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 10,
   },
-  statCard: {
+  healthRowSingle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginHorizontal: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  readyText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.health.allGood.on,
+  },
+  healthTile: {
     flex: 1,
     backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    padding: 14,
-    alignItems: 'center',
-    gap: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    gap: 2,
   },
-  statValue: {
-    fontSize: 22,
+  healthCount: {
+    fontSize: 24,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: colors.textMuted,
   },
-  statLabel: {
+  healthLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 0.9,
+    color: colors.textMuted,
   },
   actionButton: {
     flexDirection: 'row',

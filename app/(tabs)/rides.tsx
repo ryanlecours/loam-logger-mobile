@@ -163,6 +163,33 @@ export default function RidesScreen() {
           );
         })}
       </ScrollView>
+      {/* Entry point for streaks, records, heart rate, locations and weather.
+          Those used to sit at the bottom of the dashboard; they belong to the
+          riding story, not the gear one. A link rather than an inline block so
+          this screen keeps one control (the range filter above) governing one
+          thing (the list below). */}
+      {rides.length > 0 && (
+        <TouchableOpacity
+          style={styles.insightsRow}
+          onPress={() => router.push('/ride-insights' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="See riding insights"
+        >
+          <Ionicons
+            name="stats-chart-outline"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+          />
+          <Text style={styles.insightsText}>Riding insights</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+          />
+        </TouchableOpacity>
+      )}
       {rides.length > 0 && !hasMore && (
         <Text style={styles.rideCount}>
           {rides.length} {rides.length === 1 ? 'ride' : 'rides'}
@@ -229,6 +256,25 @@ const styles = StyleSheet.create({
   },
   filterPillTextActive: {
     color: colors.onPrimary,
+  },
+  insightsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    marginHorizontal: 16,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
+  },
+  insightsText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   rideCount: {
     fontSize: 13,

@@ -1,100 +1,65 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Pressable,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useRideStats, TimeframeOption } from '../../hooks/useRideStats';
-import { formatDuration, formatElevation } from '../../utils/greetingMessages';
+import type { ApolloError } from '@apollo/client';
+
+import type { RideStats } from '../../hooks/useRideStats';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { useShareRideOverlay } from '../../hooks/useShareRideOverlay';
-import { colors, radius, space } from '../../constants/theme';
+import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { ErrorState } from '../common/ErrorState';
 import { describeError } from '../../utils/errorCopy';
-import { conditionIcon, conditionLabel, conditionTint } from '../../lib/weather';
-import type { WeatherCondition } from '../../lib/weather';
+import { colors, radius, space } from '../../constants/theme';
 
-const WEATHER_ORDER: WeatherCondition[] = [
-  'SUNNY',
-  'CLOUDY',
-  'RAINY',
-  'SNOWY',
-  'WINDY',
-  'FOGGY',
-  'UNKNOWN',
-];
-
-function buildTimeframeOptions(): { value: TimeframeOption; label: string }[] {
-  const currentYear = new Date().getFullYear();
-  const options: { value: TimeframeOption; label: string }[] = [
-    { value: '7d', label: 'Last 7 days' },
-    { value: '30d', label: 'Last 30 days' },
-    { value: '90d', label: 'Last 90 days' },
-    { value: 'YTD', label: 'Year to date' },
-  ];
-  for (let i = 1; i <= 5; i++) {
-    const year = currentYear - i;
-    options.push({ value: `year:${year}`, label: `${year}` });
-  }
-  return options;
+interface RideStatsCardProps {
+  stats: RideStats;
+  loading: boolean;
+  error?: ApolloError;
+  onRetry: () => void;
+  /** Short label for the screen's single timeframe control, e.g. "YTD". */
+  timeframeLabel: string;
 }
 
-const TIMEFRAME_OPTIONS = buildTimeframeOptions();
-
-type SectionKey = 'summary' | 'trends' | 'heartRate' | 'locations' | 'bikes' | 'weather';
-
-export function RideStatsCard() {
+/**
+ * The dashboard's ride-metrics block: the totals that turn into component wear,
+ * and nothing else.
+ *
+ * This used to be an 850-line, six-section accordion carrying streaks, personal
+ * records, heart rate, top locations and a weather breakdown. Those are real
+ * features, but they answer "how have I been riding" on a screen whose job is
+ * "what does my bike need", and they made the gear screen end in a weather
+ * grid. They now live at /ride-insights, reachable from the Rides tab, and this
+ * block keeps the two things that feed gear: timeframe totals, and hours per
+ * bike.
+ *
+ * Timeframe is a prop, not internal state. The screen owns one control; this
+ * card used to carry a second one with a different default, so the dashboard
+ * showed two different answers to "my hours" on one scroll.
+ */
+export function RideStatsCard({
+  stats,
+  loading,
+  error,
+  onRetry,
+  timeframeLabel,
+}: RideStatsCardProps) {
+  const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
-  const [timeframe, setTimeframe] = useState<TimeframeOption>('30d');
-  const [showPicker, setShowPicker] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(
-    new Set(['summary'])
-  );
-  const { stats, loading, error, refetch } = useRideStats(timeframe);
   // shareSurface is a JSX VALUE (rendered inline below as `{shareSurface}`),
   // not a component. See comment in useShareRideOverlay — returning JSX as
   // a component-from-useCallback re-mounts the off-screen capture node on
   // every state change, which corrupts the captureRef snapshot.
   const { sharing, openShareSheet, shareSurface } = useShareRideOverlay();
 
-  // Aggregate-stats share. Reuses the same RideShareCard layout the
-  // single-ride share uses — distance, elevation, duration, average HR.
-  // Distance/elevation/duration are timeframe totals; average HR is
-  // averaged across rides that have HR data (null when none do, in
-  // which case the share sheet renders that toggle disabled). Hours
-  // come back as a float; convert to seconds so formatDuration's "Xh
-  // Ym" output matches the single-ride share path's contract.
   const handleShare = () => {
-    const totalSeconds = Math.round(stats.totalHours * 3600);
-    const timeframeLabel = TIMEFRAME_OPTIONS.find((o) => o.value === timeframe)?.label;
     openShareSheet({
-      title: timeframeLabel,
+      title: `${timeframeLabel} · all bikes`,
       distance: formatDistance(stats.totalDistance),
       elevation: formatElevation(stats.totalElevation, distanceUnit),
-      duration: formatDuration(totalSeconds),
+      duration: formatDuration(Math.round(stats.totalHours * 3600)),
       averageHr: stats.ridesWithHr > 0 && stats.averageHr ? `${stats.averageHr} bpm` : null,
     });
   };
-
-  const toggleSection = (section: SectionKey) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(section)) {
-        next.delete(section);
-      } else {
-        next.add(section);
-      }
-      return next;
-    });
-  };
-
-  const currentLabel =
-    TIMEFRAME_OPTIONS.find((o) => o.value === timeframe)?.label || 'Last 30 days';
 
   const formatHours = (hours: number): string => {
     const h = Math.floor(hours);
@@ -104,25 +69,10 @@ export function RideStatsCard() {
     return `${h}h ${m}m`;
   };
 
-  // Trend direction is neutral information, not component health. The +/- sign
-  // carries the meaning; color only lifts an increase out of the row. Riding
-  // less than last week is not a warning, so it never wears a warning color.
-  const formatTrend = (value: number | null): { text: string; color: string } => {
-    if (value === null) return { text: '--', color: colors.textMuted };
-    const sign = value >= 0 ? '+' : '';
-    const color = value > 0 ? colors.positiveOn : colors.textSecondary;
-    return { text: `${sign}${value}%`, color };
-  };
-
   if (loading && stats.totalRides === 0) {
     return (
       <View style={styles.card}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Ride Stats</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading stats...</Text>
-        </View>
+        <Text style={styles.loadingText}>Loading your riding...</Text>
       </View>
     );
   }
@@ -130,122 +80,38 @@ export function RideStatsCard() {
   // A failed read used to collapse into the same nothing as "no rides yet",
   // which quietly tells a rider with 400 rides that they have none.
   if (error && stats.totalRides === 0) {
-    const copy = describeError(error, 'ride stats');
     return (
       <View style={styles.errorWrap}>
-        <ErrorState variant="card" title={copy.title} body={copy.body} onRetry={() => refetch()} />
+        <ErrorState variant="card" {...describeError(error, 'ride stats')} onRetry={onRetry} />
       </View>
     );
   }
 
-  // Genuinely no rides. Collapsing is correct here: the dashboard's recent-rides
-  // block already owns the "connect a data source" story.
+  // Genuinely no rides. Collapsing is correct: the recent-rides block above
+  // already owns the "connect a data source" story, and repeating it here
+  // would be the same ask twice on one screen.
   if (stats.totalRides === 0) {
     return null;
   }
 
-  const distanceTrend = formatTrend(stats.weekOverWeekDistance);
-  const ridesTrend = formatTrend(stats.weekOverWeekRides);
-
-  const hasAnyWeather = WEATHER_ORDER.some((k) => stats.weatherBreakdown[k] > 0);
-  const weatherSection = !hasAnyWeather ? null : (
-    <>
-      <TouchableOpacity
-        style={styles.sectionHeader}
-        onPress={() => toggleSection('weather')}
-      >
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="partly-sunny-outline" size={18} color={colors.primary} />
-          <Text style={styles.sectionTitle}>Weather</Text>
-        </View>
-        <Ionicons
-          name={expandedSections.has('weather') ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textMuted}
-        />
-      </TouchableOpacity>
-      {expandedSections.has('weather') && (
-        <View style={styles.sectionContent}>
-          <View style={styles.weatherGrid}>
-            {WEATHER_ORDER.map((cond) => {
-              const count = stats.weatherBreakdown[cond];
-              if (count === 0) return null;
-              return (
-                <View key={cond} style={styles.weatherTile}>
-                  <Ionicons
-                    name={conditionIcon(cond)}
-                    size={22}
-                    color={cond === 'UNKNOWN' ? colors.textMuted : conditionTint(cond)}
-                  />
-                  <Text style={styles.weatherCount}>{count}</Text>
-                  <Text style={styles.weatherLabel}>{conditionLabel(cond)}</Text>
-                </View>
-              );
-            })}
-          </View>
-          {stats.weatherPendingCount > 0 && (
-            <Text style={styles.weatherPendingText}>
-              {stats.weatherPendingCount} ride
-              {stats.weatherPendingCount === 1 ? '' : 's'} still pending weather fetch.
-            </Text>
-          )}
-        </View>
-      )}
-    </>
-  );
-
   return (
-    // Fragment so {shareSurface} can sit OUTSIDE the styles.card View.
-    // The card has `overflow: 'hidden'` (load-bearing for the rounded
-    // corners + shadow), and the off-screen RideShareCard inside
-    // shareSurface is absolutely positioned at left: -10000 — far
-    // outside the card's bounds. On Android, overflow:hidden can suppress
-    // layout/render of absolutely-positioned children that fall outside
-    // the parent's clip rect, which would make captureRef snapshot an
-    // empty native view in production builds. Hoisting the surface to a
-    // sibling level keeps the card visually clipped while letting the
-    // capture mount render at full size.
     <>
-    <View style={styles.card}>
-      {/* Header with dropdown */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Ride Stats</Text>
-        <TouchableOpacity
-          style={styles.dropdownButton}
-          onPress={() => setShowPicker(true)}
-        >
-          <Text style={styles.dropdownText}>{currentLabel}</Text>
-          <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
-
-      {stats.truncated && (
-        <Text style={styles.truncationNote}>
-          Showing stats based on your most recent 500 rides. Weather totals cover the full selected timeframe.
-        </Text>
-      )}
-
-      {/* Summary Section. The share icon is intentionally inside this
-          row (not at the card header) — sharing exports SUMMARY data
-          (distance, elevation, duration, avg HR) so the entry point
-          should sit next to the data it captures. Tap stops propagation
-          so it doesn't also collapse the section. */}
-      <TouchableOpacity
-        style={styles.sectionHeader}
-        onPress={() => toggleSection('summary')}
-      >
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="stats-chart-outline" size={18} color={colors.primary} />
-          <Text style={styles.sectionTitle}>Summary</Text>
-        </View>
-        <View style={styles.sectionHeaderActions}>
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.title}>Your riding</Text>
+            {/* The scope caption. These totals are every bike on the account,
+                sitting on a screen that is otherwise about one selected bike,
+                and an uncaptioned number here reads as that bike's hours. */}
+            <Text style={styles.caption}>All bikes · {timeframeLabel}</Text>
+          </View>
           <TouchableOpacity
             onPress={handleShare}
             disabled={sharing}
-            // Larger hit target than the visible icon since this is a
-            // small touch area embedded in another touchable row.
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={styles.shareIconButton}
+            style={styles.shareButton}
+            accessibilityRole="button"
+            accessibilityLabel="Share these totals"
+            accessibilityState={{ disabled: sharing }}
           >
             {sharing ? (
               <ActivityIndicator size="small" color={colors.primary} />
@@ -253,273 +119,66 @@ export function RideStatsCard() {
               <Ionicons name="share-outline" size={18} color={colors.primary} />
             )}
           </TouchableOpacity>
-          <Ionicons
-            name={expandedSections.has('summary') ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.textMuted}
-          />
         </View>
-      </TouchableOpacity>
-      {expandedSections.has('summary') && (
-        <View style={styles.sectionContent}>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{stats.totalRides}</Text>
-              <Text style={styles.statLabel}>Rides</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{formatHours(stats.totalHours)}</Text>
-              <Text style={styles.statLabel}>Time</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{formatDistance(stats.totalDistance)}</Text>
-              <Text style={styles.statLabel}>Distance</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{formatElevation(stats.totalElevation, distanceUnit)}</Text>
-              <Text style={styles.statLabel}>Elevation</Text>
-            </View>
-          </View>
-          <View style={styles.averagesRow}>
-            <Text style={styles.avgText}>
-              Avg: {formatDistance(stats.avgDistancePerRide)} / {stats.avgDurationMinutes} min / {distanceUnit === 'km' ? `${Math.round(stats.avgElevationPerRide)} m` : `${Math.round(stats.avgElevationPerRide * 3.28084)} ft`} per ride
-            </Text>
-          </View>
-        </View>
-      )}
 
-      {/* Trends Section */}
-      <TouchableOpacity
-        style={styles.sectionHeader}
-        onPress={() => toggleSection('trends')}
-      >
-        <View style={styles.sectionTitleRow}>
-          <Ionicons name="trending-up-outline" size={18} color={colors.primary} />
-          <Text style={styles.sectionTitle}>Trends & Streaks</Text>
+        <View style={styles.grid}>
+          <Metric value={String(stats.totalRides)} label="Rides" />
+          <Metric value={formatHours(stats.totalHours)} label="Time" />
+          <Metric value={formatDistance(stats.totalDistance)} label="Distance" />
+          <Metric value={formatElevation(stats.totalElevation, distanceUnit)} label="Climbing" />
         </View>
-        <Ionicons
-          name={expandedSections.has('trends') ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textMuted}
-        />
-      </TouchableOpacity>
-      {expandedSections.has('trends') && (
-        <View style={styles.sectionContent}>
-          <View style={styles.trendRow}>
-            <Text style={styles.trendLabel}>Week over week (distance)</Text>
-            <Text style={[styles.trendValue, { color: distanceTrend.color }]}>
-              {distanceTrend.text}
-            </Text>
-          </View>
-          <View style={styles.trendRow}>
-            <Text style={styles.trendLabel}>Week over week (rides)</Text>
-            <Text style={[styles.trendValue, { color: ridesTrend.color }]}>
-              {ridesTrend.text}
-            </Text>
-          </View>
-          <View style={styles.streakRow}>
-            <View style={styles.streakItem}>
-              <Ionicons name="flame-outline" size={16} color={colors.accentWarm} />
-              <Text style={styles.streakValue}>{stats.currentStreak}</Text>
-              <Text style={styles.streakLabel}>Current streak</Text>
-            </View>
-            <View style={styles.streakItem}>
-              <Ionicons name="trophy-outline" size={16} color={colors.accentPearl} />
-              <Text style={styles.streakValue}>{stats.longestStreak}</Text>
-              <Text style={styles.streakLabel}>Longest streak</Text>
-            </View>
-          </View>
-          {stats.personalRecords.length > 0 && (
-            <View style={styles.recordsContainer}>
-              <Text style={styles.recordsTitle}>Personal Records</Text>
-              {stats.personalRecords.map((record) => (
-                <View key={record.type} style={styles.recordRow}>
-                  <Text style={styles.recordLabel}>
-                    {record.type === 'longest_ride'
-                      ? 'Longest ride'
-                      : record.type === 'most_elevation'
-                      ? 'Most climbing'
-                      : 'Longest duration'}
-                  </Text>
-                  <Text style={styles.recordValue}>
-                    {record.type === 'longest_ride'
-                      ? formatDistance(record.value)
-                      : record.type === 'most_elevation'
-                      ? formatElevation(record.value, distanceUnit)
-                      : formatDuration(record.value)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
 
-      {/* Heart Rate Section */}
-      {stats.ridesWithHr > 0 && (
-        <>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection('heartRate')}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="heart-outline" size={18} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Heart Rate</Text>
-            </View>
-            <Ionicons
-              name={expandedSections.has('heartRate') ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={colors.textMuted}
-            />
-          </TouchableOpacity>
-          {expandedSections.has('heartRate') && (
-            <View style={styles.sectionContent}>
-              <View style={styles.hrRow}>
-                <View style={styles.hrItem}>
-                  <Text style={styles.hrValue}>{stats.averageHr} bpm</Text>
-                  <Text style={styles.hrLabel}>Average HR</Text>
+        {/* Hours per bike is the one breakdown a gear screen earns: it is the
+            input the wear predictions are built from. */}
+        {stats.bikeTime.length > 1 && (
+          <View style={styles.bikes}>
+            {stats.bikeTime.map((bike) => (
+              <View key={bike.name} style={styles.bikeRow}>
+                <View style={styles.bikeInfo}>
+                  <Text style={styles.bikeName} numberOfLines={1}>
+                    {bike.name}
+                  </Text>
+                  <View style={styles.bikeTrack}>
+                    <View style={[styles.bikeBar, { width: `${bike.percentage}%` }]} />
+                  </View>
                 </View>
-                <View style={styles.hrItem}>
-                  <Text style={styles.hrValue}>{stats.maxHr} bpm</Text>
-                  <Text style={styles.hrLabel}>Peak avg HR</Text>
-                </View>
+                <Text style={styles.bikeHours}>{bike.hours}h</Text>
               </View>
-              <Text style={styles.hrNote}>
-                {stats.ridesWithHr} of {stats.totalRides} rides have HR data
-              </Text>
-            </View>
-          )}
-        </>
-      )}
-
-      {/* Locations Section */}
-      {stats.topLocations.length > 0 && (
-        <>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection('locations')}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="location-outline" size={18} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Top Locations</Text>
-            </View>
-            <Ionicons
-              name={expandedSections.has('locations') ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={colors.textMuted}
-            />
-          </TouchableOpacity>
-          {expandedSections.has('locations') && (
-            <View style={styles.sectionContent}>
-              {stats.topLocations.map((loc, index) => (
-                <View key={loc.name} style={styles.locationRow}>
-                  <Text style={styles.locationRank}>{index + 1}</Text>
-                  <View style={styles.locationInfo}>
-                    <Text style={styles.locationName} numberOfLines={1}>
-                      {loc.name}
-                    </Text>
-                    <Text style={styles.locationStats}>
-                      {loc.rideCount} rides · {loc.totalHours}h
-                    </Text>
-                  </View>
-                  <Text style={styles.locationPercent}>{loc.percentage}%</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </>
-      )}
-
-      {/* Bike Usage Section */}
-      {stats.bikeTime.length > 0 && (
-        <>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => toggleSection('bikes')}
-          >
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="bicycle-outline" size={18} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Bike Usage</Text>
-            </View>
-            <Ionicons
-              name={expandedSections.has('bikes') ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={colors.textMuted}
-            />
-          </TouchableOpacity>
-          {expandedSections.has('bikes') && (
-            <View style={styles.sectionContent}>
-              {stats.bikeTime.map((bike) => (
-                <View key={bike.name} style={styles.bikeRow}>
-                  <View style={styles.bikeInfo}>
-                    <Text style={styles.bikeName} numberOfLines={1}>
-                      {bike.name}
-                    </Text>
-                    <View style={styles.bikeBarContainer}>
-                      <View
-                        style={[styles.bikeBar, { width: `${bike.percentage}%` }]}
-                      />
-                    </View>
-                  </View>
-                  <View style={styles.bikeStats}>
-                    <Text style={styles.bikeHours}>{bike.hours}h</Text>
-                    <Text style={styles.bikePercent}>{bike.percentage}%</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </>
-      )}
-
-      {/* Weather Section */}
-      {weatherSection}
-
-      {/* Timeframe Picker Modal */}
-      <Modal
-        visible={showPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPicker(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowPicker(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Timeframe</Text>
-            {TIMEFRAME_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.modalOption,
-                  timeframe === option.value && styles.modalOptionSelected,
-                ]}
-                onPress={() => {
-                  setTimeframe(option.value);
-                  setShowPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.modalOptionText,
-                    timeframe === option.value && styles.modalOptionTextSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                {timeframe === option.value && (
-                  <Ionicons name="checkmark" size={20} color={colors.primary} />
-                )}
-              </TouchableOpacity>
             ))}
           </View>
-        </Pressable>
-      </Modal>
-    </View>
+        )}
 
-    {/* Share overlay surface: customization sheet + off-screen capture
-        mount. Sibling of the card (NOT a child) so it escapes the card's
-        `overflow: 'hidden'` clip — see comment at the Fragment open above. */}
-    {shareSurface}
+        {stats.truncated && (
+          <Text style={styles.note}>Based on your most recent 500 rides.</Text>
+        )}
+
+        <TouchableOpacity
+          style={styles.insightsLink}
+          onPress={() => router.push('/ride-insights' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="See riding insights"
+        >
+          <Text style={styles.insightsText}>Streaks, records and more</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Share overlay surface: sibling of the card (NOT a child) so it escapes
+          the card's `overflow: 'hidden'` clip. The off-screen RideShareCard is
+          absolutely positioned at left: -10000, and on Android overflow:hidden
+          can suppress render of children outside the parent's clip rect, which
+          would make captureRef snapshot an empty view in production builds. */}
+      {shareSurface}
     </>
+  );
+}
+
+function Metric({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -531,254 +190,82 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     marginHorizontal: space.xl,
     marginTop: space.xl,
-    // Forest-tinted, per DESIGN.md. A pure-black shadow at 5% was invisible
-    // against an obsidian background anyway.
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: 'hidden',
+    padding: space.xl,
+    gap: space.xl,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    alignItems: 'flex-start',
+    gap: space.lg,
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   title: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: colors.background,
-    borderRadius: radius.full,
-  },
-  dropdownText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  shareIconButton: {
-    padding: 2,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  sectionContent: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  averagesRow: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  avgText: {
     fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  trendRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  trendLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  trendValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  streakRow: {
-    flexDirection: 'row',
-    marginTop: 12,
-    gap: 16,
-  },
-  streakItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.background,
-    padding: 10,
-    borderRadius: 8,
-  },
-  streakValue: {
-    fontSize: 18,
     fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  streakLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  recordsContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  recordsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textMuted,
-    marginBottom: 8,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-  },
-  recordRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  recordLabel: {
-    fontSize: 13,
     color: colors.textSecondary,
   },
-  recordValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  hrRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  hrItem: {
-    flex: 1,
-    alignItems: 'center',
-    // Heart rate is a biometric, not a status. It used to borrow the overdue
-    // fill, which made a normal ride read like an alarm.
-    backgroundColor: colors.primaryMuted,
-    padding: 12,
-    borderRadius: 8,
-  },
-  hrValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.positiveOn,
-  },
-  hrLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  hrNote: {
-    fontSize: 11,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  locationRank: {
-    width: 20,
+  caption: {
     fontSize: 12,
-    fontWeight: '600',
     color: colors.textMuted,
+    marginTop: space.hair,
   },
-  locationInfo: {
-    flex: 1,
-    marginRight: 8,
+  shareButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  locationName: {
-    fontSize: 14,
-    fontWeight: '500',
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: space.xl,
+  },
+  metric: {
+    // Two per row at large Dynamic Type, four when there is room.
+    minWidth: 80,
+    flexGrow: 1,
+    flexBasis: '25%',
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
-  locationStats: {
+  metricLabel: {
     fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-  locationPercent: {
-    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.9,
     color: colors.textSecondary,
+    marginTop: space.hair,
+  },
+  bikes: {
+    gap: space.lg,
   },
   bikeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: space.lg,
   },
   bikeInfo: {
     flex: 1,
-    marginRight: 12,
+    minWidth: 0,
+    gap: space.sm,
   },
   bikeName: {
     fontSize: 13,
-    fontWeight: '500',
-    color: colors.textPrimary,
-    marginBottom: 4,
+    color: colors.textSecondary,
   },
-  bikeBarContainer: {
-    height: 6,
+  bikeTrack: {
+    height: space.sm,
     backgroundColor: colors.cardBorder,
     borderRadius: radius.full,
     overflow: 'hidden',
@@ -788,90 +275,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radius.full,
   },
-  bikeStats: {
-    alignItems: 'flex-end',
-  },
   bikeHours: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  note: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: space.xl,
+  },
+  insightsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    paddingTop: space.lg,
+  },
+  insightsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  bikePercent: {
-    fontSize: 11,
-    color: colors.textMuted,
-  },
-  weatherGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  weatherTile: {
-    width: '25%',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  weatherCount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginTop: 4,
-  },
-  weatherLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  weatherPendingText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 8,
-  },
-  truncationNote: {
-    fontSize: 11,
-    color: colors.textMuted,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    fontStyle: 'italic',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 8,
-    width: '80%',
-    maxWidth: 300,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    marginBottom: 4,
-  },
-  modalOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  modalOptionSelected: {
-    backgroundColor: colors.primaryMuted,
-  },
-  modalOptionText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  modalOptionTextSelected: {
     color: colors.primary,
-    fontWeight: '600',
   },
 });
