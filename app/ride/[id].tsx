@@ -588,7 +588,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   statItem: {
-    width: '50%',
+    // Same two-across grid as the component sheets: 50% pinned it to two
+    // columns at every text size. This screen is one tap from the dashboard's
+    // recent-rides list, so it gets the same reflow.
+    minWidth: 140,
+    flexGrow: 1,
+    flexBasis: '50%',
     alignItems: 'center',
     paddingVertical: 12,
   },

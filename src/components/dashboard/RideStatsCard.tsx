@@ -194,8 +194,15 @@ export function RideStatsCard({
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
+      {/* The value is the content; it gets one line and is allowed to keep
+          growing. The label can take two lines rather than force the grid to
+          reflow around a wrapped word like "Distance". */}
+      <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+        {value}
+      </Text>
+      <Text style={styles.metricLabel} numberOfLines={2}>
+        {label}
+      </Text>
     </View>
   );
 }

@@ -1,4 +1,13 @@
-import { ScrollView, View, Text, Image, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,33 +57,62 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   YTD: 'Year to date',
 };
 
+/**
+ * Above this text scale the three-across health row stops being readable:
+ * "Due soon" cannot sit under a 24pt numeral in a third of a phone's width
+ * without wrapping to three lines or clipping. The row restructures into a
+ * stacked list instead of shrinking, which is the same information in the
+ * shape that fits.
+ */
+const STACK_HEALTH_ABOVE_FONT_SCALE = 1.3;
+
 function HealthTile({
   count,
   label,
   tone,
+  stacked,
 }: {
   count: number;
   label: string;
   tone: { on: string; bg: string; border: string };
+  stacked: boolean;
 }) {
   const idle = count === 0;
   return (
     <View
       style={[
         styles.healthTile,
+        stacked && styles.healthTileStacked,
         !idle && { backgroundColor: tone.bg, borderColor: tone.border },
       ]}
       accessible
       accessibilityLabel={`${count} ${label}`}
     >
-      <Text style={[styles.healthCount, !idle && { color: tone.on }]}>{count}</Text>
-      <Text style={[styles.healthLabel, !idle && { color: tone.on }]}>{label}</Text>
+      <Text
+        style={[styles.healthCount, !idle && { color: tone.on }]}
+        numberOfLines={1}
+        // The count is the point of the tile, so it is the one thing allowed to
+        // keep growing; everything around it gives way instead.
+        maxFontSizeMultiplier={2}
+      >
+        {count}
+      </Text>
+      <Text
+        style={[styles.healthLabel, stacked && styles.healthLabelStacked, !idle && { color: tone.on }]}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
 export default function DashboardScreen() {
   const router = useRouter();
+  // fontScale, not width: this reflow is driven by the reader's text size, and
+  // it has to react live because Dynamic Type can change while the app is open.
+  const { fontScale } = useWindowDimensions();
+  const stackHealth = fontScale >= STACK_HEALTH_ABOVE_FONT_SCALE;
   const { isPro, isFoundingRider } = useUserTier();
   const {
     bikes,
@@ -343,25 +381,39 @@ export default function DashboardScreen() {
           // Free tier gets the fact it can be given (what is past its interval,
           // by name, below) and sees exactly what Pro adds in the slot where it
           // would appear, rather than a withheld answer.
-          <View style={styles.healthRow}>
+          <View style={[styles.healthRow, stackHealth && styles.healthRowStacked]}>
             <HealthTile
               count={pastIntervalComponents.length}
               label="Past due"
               tone={colors.health.overdue}
+              stacked={stackHealth}
             />
-            <View style={styles.healthTile}>
+            <View style={[styles.healthTile, stackHealth && styles.healthTileStacked]}>
               <ProChip />
-              <Text style={styles.healthLabel}>Due soon</Text>
+              <Text style={[styles.healthLabel, stackHealth && styles.healthLabelStacked]} numberOfLines={2}>
+                Due soon
+              </Text>
             </View>
           </View>
         ) : (
-          <View style={styles.healthRow}>
-            <HealthTile count={healthCounts.overdue} label="Overdue" tone={colors.health.overdue} />
-            <HealthTile count={healthCounts.dueNow} label="Due now" tone={colors.health.dueNow} />
+          <View style={[styles.healthRow, stackHealth && styles.healthRowStacked]}>
+            <HealthTile
+              count={healthCounts.overdue}
+              label="Overdue"
+              tone={colors.health.overdue}
+              stacked={stackHealth}
+            />
+            <HealthTile
+              count={healthCounts.dueNow}
+              label="Due now"
+              tone={colors.health.dueNow}
+              stacked={stackHealth}
+            />
             <HealthTile
               count={healthCounts.dueSoon}
               label="Due soon"
               tone={colors.health.dueSoon}
+              stacked={stackHealth}
             />
           </View>
         )}
@@ -699,6 +751,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.health.allGood.on,
   },
+  healthRowStacked: {
+    flexDirection: 'column',
+    gap: 8,
+  },
   healthTile: {
     flex: 1,
     backgroundColor: colors.card,
@@ -708,6 +764,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     gap: 2,
+  },
+  healthTileStacked: {
+    // Full width, and the count sits beside its label rather than above it:
+    // stacking the row and the tile both would waste the width we just gained.
+    flex: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   healthCount: {
     fontSize: 24,
@@ -719,6 +783,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.9,
     color: colors.textMuted,
+  },
+  healthLabelStacked: {
+    // Reads as a sentence at this size, so it drops the tracking that suits a
+    // 11pt all-caps label under a numeral.
+    flex: 1,
+    fontSize: 15,
+    letterSpacing: 0,
   },
   actionButton: {
     flexDirection: 'row',

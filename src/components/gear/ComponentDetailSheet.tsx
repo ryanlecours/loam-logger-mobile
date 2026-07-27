@@ -704,7 +704,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statItem: {
-    width: '47%',
+    // 47% pinned this to two columns at every text size. flexBasis keeps two
+    // across by default and lets it fall to one when the content needs it.
+    minWidth: 140,
+    flexGrow: 1,
+    flexBasis: '47%',
     backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
@@ -803,7 +807,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
     color: colors.textPrimary,
-    width: 70,
+    // Was a hard 70pt, which clips a three-digit hour count as soon as the
+    // reader's text size goes up. It can grow; the row it sits in gives way.
+    minWidth: 70,
+    flexShrink: 1,
     textAlign: 'center',
   },
   customUnit: {
