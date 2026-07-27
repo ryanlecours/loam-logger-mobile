@@ -13,17 +13,24 @@ export interface ErrorCopy {
  * Deliberately never surfaces `error.message`. A GraphQL or transport message
  * names our internals, not the rider's problem, and on a trailhead LTE
  * connection the only useful information is "we could not reach the server,
- * your data is safe, try again".
+ * nothing is lost, try again".
  *
  * The distinction that matters to a rider is offline vs. our fault, because it
  * tells them whether moving somewhere with signal will help.
+ *
+ * `subject` is a noun phrase that has to read correctly after "your", and it
+ * is only ever placed there. An earlier version wrote "Your ${subject} is
+ * safe", which silently produced "Your ride stats is safe" for every plural
+ * subject. The frames below never make the subject a sentence subject, so no
+ * number agreement is involved and no pluralization logic is needed: "gear"
+ * (mass), "ride stats" (plural) and "service summary" (singular) all read
+ * correctly without the caller flagging which is which.
  */
 export function describeError(error: ApolloError | Error | undefined, subject: string): ErrorCopy {
-  const offline = isNetworkError(error);
-  if (offline) {
+  if (isNetworkError(error)) {
     return {
       title: `Can't reach Loam Logger`,
-      body: `Your ${subject} is safe, we just couldn't load it. Check your signal and try again.`,
+      body: `We couldn't load your ${subject}. Nothing has been lost. Check your signal and try again.`,
     };
   }
   return {
