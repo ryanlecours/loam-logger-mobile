@@ -89,6 +89,7 @@ export default tseslint.config([
       'src/components/dashboard/BikeTriageGroup.tsx',
       'src/components/dashboard/EmptyBikeState.tsx',
       'src/components/dashboard/RecentRidesList.tsx',
+      'src/components/dashboard/RideStatsCard.tsx',
       'src/components/gear/ComponentHealthBadge.tsx',
     ],
     rules: {

@@ -10,7 +10,7 @@ import { formatDuration, formatElevation } from '../../utils/greetingMessages';
 import { ErrorState } from '../common/ErrorState';
 import { describeError } from '../../utils/errorCopy';
 import { Skeleton, SkeletonGroup } from '../common/Skeleton';
-import { colors, radius, space } from '../../constants/theme';
+import { colors, radius, space, type } from '../../constants/theme';
 
 interface RideStatsCardProps {
   stats: RideStats;
@@ -232,14 +232,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   title: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
+    ...type.eyebrow,
     textTransform: 'uppercase',
     color: colors.textSecondary,
   },
   caption: {
-    fontSize: 12,
+    ...type.caption,
     color: colors.textMuted,
     marginTop: space.hair,
   },
@@ -261,14 +259,11 @@ const styles = StyleSheet.create({
     flexBasis: '25%',
   },
   metricValue: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...type.title,
     color: colors.textPrimary,
   },
   metricLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.9,
+    ...type.labelSmall,
     color: colors.textSecondary,
     marginTop: space.hair,
   },
@@ -292,7 +287,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   bikeName: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textSecondary,
   },
   bikeTrack: {
@@ -307,13 +302,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   bikeHours: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...type.captionStrong,
     color: colors.textPrimary,
   },
   note: {
-    fontSize: 12,
-    lineHeight: 17,
+    ...type.caption,
+    lineHeight: 18,
     color: colors.textMuted,
   },
   insightsLink: {
@@ -326,8 +320,7 @@ const styles = StyleSheet.create({
     paddingTop: space.lg,
   },
   insightsText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...type.footnoteStrong,
     color: colors.primary,
   },
 });
