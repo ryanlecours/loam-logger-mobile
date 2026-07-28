@@ -10,9 +10,10 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeCalibrationSection } from './BikeCalibrationSection';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import {
   useCalibrationStateQuery,
   useLogBulkComponentServiceMutation,
@@ -29,6 +30,7 @@ interface CalibrationSheetProps {
 }
 
 export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
+  const insets = useSafeAreaInsets();
   const { data, loading } = useCalibrationStateQuery({
     fetchPolicy: 'cache-and-network',
     skip: !visible,
@@ -196,7 +198,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               <View style={styles.header}>
@@ -282,7 +284,7 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <ActivityIndicator color={colors.textPrimary} />
+                    <ActivityIndicator color={colors.onPrimary} />
                   ) : (
                     <Text style={styles.completeText}>
                       {calibratedCount > 0 ? 'Complete Calibration' : 'Done'}
@@ -309,13 +311,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -342,13 +343,13 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     backgroundColor: colors.cardBorder,
-    borderRadius: 3,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
-    borderRadius: 3,
+    borderRadius: radius.full,
   },
   progressText: {
     fontSize: 12,
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 12,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 10,
+    borderRadius: radius.md,
   },
   infoText: {
     flex: 1,
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
   dismissButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     alignItems: 'center',
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
   completeButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
   },
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   completeText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },

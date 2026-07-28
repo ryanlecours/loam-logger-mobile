@@ -18,7 +18,7 @@ import { searchBikes, getBikeById, SpokesSearchResult } from '../../src/api/spok
 import { useAddBikeMutation, useGearLightQuery, useUnmappedStravaGearsLazyQuery, useMeQuery, AcquisitionCondition } from '../../src/graphql/generated';
 import { SpokesBike, SpokesImage } from '../../src/hooks/useOnboarding';
 import { StravaGearMappingSheet } from '../../src/components/gear/StravaGearMappingSheet';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
@@ -283,7 +283,7 @@ export default function AddBikeScreen() {
             disabled={adding}
           >
             {adding ? (
-              <ActivityIndicator color={colors.textPrimary} />
+              <ActivityIndicator color={colors.onPrimary} />
             ) : (
               <>
                 <Ionicons name="add" size={20} color={colors.textPrimary} />
@@ -384,7 +384,7 @@ export default function AddBikeScreen() {
               disabled={!query.trim() || searching}
             >
               {searching ? (
-                <ActivityIndicator color={colors.textPrimary} size="small" />
+                <ActivityIndicator color={colors.onPrimary} size="small" />
               ) : (
                 <Text style={styles.searchButtonText}>Search</Text>
               )}
@@ -602,13 +602,13 @@ const styles = StyleSheet.create({
   searchButton: {
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 80,
   },
   searchButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -673,11 +673,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: radius.full,
     gap: 8,
   },
   confirmButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

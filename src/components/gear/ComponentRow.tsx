@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusDot } from './StatusDot';
 import { ComponentFieldsFragment } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
 
 interface ComponentRowProps {
@@ -13,10 +13,19 @@ interface ComponentRowProps {
   hoursSinceService?: number | null;
   ridesSinceService?: number | null;
   restricted?: boolean;
+  /** Off for the last row in a grouped list, whose container draws the edge. */
+  showDivider?: boolean;
   onPress?: () => void;
 }
 
-export function ComponentRow({ component, status, hoursRemaining, hoursSinceService, ridesSinceService, restricted, onPress }: ComponentRowProps) {
+const STATUS_SPOKEN: Record<string, string> = {
+  OVERDUE: 'overdue',
+  DUE_NOW: 'due now',
+  DUE_SOON: 'due soon',
+  ALL_GOOD: 'good',
+};
+
+export function ComponentRow({ component, status, hoursRemaining, hoursSinceService, ridesSinceService, restricted, showDivider = true, onPress }: ComponentRowProps) {
   const label = formatComponentType(component.type, component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
   const effectiveStatus = status || component.status || 'UNKNOWN';
@@ -46,12 +55,26 @@ export function ComponentRow({ component, status, hoursRemaining, hoursSinceServ
 
   const hoursText = getHoursText();
 
+  // The dot and the color of the hours text carry the status visually; neither
+  // reaches a screen reader, so the status is spoken into the row's own label.
+  const spokenStatus = restricted ? null : STATUS_SPOKEN[effectiveStatus];
+  const accessibilityLabel = [label, brandModel, spokenStatus, restricted ? 'Pro' : hoursText]
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <TouchableOpacity
-      style={[styles.container, restricted && styles.containerRestricted]}
+      style={[
+        styles.container,
+        showDivider && styles.containerDivided,
+        restricted && styles.containerRestricted,
+      ]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
       disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: !onPress }}
     >
       {restricted ? (
         <Ionicons name="lock-closed" size={12} color={colors.textMuted} />
@@ -92,12 +115,17 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
+    // A row with no brand/model line is only ~42pt of content and padding,
+    // which lands just under the 44pt floor.
+    minHeight: 44,
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: colors.card,
+    gap: 12,
+  },
+  containerDivided: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.cardBorder,
-    gap: 12,
   },
   content: {
     flex: 1,
@@ -119,11 +147,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   hoursOverdue: {
-    color: colors.danger,
+    color: colors.health.overdue.on,
     fontWeight: '600',
   },
   hoursDueNow: {
-    color: colors.warning,
+    color: colors.health.dueNow.on,
     fontWeight: '500',
   },
   brandModel: {
@@ -140,11 +168,12 @@ const styles = StyleSheet.create({
   restrictedLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.monitor,
-    backgroundColor: colors.monitorBg,
+    // Pro gating is commercial, not component health — keep it neutral.
+    color: colors.textSecondary,
+    backgroundColor: colors.surface,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.full,
     overflow: 'hidden',
     marginLeft: 8,
   },

@@ -15,7 +15,7 @@ import {
 import { useRouter, type Href } from 'expo-router';
 import { useOnboarding, type SpokesBike, type SpokesImage } from '../../src/hooks/useOnboarding';
 import { searchBikes, getBikeById, type SpokesSearchResult } from '../../src/api/spokes';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
@@ -575,18 +575,18 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   secondaryButton: {
     backgroundColor: 'transparent',
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,

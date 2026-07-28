@@ -1,33 +1,162 @@
+/**
+ * Loam Logger mobile color tokens.
+ *
+ * Source of truth is the shared `DESIGN.md` at the workspace root: one brand
+ * everywhere, web-led, dark-only. Every Loam-owned value below is either a
+ * literal from that palette or an explicit on-dark derivation of one (see
+ * "On-dark derivations" further down). Nothing here is a stoplight color.
+ *
+ * Two families carry meaning, and they are deliberately kept apart:
+ *
+ *   `health.*`  — the four-state component-wear ramp. This is the product's
+ *                 signature signal and the only thing allowed to use it is
+ *                 actual component health.
+ *   feedback    — `critical` / `caution` / `positive`. Destructive actions,
+ *                 validation, and confirmations. Voiced in the same earth
+ *                 palette (per DESIGN.md's status-voiced buttons) but named
+ *                 for their job, so a "delete ride" button never claims to be
+ *                 an overdue fork.
+ *
+ * ## On-dark derivations
+ *
+ * DESIGN.md's palette values are specified as fills. Several of them fail WCAG
+ * AA as small text on our own dark surfaces: overdue #B05848 scores 3.73:1 on
+ * obsidian-light, and stone #58585E scores 2.51:1. Each semantic role therefore
+ * ships a lightened `...On` tint for text and icons, following the existing
+ * `garminOnDark` pattern. Every `...On` value clears 4.5:1 against both its own
+ * translucent fill and the bare card; the base value stays available for fills,
+ * bars, and borders where contrast is not a text concern.
+ */
+
+/** DESIGN.md palette literals. Do not consume these directly; use the roles below. */
+const palette = {
+  obsidian: '#0C0C0E',
+  obsidianLight: '#16161A',
+  obsidianLighter: '#202026',
+  forest: '#22362C',
+  forestMuted: '#344A3E',
+  sage: '#788C80',
+  mint: '#9CB0A4',
+  mahogany: '#673A30',
+  mahoganyLight: '#8C5244',
+  terracotta: '#B06A58',
+  ember: '#B05848',
+  ash: '#3A3A3E',
+  stone: '#58585E',
+  silver: '#9E9EA4',
+  pearl: '#E8E6E2',
+  cream: '#FAF8F4',
+} as const;
+
+/**
+ * Lightened tints for text and icons on dark surfaces. Ratios noted against
+ * the card surface (#16161A); all are higher against the canvas (#0C0C0E).
+ */
+const onDark = {
+  ember: '#E08A72', // 6.94:1 on card, 5.95:1 on its own 15% fill
+  mahoganyLight: '#C77E68', // 5.48:1 on card, 4.98:1 on its own 18% fill
+  terracotta: '#D9A08C', // 7.96:1 on card, 6.66:1 on its own 15% fill
+  mint: palette.mint, // 7.88:1 on card, 6.04:1 on its own 15% fill
+  silver: palette.silver, // 6.77:1 on card
+  /** Between silver and stone. Stone itself is 2.51:1 on card and unusable as text. */
+  stoneLight: '#8A8A91', // 5.29:1 on card, 5.74:1 on canvas, 4.69:1 on the raised surface
+} as const;
+
 export const colors = {
-  // Backgrounds
-  background: '#0a0a0a',
-  card: '#1a1a1a',
-  cardBorder: '#2a2a2a',
-  surface: '#111111',
+  // ---------------------------------------------------------------- surfaces
+  background: palette.obsidian,
+  card: palette.obsidianLight,
+  cardBorder: palette.ash,
+  surface: palette.obsidianLighter,
+  /** Forest-tinted modal scrim. DESIGN.md shadows are tinted, never neutral black. */
+  scrim: 'rgba(9, 14, 11, 0.72)',
+  /** Ambient shadow color for elevated surfaces. */
+  shadow: '#070B09',
 
-  // Primary accent
-  primary: '#4f7a5a',
-  primaryMuted: 'rgba(79, 122, 90, 0.15)',
+  // ------------------------------------------------------- interactive voice
+  /** Sage: links, icons, active states, and button fills. 5.05:1 as text on card. */
+  primary: palette.sage,
+  primaryMuted: 'rgba(120, 140, 128, 0.16)',
+  primaryBorder: 'rgba(120, 140, 128, 0.45)',
+  /**
+   * Text and icons sitting ON a sage fill. Obsidian, per DESIGN.md's
+   * status-voiced buttons ("sage with obsidian text"), which reads 5.05:1.
+   * Cream on sage is only 3.37:1 and fails AA for anything under 14pt bold.
+   */
+  onPrimary: palette.obsidian,
 
-  // Text
-  textPrimary: '#ffffff',
-  textSecondary: '#9ca3af',
-  textMuted: '#6b7280',
+  // -------------------------------------------------------------------- text
+  textPrimary: palette.cream,
+  textSecondary: onDark.silver,
+  textMuted: onDark.stoneLight,
+  /** Non-text only: dividers, disabled fills, inactive bar tracks. */
+  textDisabled: palette.stone,
 
-  // Status
-  good: '#22c55e',
-  goodBg: 'rgba(34, 197, 94, 0.15)',
-  monitor: '#eab308',
-  monitorBg: 'rgba(234, 179, 8, 0.15)',
-  warning: '#f97316',
-  warningBg: 'rgba(249, 115, 22, 0.15)',
-  danger: '#ef4444',
-  dangerBg: 'rgba(239, 68, 68, 0.15)',
-  unknown: '#9ca3af',
+  // ------------------------------------------------- component health (ramp)
+  /**
+   * The four-state ramp. `base` fills bars and dots, `on` is for text and
+   * icons, `bg`/`border` build the badge. Never use these for anything that
+   * is not component wear.
+   */
+  health: {
+    overdue: {
+      base: palette.ember,
+      on: onDark.ember,
+      bg: 'rgba(176, 88, 72, 0.15)',
+      border: 'rgba(176, 88, 72, 0.45)',
+    },
+    dueNow: {
+      base: palette.mahoganyLight,
+      on: onDark.mahoganyLight,
+      bg: 'rgba(140, 82, 68, 0.18)',
+      border: 'rgba(140, 82, 68, 0.45)',
+    },
+    dueSoon: {
+      base: palette.terracotta,
+      on: onDark.terracotta,
+      bg: 'rgba(176, 106, 88, 0.15)',
+      border: 'rgba(176, 106, 88, 0.45)',
+    },
+    allGood: {
+      base: palette.mint,
+      on: onDark.mint,
+      bg: 'rgba(156, 176, 164, 0.15)',
+      border: 'rgba(156, 176, 164, 0.4)',
+    },
+    unknown: {
+      base: palette.silver,
+      on: onDark.silver,
+      bg: 'rgba(158, 158, 164, 0.15)',
+      border: 'rgba(158, 158, 164, 0.35)',
+    },
+  },
 
-  // Tab bar
-  tabActive: '#4f7a5a',
-  tabInactive: '#6b7280',
+  // ------------------------------------------- feedback (not component health)
+  /** Destructive actions and validation errors. */
+  critical: palette.ember,
+  criticalOn: onDark.ember,
+  criticalBg: 'rgba(176, 88, 72, 0.12)',
+  criticalBorder: 'rgba(176, 88, 72, 0.45)',
+  /** Reversible but consequential: retiring a bike, losing Pro features. */
+  caution: palette.terracotta,
+  cautionOn: onDark.terracotta,
+  cautionBg: 'rgba(176, 106, 88, 0.12)',
+  cautionBorder: 'rgba(176, 106, 88, 0.4)',
+  /** Confirmations and completed work. */
+  positive: palette.sage,
+  positiveOn: onDark.mint,
+  positiveBg: 'rgba(156, 176, 164, 0.12)',
+  positiveBorder: 'rgba(156, 176, 164, 0.4)',
+
+  // ----------------------------------------------------------------- tab bar
+  tabActive: palette.sage,
+  tabInactive: onDark.stoneLight,
+
+  // ------------------------------------------------------------ accent tints
+  /** Warm accent for fire/streak imagery. Not a status. */
+  accentWarm: onDark.terracotta,
+  /** Quiet medal tone for achievements. Not a status. */
+  accentPearl: palette.pearl,
 
   // Data sources — a partner's own badge only, never Loam UI
   // (DESIGN.md, "The Guest Jersey Rule").
@@ -41,6 +170,103 @@ export const colors = {
   suunto: '#0072CE',
 
   // Skeleton
-  skeleton: '#1f1f1f',
-  skeletonHighlight: '#2a2a2a',
+  skeleton: '#1C1C21',
+  skeletonHighlight: '#26262C',
 };
+
+/**
+ * Spacing scale, in points.
+ *
+ * A 4pt grid with two sub-grid steps (2 and 6) that DESIGN.md's own working
+ * steps sanction (0.375rem / 0.5rem). Names are t-shirt sizes because the
+ * codebase reads them inline; the point value is the contract.
+ *
+ * `hair` is for the 2pt gap between a value and its label, and nothing else.
+ * If you need a step that is not here, the layout is probably the thing that
+ * needs fixing, not the scale.
+ */
+export const space = {
+  hair: 2,
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  xxl: 20,
+  xxxl: 24,
+  section: 32,
+  page: 40,
+} as const;
+
+/**
+ * Corner radii, in points.
+ *
+ * DESIGN.md: radius grows with the surface, 0.5rem is the system minimum, and
+ * anything you are meant to press is fully rounded ("The Worn-Smooth Rule").
+ * There is deliberately no value below `sm`.
+ *
+ * `full` is the pill: use it for action buttons, status and tier badges, chips,
+ * progress bars and tracks, sheet handles, dots, and circular avatars. On a
+ * square it produces a circle, which is more robust than hand-computing
+ * `size / 2` every time a dimension changes.
+ */
+export const radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 999,
+} as const;
+
+/**
+ * Type scale. Sizes are points, so they scale with the user's Dynamic Type
+ * setting; never disable that to protect a layout.
+ *
+ * Tracking follows DESIGN.md's Trail Marker Rule: tight on large type, wide on
+ * small uppercase labels, nothing in between letter-spaced.
+ *
+ * Known debt: the tree uses 14, 15 and 16 as three near-identical body sizes
+ * (145, 53 and 89 occurrences). They are all represented here so adoption does
+ * not change any layout, but collapsing them belongs to a typeset pass.
+ */
+export const type = {
+  display: { fontSize: 32, fontWeight: '700', letterSpacing: -0.6 },
+  headline: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
+  title: { fontSize: 20, fontWeight: '700', letterSpacing: -0.2 },
+  subtitle: { fontSize: 18, fontWeight: '600' },
+  body: { fontSize: 16, fontWeight: '400' },
+  bodyStrong: { fontSize: 16, fontWeight: '600' },
+  callout: { fontSize: 15, fontWeight: '400' },
+  calloutStrong: { fontSize: 15, fontWeight: '600' },
+  footnote: { fontSize: 14, fontWeight: '400' },
+  footnoteStrong: { fontSize: 14, fontWeight: '600' },
+  caption: { fontSize: 13, fontWeight: '400' },
+  captionStrong: { fontSize: 13, fontWeight: '600' },
+  label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.6 },
+  labelSmall: { fontSize: 11, fontWeight: '600', letterSpacing: 0.9 },
+  /** Uppercase section eyebrow. Pair with `textTransform: 'uppercase'`. */
+  eyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
+  eyebrowSmall: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+} as const;
+
+/** Health status keys as returned by the API. */
+export type HealthStatus = keyof typeof colors.health;
+
+/**
+ * Resolve an API status string to its ramp entry. Unrecognized or absent
+ * statuses fall back to `unknown` rather than implying a known state.
+ */
+export function healthTone(status?: string | null) {
+  switch (status) {
+    case 'OVERDUE':
+      return colors.health.overdue;
+    case 'DUE_NOW':
+      return colors.health.dueNow;
+    case 'DUE_SOON':
+      return colors.health.dueSoon;
+    case 'ALL_GOOD':
+      return colors.health.allGood;
+    default:
+      return colors.health.unknown;
+  }
+}

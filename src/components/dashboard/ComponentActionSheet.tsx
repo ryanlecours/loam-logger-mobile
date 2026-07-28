@@ -10,12 +10,18 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ComponentPrediction, useSnoozeComponentMutation } from '../../graphql/generated';
+import {
+  ComponentPrediction,
+  useSnoozeComponentMutation,
+  useUpdateComponentMutation,
+} from '../../graphql/generated';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
+import { successTick, warningTick } from '../../lib/haptics';
 
 interface ComponentActionSheetProps {
   visible: boolean;
@@ -34,12 +40,18 @@ export function ComponentActionSheet({
   onReplace,
   onActionComplete,
 }: ComponentActionSheetProps) {
+  const insets = useSafeAreaInsets();
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
   const [snoozeSuccess, setSnoozeSuccess] = useState(false);
+  const [preSnoozeInterval, setPreSnoozeInterval] = useState<number | null>(null);
+  const [snoozeError, setSnoozeError] = useState<string | null>(null);
 
   const [snoozeComponent, { loading: snoozing }] = useSnoozeComponentMutation({
+    refetchQueries: ['Gear', 'GearLight'],
+  });
+  const [updateComponent, { loading: undoing }] = useUpdateComponentMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
 
@@ -48,31 +60,64 @@ export function ComponentActionSheet({
     setShowCustomInput(false);
     setCustomHours('');
     setSnoozeSuccess(false);
+    setPreSnoozeInterval(null);
+    setSnoozeError(null);
     onClose();
   }, [onClose]);
 
   const handleSnooze = useCallback(async (hours: number) => {
     if (!prediction) return;
+    setSnoozeError(null);
     try {
+      // Remember the interval we are about to overwrite, so Undo has something
+      // to restore. Captured before the mutation, not read back after it.
+      setPreSnoozeInterval(prediction.serviceIntervalHours ?? null);
       await snoozeComponent({
         variables: { id: prediction.componentId, hours },
       });
       setSnoozeSuccess(true);
-      setTimeout(() => {
-        handleClose();
-        onActionComplete();
-      }, 1000);
+      successTick();
+      // Deliberately no auto-close. Snoozing pushes a service date out; that is
+      // the kind of change a rider should get to take back, and a 1000ms timer
+      // closing the sheet gave them no chance to.
+      onActionComplete();
     } catch (err) {
       console.error('Failed to snooze component:', err);
+      warningTick();
+      setSnoozeError('That did not save. Check your signal and try again.');
     }
-  }, [prediction, snoozeComponent, handleClose, onActionComplete]);
+  }, [prediction, snoozeComponent, onActionComplete]);
+
+  const handleUndoSnooze = useCallback(async () => {
+    if (!prediction || preSnoozeInterval === null) return;
+    setSnoozeError(null);
+    try {
+      await updateComponent({
+        variables: {
+          id: prediction.componentId,
+          input: { serviceDueAtHours: preSnoozeInterval },
+        },
+      });
+      setSnoozeSuccess(false);
+      setShowSnoozeOptions(false);
+      setPreSnoozeInterval(null);
+      onActionComplete();
+    } catch (err) {
+      console.error('Failed to undo snooze:', err);
+      setSnoozeError('Could not undo that. Try again.');
+    }
+  }, [prediction, preSnoozeInterval, updateComponent, onActionComplete]);
 
   if (!prediction) return null;
 
   const typeName = formatComponentType(prediction.componentType);
   const location = formatComponentType(prediction.location ?? '');
   const brandModel = [prediction.brand, prediction.model].filter(Boolean).join(' ');
-  const recommendedHours = prediction.serviceIntervalHours ?? 50;
+  // No invented fallback. A component with no service interval has no
+  // "recommended" snooze, and presenting one (this used to read "Snooze 50h")
+  // is invented precision in a product whose whole claim is that its numbers
+  // are explainable. Without an interval the rider gets the custom field only.
+  const recommendedHours = prediction.serviceIntervalHours ?? null;
   // Pro-only prediction fields come back null for free-tier users.
   const hoursRemaining = prediction.hoursRemaining;
   const ridesRemaining = prediction.ridesRemainingEstimate;
@@ -84,10 +129,10 @@ export function ComponentActionSheet({
       transparent
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
+      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+          <TouchableWithoutFeedback accessible={false}>
+            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -101,7 +146,12 @@ export function ComponentActionSheet({
                     <Text style={styles.brandModel}>{brandModel}</Text>
                   )}
                 </View>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close component actions"
+                >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -124,7 +174,7 @@ export function ComponentActionSheet({
                       <Ionicons
                         name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
                         size={20}
-                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
+                        color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
                       />
                       <Text style={styles.statValue}>
                         {hoursRemaining <= 0
@@ -170,25 +220,39 @@ export function ComponentActionSheet({
                 {showSnoozeOptions && !snoozeSuccess && (
                   <View style={styles.snoozeSection}>
                     <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
+                    {recommendedHours === null && (
+                      <Text style={styles.snoozeHint}>
+                        This component has no service interval set, so there is nothing to
+                        recommend. Enter the hours you want to add.
+                      </Text>
+                    )}
                     <View style={styles.snoozeOptions}>
-                      <TouchableOpacity
-                        style={styles.snoozePresetButton}
-                        onPress={() => handleSnooze(recommendedHours)}
-                        disabled={snoozing}
-                      >
-                        {snoozing && !showCustomInput ? (
-                          <ActivityIndicator size="small" color={colors.textPrimary} />
-                        ) : (
-                          <Text style={styles.snoozePresetText}>
-                            Snooze {recommendedHours}h
-                          </Text>
-                        )}
-                      </TouchableOpacity>
+                      {recommendedHours !== null && (
+                        <TouchableOpacity
+                          style={styles.snoozePresetButton}
+                          onPress={() => handleSnooze(recommendedHours)}
+                          disabled={snoozing}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Snooze for ${recommendedHours} hours`}
+                          accessibilityState={{ disabled: snoozing }}
+                        >
+                          {snoozing && !showCustomInput ? (
+                            <ActivityIndicator size="small" color={colors.onPrimary} />
+                          ) : (
+                            <Text style={styles.snoozePresetText}>
+                              Snooze {recommendedHours}h
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
 
-                      {!showCustomInput ? (
+                      {!showCustomInput && recommendedHours !== null ? (
                         <TouchableOpacity
                           onPress={() => setShowCustomInput(true)}
                           disabled={snoozing}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel="Enter a custom snooze length"
                         >
                           <Text style={styles.customLink}>Custom</Text>
                         </TouchableOpacity>
@@ -209,11 +273,14 @@ export function ComponentActionSheet({
                               styles.customApplyButton,
                               (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
                             ]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Snooze for ${customHours || 0} hours`}
+                            accessibilityState={{ disabled: snoozing || !customHours || Number(customHours) < 1 }}
                             onPress={() => handleSnooze(Number(customHours))}
                             disabled={snoozing || !customHours || Number(customHours) < 1}
                           >
                             {snoozing ? (
-                              <ActivityIndicator size="small" color={colors.textPrimary} />
+                              <ActivityIndicator size="small" color={colors.onPrimary} />
                             ) : (
                               <Text style={styles.customApplyText}>Apply</Text>
                             )}
@@ -224,11 +291,49 @@ export function ComponentActionSheet({
                   </View>
                 )}
 
-                {/* Snooze success feedback */}
+                {snoozeError && (
+                  <View style={styles.snoozeErrorRow} accessibilityRole="alert">
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={16}
+                      color={colors.criticalOn}
+                      accessibilityElementsHidden
+                    />
+                    <Text style={styles.snoozeErrorText}>{snoozeError}</Text>
+                  </View>
+                )}
+
+                {/* Snooze confirmation, with a way back out of it. */}
                 {snoozeSuccess && (
                   <View style={styles.snoozeSuccess}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.good} />
-                    <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color={colors.positiveOn}
+                      accessibilityElementsHidden
+                    />
+                    <View style={styles.snoozeSuccessCopy}>
+                      <Text style={styles.snoozeSuccessText}>Service pushed back</Text>
+                      <Text style={styles.snoozeSuccessSub}>
+                        We&apos;ll stop flagging this component until then.
+                      </Text>
+                    </View>
+                    {preSnoozeInterval !== null && (
+                      <TouchableOpacity
+                        style={styles.undoButton}
+                        onPress={handleUndoSnooze}
+                        disabled={undoing}
+                        accessibilityRole="button"
+                        accessibilityLabel="Undo snooze"
+                        accessibilityState={{ disabled: undoing }}
+                      >
+                        {undoing ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <Text style={styles.undoText}>Undo</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
               </ScrollView>
@@ -243,6 +348,9 @@ export function ComponentActionSheet({
                   ]}
                   onPress={() => setShowSnoozeOptions(true)}
                   disabled={snoozing || snoozeSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel="Looks good, snooze this service"
+                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
                 >
                   <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
                   <Text style={styles.actionButtonTextPrimary}>
@@ -254,6 +362,9 @@ export function ComponentActionSheet({
                   style={styles.actionButton}
                   onPress={onLogService}
                   disabled={snoozing || snoozeSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Log service for ${typeName}`}
+                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
                 >
                   <Ionicons name="build-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.actionButtonText}>Log Service</Text>
@@ -263,6 +374,9 @@ export function ComponentActionSheet({
                   style={styles.actionButton}
                   onPress={onReplace}
                   disabled={snoozing || snoozeSuccess}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Replace ${typeName}`}
+                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
                 >
                   <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
                   <Text style={styles.actionButtonText}>Replace</Text>
@@ -287,13 +401,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -321,6 +434,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   closeButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     padding: 4,
     marginLeft: 12,
   },
@@ -340,7 +455,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statItem: {
-    width: '47%',
+    // 47% pinned this to two columns at every text size. flexBasis keeps two
+    // across by default and lets it fall to one when the content needs it.
+    minWidth: 140,
+    flexGrow: 1,
+    flexBasis: '47%',
     backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
@@ -374,15 +493,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   snoozePresetButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   snoozePresetText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   customLink: {
     fontSize: 14,
@@ -392,7 +513,9 @@ const styles = StyleSheet.create({
   customRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    // Two separate targets (the field and Apply), so they need real
+    // separation, not the 6pt used for icon-to-label gaps.
+    gap: 8,
     flex: 1,
   },
   customInput: {
@@ -404,7 +527,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
     color: colors.textPrimary,
-    width: 70,
+    // Was a hard 70pt, which clips a three-digit hour count as soon as the
+    // reader's text size goes up. It can grow; the row it sits in gives way.
+    minWidth: 70,
+    flexShrink: 1,
     textAlign: 'center',
   },
   customUnit: {
@@ -412,30 +538,73 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   customApplyButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   customApplyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
+  snoozeHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  snoozeErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  snoozeErrorText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.criticalOn,
+  },
   snoozeSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     paddingVertical: 16,
+  },
+  snoozeSuccessCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   snoozeSuccessText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.good,
+    color: colors.positiveOn,
+  },
+  snoozeSuccessSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  undoButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  undoText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.positiveOn,
   },
   actions: {
     flexDirection: 'row',
@@ -447,12 +616,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionButton: {
+    minHeight: 44,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.cardBorder,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 4,
   },
   actionButtonPrimary: {
@@ -468,7 +638,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   actionButtonTextPrimary: {
-    color: colors.primary,
+    color: colors.positiveOn,
     fontSize: 12,
     fontWeight: '600',
   },

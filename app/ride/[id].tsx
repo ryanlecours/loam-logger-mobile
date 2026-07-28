@@ -13,7 +13,7 @@ import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
 import { useRideQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { formatGarminSource } from '../../src/constants/garminAttribution';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
@@ -239,7 +239,7 @@ export default function RideDetailScreen() {
         <Ionicons
           name="alert-circle-outline"
           size={48}
-          color={error ? colors.danger : colors.textMuted}
+          color={error ? colors.criticalOn : colors.textMuted}
         />
         <Text style={styles.errorText}>
           {error ? 'Failed to load ride' : 'Ride not found'}
@@ -461,10 +461,10 @@ export default function RideDetailScreen() {
           disabled={deleting}
         >
           {deleting ? (
-            <ActivityIndicator size="small" color={colors.danger} />
+            <ActivityIndicator size="small" color={colors.criticalOn} />
           ) : (
             <>
-              <Ionicons name="trash-outline" size={18} color={colors.danger} />
+              <Ionicons name="trash-outline" size={18} color={colors.criticalOn} />
               <Text style={styles.deleteButtonText}>Delete</Text>
             </>
           )}
@@ -511,10 +511,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   backButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
   sourceBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   sourceBadgeText: {
     fontSize: 11,
@@ -588,7 +588,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   statItem: {
-    width: '50%',
+    // Same two-across grid as the component sheets: 50% pinned it to two
+    // columns at every text size. This screen is one tap from the dashboard's
+    // recent-rides list, so it gets the same reflow.
+    minWidth: 140,
+    flexGrow: 1,
+    flexBasis: '50%',
     alignItems: 'center',
     paddingVertical: 12,
   },
@@ -665,7 +670,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   shareButtonText: {
     fontSize: 15,
@@ -680,13 +685,13 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   deleteButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.danger,
+    color: colors.criticalOn,
   },
 });

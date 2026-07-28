@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { getBiometricCapability, getBiometricLabel } from '../lib/biometric';
-import { colors } from '../constants/theme';
+import { colors, radius } from '../constants/theme';
 
 /**
  * Full-screen unlock prompt shown on cold boot when the user has opted into
@@ -96,7 +96,7 @@ export function LockScreen() {
           disabled={unlocking}
         >
           {unlocking ? (
-            <ActivityIndicator color={colors.textPrimary} />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
             <>
               <Ionicons name="finger-print" size={22} color={colors.textPrimary} />
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     width: '100%',
   },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   unlockButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

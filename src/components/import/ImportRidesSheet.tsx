@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getBackfillHistory,
@@ -25,7 +26,7 @@ import {
 import type { IntegrationProvider } from '../../api/integrations';
 import { useUserTier } from '../../hooks/useUserTier';
 import { UpsellCard } from '../common/UpgradePrompt';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface ImportRidesSheetProps {
   visible: boolean;
@@ -73,6 +74,7 @@ export function ImportRidesSheet({
   provider,
   onSuccess,
 }: ImportRidesSheetProps) {
+  const insets = useSafeAreaInsets();
   const { isPro } = useUserTier();
   const [step, setStep] = useState<Step>('select');
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export function ImportRidesSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -388,13 +390,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '75%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -408,7 +409,7 @@ const styles = StyleSheet.create({
   headerAccent: {
     width: 4,
     height: 24,
-    borderRadius: 2,
+    borderRadius: radius.full,
     marginRight: 12,
   },
   title: {
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 8,
   },
   importButtonDisabled: {
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
   completeIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,

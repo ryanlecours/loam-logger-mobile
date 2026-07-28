@@ -16,7 +16,7 @@ import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponen
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { formatComponentType } from '../../src/utils/formatComponentType';
 
 const COMPONENT_GROUP_MAP: Record<string, string> = {
@@ -160,7 +160,7 @@ export default function BikeDetailScreen() {
     return (
       <View style={styles.centered}>
         <Stack.Screen options={{ title: 'Error' }} />
-        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.criticalOn} />
         <Text style={styles.errorTitle}>
           {error ? 'Failed to load bike' : 'Bike not found'}
         </Text>
@@ -566,8 +566,8 @@ export default function BikeDetailScreen() {
             style={styles.actionButton}
             onPress={handleRetireSell}
           >
-            <Ionicons name="archive-outline" size={20} color={colors.warning} />
-            <Text style={[styles.actionButtonText, { color: colors.warning }]}>Retire / Sell</Text>
+            <Ionicons name="archive-outline" size={20} color={colors.cautionOn} />
+            <Text style={[styles.actionButtonText, { color: colors.cautionOn }]}>Retire / Sell</Text>
           </TouchableOpacity>
         )}
 
@@ -575,7 +575,7 @@ export default function BikeDetailScreen() {
           style={styles.dangerButton}
           onPress={handleDelete}
         >
-          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          <Ionicons name="trash-outline" size={20} color={colors.criticalOn} />
           <Text style={styles.dangerButtonText}>Delete Bike</Text>
         </TouchableOpacity>
       </View>
@@ -668,10 +668,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: colors.warning,
+    color: colors.health.dueNow.on,
     fontWeight: '500',
   },
   specsGrid: {
@@ -803,15 +803,15 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   attentionBadge: {
-    backgroundColor: colors.warningBg,
-    borderRadius: 10,
+    backgroundColor: colors.health.dueNow.bg,
+    borderRadius: radius.full,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
   attentionBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.warning,
+    color: colors.health.dueNow.on,
   },
   emptyComponents: {
     padding: 24,
@@ -837,12 +837,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.full,
     gap: 6,
     marginTop: 16,
   },
   emptyPrimaryButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.full,
     gap: 8,
   },
   actionButtonText: {
@@ -883,27 +883,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.dangerBg,
+    backgroundColor: colors.criticalBg,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     gap: 8,
   },
   dangerButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.danger,
-  },
-  upgradeOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  upgradeContent: {
-    maxWidth: 400,
-    alignSelf: 'center',
-    width: '100%',
+    color: colors.criticalOn,
   },
 });

@@ -15,7 +15,7 @@ import { useRidesPaginated, RideItem } from '../../src/hooks/useRidesPaginated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { RideListItem } from '../../src/components/rides';
 import type { RidesFilterInput } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 type DateRange = '30days' | '3months' | '6months' | '1year' | 'all';
 
@@ -163,6 +163,33 @@ export default function RidesScreen() {
           );
         })}
       </ScrollView>
+      {/* Entry point for streaks, records, heart rate, locations and weather.
+          Those used to sit at the bottom of the dashboard; they belong to the
+          riding story, not the gear one. A link rather than an inline block so
+          this screen keeps one control (the range filter above) governing one
+          thing (the list below). */}
+      {rides.length > 0 && (
+        <TouchableOpacity
+          style={styles.insightsRow}
+          onPress={() => router.push('/ride-insights' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="See riding insights"
+        >
+          <Ionicons
+            name="stats-chart-outline"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+          />
+          <Text style={styles.insightsText}>Riding insights</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+          />
+        </TouchableOpacity>
+      )}
       {rides.length > 0 && !hasMore && (
         <Text style={styles.rideCount}>
           {rides.length} {rides.length === 1 ? 'ride' : 'rides'}
@@ -213,7 +240,7 @@ const styles = StyleSheet.create({
   filterPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: radius.full,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -228,7 +255,26 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   filterPillTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
+  },
+  insightsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    marginHorizontal: 16,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
+  },
+  insightsText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   rideCount: {
     fontSize: 13,
@@ -248,7 +294,7 @@ const styles = StyleSheet.create({
   emptyIconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     backgroundColor: colors.card,
     justifyContent: 'center',
     alignItems: 'center',
@@ -273,11 +319,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: radius.full,
     gap: 6,
   },
   emptyButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -300,7 +346,7 @@ const styles = StyleSheet.create({
     bottom: 16,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',

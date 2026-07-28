@@ -17,7 +17,7 @@ import {
   PasswordRequirements,
   checkPasswordRequirements,
 } from '../../src/components/PasswordRequirements';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -170,7 +170,7 @@ export default function SignupScreen() {
               disabled={!canSubmit || loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.textPrimary} />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <Text style={styles.buttonText}>Sign Up</Text>
               )}
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 13,
     marginTop: -8,
     marginBottom: 16,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

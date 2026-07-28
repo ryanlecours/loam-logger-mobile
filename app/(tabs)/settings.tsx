@@ -18,7 +18,7 @@ import { BiometricUnlockSection } from '../../src/components/settings/BiometricU
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
 
 function IntegrationRow({
@@ -441,7 +441,7 @@ export default function SettingsScreen() {
           disabled={deleting}
         >
           {deleting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={colors.textPrimary} />
           ) : (
             <Text style={[styles.buttonText, styles.logoutText]}>Delete Account</Text>
           )}
@@ -502,21 +502,21 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginVertical: 8,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   logoutButton: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.critical,
   },
   logoutText: {
-    color: '#fff',
+    color: colors.textPrimary,
   },
   integrationRow: {
     flexDirection: 'row',
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -570,13 +570,13 @@ const styles = StyleSheet.create({
   },
   disconnectButton: {
     borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: 8,
+    borderColor: colors.criticalBorder,
+    borderRadius: radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   disconnectText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.2)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: radius.full,
   },
   proBadgeText: {
     fontSize: 10,
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   segmentTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   legalRow: {
     flexDirection: 'row',
@@ -663,12 +663,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
   },
   dangerSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.danger,
+    color: colors.criticalOn,
     marginBottom: 12,
     textTransform: 'uppercase',
   },

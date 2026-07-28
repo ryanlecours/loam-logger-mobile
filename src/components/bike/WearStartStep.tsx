@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 type AcquisitionCondition = 'NEW' | 'USED';
 
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMuted,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radius.full,
   },
   recommendedText: {
     fontSize: 11,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 10,
     paddingHorizontal: 14,
   },

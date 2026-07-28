@@ -25,7 +25,7 @@ export default function BillingSuccessScreen() {
 
   return (
     <View style={styles.container}>
-      <Ionicons name="checkmark-circle" size={64} color={colors.good} />
+      <Ionicons name="checkmark-circle" size={64} color={colors.positiveOn} />
       <Text style={styles.title}>Welcome to Pro!</Text>
       <Text style={styles.subtitle}>Your upgrade was successful.</Text>
       <ActivityIndicator color={colors.primary} style={styles.spinner} />

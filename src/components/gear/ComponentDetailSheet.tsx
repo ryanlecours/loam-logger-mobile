@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
@@ -53,16 +54,21 @@ function formatDate(dateString: string | null | undefined): string {
   });
 }
 
+/**
+ * Prediction confidence is a data-quality signal, not component health, so it
+ * stays off the health ramp. Low confidence means "treat this estimate
+ * loosely", not "something is wrong with your bike".
+ */
 function formatConfidence(confidence: string | null | undefined): { label: string; color: string } {
   switch (confidence) {
     case 'HIGH':
-      return { label: 'High', color: '#16a34a' };
+      return { label: 'High', color: colors.positiveOn };
     case 'MEDIUM':
-      return { label: 'Medium', color: '#ca8a04' };
+      return { label: 'Medium', color: colors.textSecondary };
     case 'LOW':
-      return { label: 'Low', color: '#dc2626' };
+      return { label: 'Low', color: colors.cautionOn };
     default:
-      return { label: 'Unknown', color: '#9ca3af' };
+      return { label: 'Unknown', color: colors.textMuted };
   }
 }
 
@@ -76,6 +82,7 @@ export function ComponentDetailSheet({
   onViewRides,
   onEditServiceLog,
 }: ComponentDetailSheetProps) {
+  const insets = useSafeAreaInsets();
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
@@ -196,7 +203,7 @@ export function ComponentDetailSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
@@ -243,21 +250,21 @@ export function ComponentDetailSheet({
                       Confidence reflects how much data Loam Logger has to estimate when this component will need service.
                     </Text>
                     <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: '#16a34a' }]} />
+                      <View style={[styles.confidenceDot, { backgroundColor: colors.positiveOn }]} />
                       <View style={styles.confidenceLevelContent}>
                         <Text style={styles.confidenceLevelLabel}>High</Text>
                         <Text style={styles.confidenceLevelDesc}>Service date was set during calibration, or multiple service logs provide a clear pattern.</Text>
                       </View>
                     </View>
                     <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: '#ca8a04' }]} />
+                      <View style={[styles.confidenceDot, { backgroundColor: colors.textSecondary }]} />
                       <View style={styles.confidenceLevelContent}>
                         <Text style={styles.confidenceLevelLabel}>Medium</Text>
                         <Text style={styles.confidenceLevelDesc}>Wear was estimated using a slider or limited ride data. Accuracy improves as you log more rides and services.</Text>
                       </View>
                     </View>
                     <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: '#dc2626' }]} />
+                      <View style={[styles.confidenceDot, { backgroundColor: colors.cautionOn }]} />
                       <View style={styles.confidenceLevelContent}>
                         <Text style={styles.confidenceLevelLabel}>Low</Text>
                         <Text style={styles.confidenceLevelDesc}>Using default service intervals. Log a service or calibrate your components to improve accuracy.</Text>
@@ -281,7 +288,7 @@ export function ComponentDetailSheet({
                       <Ionicons
                         name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
                         size={20}
-                        color={hoursRemaining <= 0 ? colors.danger : colors.primary}
+                        color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
                       />
                       {savingInterval ? (
                         <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
@@ -491,7 +498,7 @@ export function ComponentDetailSheet({
                         disabled={snoozing}
                       >
                         {snoozing && !showCustomInput ? (
-                          <ActivityIndicator size="small" color={colors.textPrimary} />
+                          <ActivityIndicator size="small" color={colors.onPrimary} />
                         ) : (
                           <Text style={styles.snoozePresetText}>
                             Snooze {recommendedHours}h
@@ -527,7 +534,7 @@ export function ComponentDetailSheet({
                             disabled={snoozing || !customHours || Number(customHours) < 1}
                           >
                             {snoozing ? (
-                              <ActivityIndicator size="small" color={colors.textPrimary} />
+                              <ActivityIndicator size="small" color={colors.onPrimary} />
                             ) : (
                               <Text style={styles.customApplyText}>Apply</Text>
                             )}
@@ -541,7 +548,7 @@ export function ComponentDetailSheet({
                 {/* Snooze success feedback with undo */}
                 {snoozeSuccess && (
                   <View style={styles.snoozeSuccess}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
                     <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
                     {preSnoozeInterval !== null && (
                       <TouchableOpacity onPress={handleUndoSnooze} disabled={undoing}>
@@ -620,13 +627,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -698,7 +704,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statItem: {
-    width: '47%',
+    // 47% pinned this to two columns at every text size. flexBasis keeps two
+    // across by default and lets it fall to one when the content needs it.
+    minWidth: 140,
+    flexGrow: 1,
+    flexBasis: '47%',
     backgroundColor: colors.background,
     borderRadius: 12,
     padding: 14,
@@ -735,7 +745,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: radius.md,
   },
   notesLabel: {
     fontSize: 12,
@@ -770,12 +780,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   snoozePresetText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   customLink: {
     fontSize: 14,
@@ -797,7 +807,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
     color: colors.textPrimary,
-    width: 70,
+    // Was a hard 70pt, which clips a three-digit hour count as soon as the
+    // reader's text size goes up. It can grow; the row it sits in gives way.
+    minWidth: 70,
+    flexShrink: 1,
     textAlign: 'center',
   },
   customUnit: {
@@ -808,12 +821,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   customApplyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -828,7 +841,7 @@ const styles = StyleSheet.create({
   snoozeSuccessText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.good,
+    color: colors.positiveOn,
   },
   undoText: {
     fontSize: 14,
@@ -859,7 +872,7 @@ const styles = StyleSheet.create({
   intervalActionButton: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radius.full,
     backgroundColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
@@ -893,7 +906,7 @@ const styles = StyleSheet.create({
   },
   confidenceInfoCard: {
     backgroundColor: colors.surface,
-    borderRadius: 10,
+    borderRadius: radius.md,
     padding: 14,
     marginTop: 8,
     borderWidth: 1,
@@ -920,7 +933,7 @@ const styles = StyleSheet.create({
   confidenceDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.full,
     marginTop: 5,
   },
   confidenceLevelContent: {
@@ -980,7 +993,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -1005,7 +1018,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primaryMuted,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 4,
   },
   actionButtonLooksGood: {
@@ -1019,7 +1032,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBorder,
   },
   actionButtonText: {
-    color: colors.primary,
+    color: colors.positiveOn,
     fontSize: 12,
     fontWeight: '600',
   },

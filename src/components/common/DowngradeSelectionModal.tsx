@@ -13,7 +13,7 @@ import {
 import { gql, useMutation } from '@apollo/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useGearLightQuery, useMeQuery } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 const SELECT_BIKE = gql`
   mutation SelectBikeForDowngrade($bikeId: ID!) {
@@ -47,7 +47,7 @@ export function DowngradeSelectionModal() {
     <Modal visible transparent animationType="fade" onRequestClose={() => {}}>
       <View style={styles.overlay}>
         <View style={styles.sheet}>
-          <Ionicons name="alert-circle-outline" size={32} color={colors.monitor} style={styles.icon} />
+          <Ionicons name="alert-circle-outline" size={32} color={colors.cautionOn} style={styles.icon} />
           <Text style={styles.title}>Your plan has changed</Text>
           <Text style={styles.subtitle}>
             Your Free plan allows 1 bike. Choose which bike to keep — the others will be archived and can be restored if you upgrade.
@@ -98,7 +98,7 @@ export function DowngradeSelectionModal() {
             disabled={!selectedBikeId || selecting}
           >
             {selecting ? (
-              <ActivityIndicator size="small" color={colors.textPrimary} />
+              <ActivityIndicator size="small" color={colors.onPrimary} />
             ) : (
               <Text style={styles.confirmText}>Keep This Bike</Text>
             )}
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     marginBottom: 8,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   radio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.textMuted,
     justifyContent: 'center',
@@ -210,19 +210,19 @@ const styles = StyleSheet.create({
   radioDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
   },
   confirmButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 14,
     alignItems: 'center',
   },
   confirmText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   buttonDisabled: {
     opacity: 0.5,

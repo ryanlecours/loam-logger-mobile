@@ -15,7 +15,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { Ionicons } from '@expo/vector-icons';
 
 import { useUpdateBikeAcquisitionMutation } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface UpdateAcquisitionSheetProps {
   visible: boolean;
@@ -129,7 +129,7 @@ export function UpdateAcquisitionSheet({
               {result ? (
                 <View style={styles.body}>
                   <View style={styles.resultRow}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.resultTitle}>
                         Moved {result.installsMoved} install date
@@ -209,7 +209,7 @@ export function UpdateAcquisitionSheet({
                       disabled={loading}
                     >
                       {loading ? (
-                        <ActivityIndicator color={colors.textPrimary} />
+                        <ActivityIndicator color={colors.onPrimary} />
                       ) : (
                         <Text style={styles.saveButtonText}>Update</Text>
                       )}
@@ -228,7 +228,7 @@ export function UpdateAcquisitionSheet({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, maxHeight: '85%' },
-  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
+  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: radius.full, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 4 },
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   closeButton: { padding: 4 },
@@ -237,18 +237,18 @@ const styles = StyleSheet.create({
   hint: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateLabel: { fontSize: 14, color: colors.textSecondary },
-  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.primary },
+  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: 12 },
+  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.positiveOn },
   cascadeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
   cascadeLabel: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
   cascadeHint: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  resultRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12, backgroundColor: colors.primaryMuted, borderRadius: 10 },
+  resultRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12, backgroundColor: colors.primaryMuted, borderRadius: radius.md },
   resultTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   resultSub: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
   footer: { flexDirection: 'row', gap: 12, padding: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.cardBorder },
-  cancelButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder },
+  cancelButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.full, borderWidth: 1, borderColor: colors.cardBorder },
   cancelButtonText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  saveButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10 },
+  saveButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: radius.full },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
 });

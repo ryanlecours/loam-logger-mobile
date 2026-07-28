@@ -63,4 +63,52 @@ export default tseslint.config([
       'import/no-default-export': 'off',
     },
   },
+  {
+    // Design-system enforcement. DESIGN.md sets 0.5rem as the system's minimum
+    // radius ("corners are never sharp"), and nothing in the tree may go under
+    // it. `radius.full` (999) is the pill and is unaffected.
+    files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+    ignores: ['src/constants/theme.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "Property[key.name='borderRadius'] > Literal[value>0][value<8]",
+          message:
+            'Radius below 8 breaks the DESIGN.md minimum. Use radius.sm/md/lg/xl, or radius.full for pills, bars, dots and circles.',
+        },
+      ],
+    },
+  },
+  {
+    // Files that have adopted the type scale. Raw font sizes are an error here
+    // so the adopted surface cannot drift back. Add files to this list as they
+    // migrate; the goal is for it to grow to cover app/ and src/.
+    files: [
+      'src/components/common/ErrorState.tsx',
+      'src/components/dashboard/BikeTriageGroup.tsx',
+      'src/components/dashboard/EmptyBikeState.tsx',
+      'src/components/dashboard/RecentRidesList.tsx',
+      'src/components/dashboard/RideStatsCard.tsx',
+      'src/components/gear/ComponentHealthBadge.tsx',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "Property[key.name='borderRadius'] > Literal[value>0][value<8]",
+          message:
+            'Radius below 8 breaks the DESIGN.md minimum. Use radius.sm/md/lg/xl, or radius.full for pills, bars, dots and circles.',
+        },
+        {
+          selector: "Property[key.name='fontSize'] > Literal",
+          message: 'Use the `type` scale from constants/theme, not a raw font size.',
+        },
+        {
+          selector: "Property[key.name='fontWeight'] > Literal",
+          message: 'Use the `type` scale from constants/theme, not a raw font weight.',
+        },
+      ],
+    },
+  },
 ]);

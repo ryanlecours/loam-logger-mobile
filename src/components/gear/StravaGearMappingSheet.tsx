@@ -10,12 +10,13 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useUnmappedStravaGearsQuery,
   useCreateStravaGearMappingMutation,
 } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 interface StravaGearMappingSheetProps {
   visible: boolean;
@@ -32,6 +33,7 @@ export function StravaGearMappingSheet({
   bikeName,
   onMappingCreated,
 }: StravaGearMappingSheetProps) {
+  const insets = useSafeAreaInsets();
   const { data, loading: gearsLoading } = useUnmappedStravaGearsQuery({
     skip: !visible,
     fetchPolicy: 'network-only',
@@ -79,7 +81,7 @@ export function StravaGearMappingSheet({
       <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               <View style={styles.header}>
@@ -100,7 +102,7 @@ export function StravaGearMappingSheet({
                   </View>
                 ) : unmappedGears.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Ionicons name="checkmark-circle" size={48} color={colors.good} />
+                    <Ionicons name="checkmark-circle" size={48} color={colors.positiveOn} />
                     <Text style={styles.emptyText}>All Strava bikes are mapped</Text>
                   </View>
                 ) : (
@@ -157,13 +159,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '50%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,

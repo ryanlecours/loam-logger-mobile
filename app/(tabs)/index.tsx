@@ -1,10 +1,9 @@
-import { ScrollView, View, Text, Image, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
-import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import { useBikeTriage } from '../../src/hooks/useBikeTriage';
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
 import {
   BikeFieldsFragment,
@@ -15,8 +14,7 @@ import {
 import {
   DashboardSkeleton,
   EmptyBikeState,
-  BikeSelectorSheet,
-  DashboardComponentCard,
+  BikeTriageGroup,
   ComponentActionSheet,
   RecentRidesList,
   RideStatsCard,
@@ -26,9 +24,14 @@ import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponen
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
+import { ErrorState } from '../../src/components/common/ErrorState';
+import { Skeleton, SkeletonGroup } from '../../src/components/common/Skeleton';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { colors } from '../../src/constants/theme';
-import { formatComponentType } from '../../src/utils/formatComponentType';
+import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import { colors, radius, space, type } from '../../src/constants/theme';
+import { describeError } from '../../src/utils/errorCopy';
+import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
+import { selectionTick } from '../../src/lib/haptics';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: '7d', label: '7D' },
@@ -37,22 +40,55 @@ const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: 'YTD', label: 'YTD' },
 ];
 
+/** Spoken-out labels: "7D" is fine to read, useless to hear. */
+const TIMEFRAME_LABELS: Record<string, string> = {
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+  YTD: 'Year to date',
+};
+
+/** "Hightower, Chameleon and Stumpjumper" */
+function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+const nameOf = (b: BikeFieldsFragment) => b.nickname || `${b.manufacturer} ${b.model}`;
+
+/**
+ * The dashboard triages; the Gear tab inventories.
+ *
+ * It answers one question: is the bike I want to ride good to go, or what needs
+ * doing? So it lists only bikes that need work, names the components, and
+ * collapses everything healthy into a single line. Managing what you own lives
+ * in Gear, and duplicating that list here would just be a second inventory.
+ */
 export default function DashboardScreen() {
   const router = useRouter();
-  const { isPro, isFoundingRider } = useUserTier();
-  const { distanceUnit } = useDistanceUnit();
+  const { isPro } = useUserTier();
   const {
-    bikes,
-    spareComponents,
+    needsAttention,
+    healthy,
+    untracked,
+    totalBikes,
     loading: bikesLoading,
+    error: bikesError,
+    predictionsReady,
+    predictionsError,
     refetch: refetchBikes,
-  } = useBikesWithPredictions();
+  } = useBikeTriage();
+  const { spareComponents } = useBikesWithPredictions();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedBikeId, setSelectedBikeId] = useState<string | null>(null);
-  const [showBikeSelector, setShowBikeSelector] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [timeframe, setTimeframe] = useState<TimeframeOption>('YTD');
-  const [selectedPrediction, setSelectedPrediction] = useState<ComponentPrediction | null>(null);
+  // The bike travels with the prediction: with every bike on screen, a tapped
+  // component no longer belongs to whichever bike happened to be selected.
+  const [selected, setSelected] = useState<{
+    prediction: ComponentPrediction;
+    bike: BikeFieldsFragment;
+  } | null>(null);
   const [showLogService, setShowLogService] = useState(false);
   const [showReplace, setShowReplace] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
@@ -61,15 +97,13 @@ export default function DashboardScreen() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Three most recent rides for the dashboard preview. Uses the same
-  // `RidesPage` query as the rides tab (just with a smaller `take`) so the
-  // returned row shape matches `RideListItem` exactly — no shape adapter
-  // and no duplicate GraphQL fragment to keep in sync. `refetchQueries:
-  // ['RidesPage']` calls scattered around the app (pickBike, addRide,
-  // updateRide) refresh this preview alongside the rides tab.
+  // Three most recent rides for the preview. Same `RidesPage` query as the
+  // rides tab with a smaller `take`, so the row shape matches `RideListItem`
+  // exactly and `refetchQueries: ['RidesPage']` from anywhere refreshes both.
   const {
     data: recentRidesData,
     loading: recentRidesLoading,
+    error: recentRidesError,
     refetch: refetchRecentRides,
   } = useRidesPageQuery({
     variables: { take: 3 },
@@ -82,43 +116,28 @@ export default function DashboardScreen() {
     }
   }, [calibrationData]);
 
-  const { stats: rideStats, refetch: refetchStats } = useRideStats(timeframe);
+  const {
+    stats: rideStats,
+    loading: statsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useRideStats(timeframe);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchBikes(), refetchStats(), refetchRecentRides()]);
+    // A failing refetch must not strand the spinner. Each read owns its own
+    // error surface, so swallowing here is safe.
+    await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
     setRefreshing(false);
   }, [refetchBikes, refetchStats, refetchRecentRides]);
 
-  const typedBikes = bikes as BikeFieldsFragment[];
+  const onRetry = useCallback(async () => {
+    setRetrying(true);
+    await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
+    setRetrying(false);
+  }, [refetchBikes, refetchStats, refetchRecentRides]);
 
-  // Select first bike by default
-  const activeBikeId = selectedBikeId || typedBikes[0]?.id || null;
-  const selectedBike = typedBikes.find((b) => b.id === activeBikeId) || null;
-
-  // Free tier gets the binary READY / NOT READY signal from dueNowCount
-  // alone; the finer-grained dueSoonCount stays Pro-only.
-  const attentionCount = useMemo(() => {
-    const predictions = selectedBike?.predictions;
-    if (!predictions) return 0;
-    const dueNow = predictions.dueNowCount ?? 0;
-    if (!isPro) return dueNow;
-    return dueNow + (predictions.dueSoonCount ?? 0);
-  }, [selectedBike, isPro]);
-
-  // Get components needing attention
-  const attentionComponents = useMemo(() => {
-    if (!selectedBike?.predictions?.components) return [];
-    return selectedBike.predictions.components.filter(
-      (p) => p.status === 'DUE_NOW' || p.status === 'DUE_SOON' || p.status === 'OVERDUE'
-    );
-  }, [selectedBike]);
-
-  const displayName = selectedBike
-    ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
-    : 'No Bike Selected';
-
-  if (bikesLoading && !bikes.length) {
+  if (bikesLoading && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <DashboardSkeleton />
@@ -126,13 +145,33 @@ export default function DashboardScreen() {
     );
   }
 
-  if (typedBikes.length === 0) {
+  // Stale cached bikes beat an error screen, so this only takes over when the
+  // failure left nothing to show.
+  if (bikesError && totalBikes === 0) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ErrorState {...describeError(bikesError, 'gear')} onRetry={onRetry} retrying={retrying} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!bikesError && !bikesLoading && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <EmptyBikeState />
       </SafeAreaView>
     );
   }
+
+  const single = totalBikes === 1;
+  const attentionCount = needsAttention.length;
+  const topBike = needsAttention[0]?.bike ?? null;
+  const headline = dashboardHeadline({
+    attentionCount,
+    healthyCount: healthy.length,
+    untrackedCount: untracked.length,
+    totalBikes,
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -143,238 +182,209 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            // tintColor is iOS-only; without `colors` Android draws a stock
+            // blue spinner on an obsidian background.
             tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.card}
           />
         }
       >
-        {/* Bike Header */}
-        <View style={styles.headerSection}>
-          <TouchableOpacity
-            style={styles.bikeNameRow}
-            onPress={() => setShowBikeSelector(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.bikeName}>{displayName}</Text>
-            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <View style={styles.subtitleRow}>
-            <Text style={styles.subtitle}>
-              {typedBikes.length > 1
-                ? `${typedBikes.length} bikes  ·  Component Wear Tracker`
-                : 'Component Wear Tracker'}
-            </Text>
-            <View style={[styles.tierBadge, isPro ? styles.tierBadgePro : styles.tierBadgeFree]}>
-              <Text style={[styles.tierBadgeText, isPro ? styles.tierBadgeTextPro : styles.tierBadgeTextFree]}>
-                {isFoundingRider ? 'Founding Rider' : isPro ? 'Pro' : 'Free'}
-              </Text>
-            </View>
-          </View>
-        </View>
+        {/* Predictions are the whole answer, and the light query carries none of
+            them. Until phase 2 lands there is nothing to say, so this must read
+            as waiting rather than as a clean bill of health. Rendering the
+            all-clear from an empty array is the bug this ordering exists to
+            prevent. */}
+        {!predictionsReady && !predictionsError && (
+          <SkeletonGroup label="Checking your bikes" style={styles.headlineBlock}>
+            <Skeleton width="70%" height={20} />
+            <Skeleton width="45%" height={14} style={styles.headlineSkeletonLine} />
+          </SkeletonGroup>
+        )}
 
-        {/* Bike Image */}
-        {selectedBike?.thumbnailUrl && (
-          <View style={styles.bikeImageContainer}>
-            <Image
-              source={{ uri: selectedBike.thumbnailUrl }}
-              style={styles.bikeImage}
-              resizeMode="contain"
+        {/* Bikes loaded, service state did not. Saying nothing here would read
+            as "all good" for a question that was never answered. */}
+        {!predictionsReady && predictionsError && (
+          <View style={styles.headlineBlock}>
+            <ErrorState
+              variant="card"
+              {...describeError(predictionsError, 'service status')}
+              onRetry={onRetry}
+              retrying={retrying}
             />
           </View>
         )}
 
-        {/* Timeframe Tabs */}
-        <View style={styles.timeframeTabs}>
-          {TIMEFRAME_OPTIONS.map(({ key, label }) => (
-            <TouchableOpacity
-              key={key}
-              style={[
-                styles.timeframeTab,
-                timeframe === key && styles.timeframeTabActive,
-              ]}
-              onPress={() => setTimeframe(key)}
-              activeOpacity={0.7}
-            >
+        {predictionsReady && (
+          <>
+            <View style={styles.headlineBlock}>
               <Text
-                style={[
-                  styles.timeframeTabText,
-                  timeframe === key && styles.timeframeTabTextActive,
-                ]}
+                style={headline.tone === 'good' ? styles.headlineGood : styles.headline}
+                accessibilityRole="header"
               >
-                {label}
+                {headline.text}
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            </View>
 
-        {/* Stat Cards */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Ionicons name="time-outline" size={18} color={colors.primary} />
-            <Text style={styles.statValue}>{rideStats.totalHours.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>HRS</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="trending-up-outline" size={18} color={colors.primary} />
-            <Text style={styles.statValue}>
-              {distanceUnit === 'km'
-                ? Math.round(rideStats.totalDistance / 1000).toLocaleString()
-                : Math.round(rideStats.totalDistance / 1609.344).toLocaleString()}
-            </Text>
-            <Text style={styles.statLabel}>{distanceUnit === 'km' ? 'KM' : 'MI'}</Text>
-          </View>
-          <View style={styles.statCard}>
-            {attentionCount === 0 ? (
-              <>
-                <Ionicons name="checkmark-circle-outline" size={18} color={colors.good} />
-                <Text style={[styles.statValue, { fontSize: 15 }]}>Ready to</Text>
-                <Text style={[styles.statLabel, { color: colors.good }]}>RIDE</Text>
-              </>
-            ) : !isPro ? (
-              <>
-                <Ionicons name="warning-outline" size={18} color={colors.warning} />
-                <Text style={[styles.statValue, { fontSize: 15 }]}>Not Ready</Text>
-                <Text style={[styles.statLabel, { color: colors.warning }]}>SERVICE DUE</Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="warning-outline" size={18} color={colors.warning} />
-                <Text style={styles.statValue}>{attentionCount}</Text>
-                <Text style={styles.statLabel}>NEED ATTENTION</Text>
-              </>
+            {needsAttention.map(({ bike, components }) => (
+              <BikeTriageGroup
+                key={bike.id}
+                bike={bike}
+                components={components}
+                showStatus={isPro}
+                showBikeName={!single}
+                onComponentPress={(prediction) => setSelected({ prediction, bike })}
+              />
+            ))}
+
+            {/* Healthy bikes are a reassurance, not a list. One line, and it
+                links into Gear rather than repeating Gear here. Skipped only
+                when the headline already reads "All N bikes are good to go",
+                which happens exactly when every bike is in this bucket. */}
+            {headline.tone !== 'good' && healthy.length > 0 && (
+              <TouchableOpacity
+                style={styles.goodRow}
+                onPress={() => router.push('/(tabs)/gear' as Href)}
+                accessibilityRole="button"
+                accessibilityLabel={`${listNames(healthy.map(nameOf))} good to go. Open gear.`}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color={colors.health.allGood.on}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.goodText} numberOfLines={2}>
+                  {listNames(healthy.map(nameOf))} good to go
+                </Text>
+              </TouchableOpacity>
             )}
-          </View>
-        </View>
 
-        {/* AI maintenance summary for the selected bike. Same gate as the
-            bike-detail screen (Pro + non-empty components); the widget itself
-            renders nothing when the bike is all-good or the advisor returns
-            null, so the space just collapses. Re-queries when the selected
-            bike changes. */}
-        {isPro && activeBikeId && (selectedBike?.predictions?.components?.length ?? 0) > 0 && (
-          <MaintenanceSummary bikeId={activeBikeId} />
+            {/* A frameset with nothing tracked is not healthy; it is unknown,
+                and saying "good to go" about it would be a guess. */}
+            {untracked.length > 0 && (
+              <TouchableOpacity
+                style={styles.goodRow}
+                onPress={() => router.push('/(tabs)/gear' as Href)}
+                accessibilityRole="button"
+                accessibilityLabel={`No components tracked on ${listNames(untracked.map(nameOf))}. Open gear to add them.`}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={18}
+                  color={colors.textMuted}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.untrackedText} numberOfLines={2}>
+                  No components tracked on {listNames(untracked.map(nameOf))}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
-        {/* Inspect Bike Button */}
-        {activeBikeId && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/bike/${activeBikeId}` as Href)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="search-outline" size={22} color={colors.textPrimary} />
-            <Text style={styles.actionButtonText}>Inspect Bike</Text>
-          </TouchableOpacity>
-        )}
+        {/* Advisor prose for the bike at the top of the list only. It is a
+            per-bike query, and firing one per bike on a triage screen would
+            trade the rider's data plan for prose they did not ask for. */}
+        {isPro && topBike && <MaintenanceSummary bikeId={topBike.id} />}
 
         {!isPro && (
           <View style={styles.upgradeBanner}>
-            <UpgradePrompt message="Unlock service predictions, due-soon warnings, and all 23+ components with Pro." />
+            <UpgradePrompt message="Pro tells you how many hours each part has left, and flags what's coming due, so a wrench night beats a trailside fix." />
           </View>
         )}
 
-        {/* Recent Rides — three most recent, with "See all" jumping to the
-            rides tab for the full list. */}
         <RecentRidesList
           rides={recentRidesData?.rides ?? []}
-          bikes={typedBikes}
+          bikes={needsAttention.map((t) => t.bike).concat(healthy, untracked)}
           loading={recentRidesLoading && !recentRidesData}
+          error={recentRidesError}
+          onRetry={onRetry}
           onSeeAll={() => router.push('/(tabs)/rides' as Href)}
           onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
           onConnectPress={() => router.push('/(tabs)/settings' as Href)}
           onAddRidePress={() => router.push('/ride/add' as Href)}
         />
 
-        {/* Needs Attention Section */}
-        {attentionComponents.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="warning" size={16} color={colors.monitor} />
-              <Text style={styles.sectionTitle}>NEEDS ATTENTION</Text>
-            </View>
-            {attentionComponents.map((comp) => (
-              <DashboardComponentCard
-                key={comp.componentId}
-                name={formatComponentType(comp.componentType)}
-                installDate={undefined}
-                currentHours={comp.currentHours}
-                serviceIntervalHours={comp.serviceIntervalHours}
-                status={comp.status ?? 'UNKNOWN'}
-                onPress={() => setSelectedPrediction(comp)}
-              />
-            ))}
-          </View>
-        )}
+        {/* One timeframe control, directly above the only block it governs. */}
+        <View style={styles.timeframeTabs}>
+          {TIMEFRAME_OPTIONS.map(({ key, label }) => {
+            const active = timeframe === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.timeframeTab, active && styles.timeframeTabActive]}
+                onPress={() => {
+                  // The numbers below change with no transition, so the tick is
+                  // the only confirmation the tap registered.
+                  selectionTick();
+                  setTimeframe(key);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityLabel={TIMEFRAME_LABELS[key]}
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.timeframeTabText, active && styles.timeframeTabTextActive]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-        {/* Ride Stats */}
-        <RideStatsCard />
-
+        <RideStatsCard
+          stats={rideStats}
+          loading={statsLoading}
+          error={statsError}
+          onRetry={refetchStats}
+          timeframeLabel={TIMEFRAME_LABELS[timeframe]}
+        />
       </ScrollView>
 
-      {/* Bike Selector Sheet */}
-      <BikeSelectorSheet
-        visible={showBikeSelector}
-        bikes={typedBikes}
-        selectedBikeId={activeBikeId}
-        onSelect={setSelectedBikeId}
-        onAddBike={() => {
-          setShowBikeSelector(false);
-          router.push('/bike/add' as Href);
-        }}
-        onClose={() => setShowBikeSelector(false)}
-      />
-
-      {/* Component Action Sheet */}
       <ComponentActionSheet
-        visible={!!selectedPrediction && !showLogService && !showReplace}
-        prediction={selectedPrediction}
-        onClose={() => setSelectedPrediction(null)}
+        visible={!!selected && !showLogService && !showReplace}
+        prediction={selected?.prediction ?? null}
+        onClose={() => setSelected(null)}
         onLogService={() => setShowLogService(true)}
         onReplace={() => setShowReplace(true)}
         onActionComplete={() => refetchBikes()}
       />
 
-      {/* Log Service Sheet */}
       <LogServiceSheet
         visible={showLogService}
         onClose={() => {
           setShowLogService(false);
-          setSelectedPrediction(null);
+          setSelected(null);
         }}
-        components={selectedBike?.components ?? []}
-        preSelectedId={selectedPrediction?.componentId}
+        components={selected?.bike.components ?? []}
+        preSelectedId={selected?.prediction.componentId}
         onServiceLogged={() => refetchBikes()}
       />
 
-      {/* Replace Component Sheet */}
-      {selectedBike && (
+      {selected && (
         <ReplaceComponentSheet
           visible={showReplace}
           component={
-            selectedPrediction
-              ? selectedBike.components.find(
-                  (c) => c.id === selectedPrediction.componentId
-                ) ?? null
-              : null
+            selected.bike.components.find((c) => c.id === selected.prediction.componentId) ?? null
           }
-          bikeId={selectedBike.id}
+          bikeId={selected.bike.id}
           spareComponents={spareComponents}
           onClose={() => {
             setShowReplace(false);
-            setSelectedPrediction(null);
+            setSelected(null);
           }}
           onReplaced={() => {
             setShowReplace(false);
-            setSelectedPrediction(null);
+            setSelected(null);
             refetchBikes();
           }}
         />
       )}
 
-      {/* Calibration Sheet */}
-      <CalibrationSheet
-        visible={showCalibration}
-        onClose={() => setShowCalibration(false)}
-      />
+      <CalibrationSheet visible={showCalibration} onClose={() => setShowCalibration(false)} />
     </SafeAreaView>
   );
 }
@@ -388,78 +398,62 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 24,
+    paddingBottom: space.xxxl,
   },
-  headerSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+  headlineBlock: {
+    paddingHorizontal: space.xl,
+    paddingTop: space.xl,
   },
-  bikeNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  bikeName: {
-    fontSize: 26,
-    fontWeight: '700',
+  headline: {
+    ...type.title,
     color: colors.textPrimary,
   },
-  subtitleRow: {
+  headlineGood: {
+    ...type.title,
+    color: colors.health.allGood.on,
+  },
+  headlineSkeletonLine: {
+    marginTop: space.md,
+  },
+  goodRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 8,
+    gap: space.md,
+    minHeight: 44,
+    marginHorizontal: space.xl,
+    marginTop: space.xl,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
   },
-  subtitle: {
-    fontSize: 14,
+  goodText: {
+    flex: 1,
+    ...type.footnote,
+    color: colors.health.allGood.on,
+  },
+  untrackedText: {
+    flex: 1,
+    ...type.footnote,
     color: colors.textSecondary,
   },
-  tierBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  tierBadgePro: {
-    backgroundColor: colors.primaryMuted,
-  },
-  tierBadgeFree: {
-    backgroundColor: colors.surface,
-  },
-  tierBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  tierBadgeTextPro: {
-    color: colors.primary,
-  },
-  tierBadgeTextFree: {
-    color: colors.textMuted,
-  },
   upgradeBanner: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  bikeImageContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  bikeImage: {
-    width: '100%',
-    height: 160,
+    paddingHorizontal: space.xl,
+    marginTop: space.xl,
   },
   timeframeTabs: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 12,
+    paddingHorizontal: space.xl,
+    gap: space.md,
+    marginTop: space.section,
   },
   timeframeTab: {
-    paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 16,
+    borderRadius: radius.full,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -469,70 +463,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   timeframeTabText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...type.captionStrong,
     color: colors.textSecondary,
-    letterSpacing: 0.5,
   },
   timeframeTabTextActive: {
-    color: colors.textPrimary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 14,
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    letterSpacing: 1,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    letterSpacing: 1,
+    color: colors.onPrimary,
   },
 });

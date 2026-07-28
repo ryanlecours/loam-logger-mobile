@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../constants/garminAttribution';
 import { GarminConnectMark } from '../attribution/GarminConnectMark';
 
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -13,7 +13,7 @@ import {
 import { useDistanceUnit } from '../../../src/hooks/useDistanceUnit';
 import { useUserTier } from '../../../src/hooks/useUserTier';
 import { UpsellCard } from '../../../src/components/common/UpgradePrompt';
-import { colors } from '../../../src/constants/theme';
+import { colors, radius } from '../../../src/constants/theme';
 import {
   bikeName,
   componentDisplay,
@@ -520,7 +520,7 @@ function BulkDateSheet({
               disabled={busy}
             >
               {busy ? (
-                <ActivityIndicator color={colors.textPrimary} />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <Text style={styles.bulkApplyText}>Apply</Text>
               )}
@@ -644,7 +644,7 @@ function TimelineRow({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, padding: 24 },
-  errorText: { color: colors.danger, textAlign: 'center' },
+  errorText: { color: colors.criticalOn, textAlign: 'center' },
   headerButton: { paddingHorizontal: 8, paddingVertical: 4 },
   pdfUpsell: { paddingHorizontal: 16, paddingTop: 12 },
   totalsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
@@ -655,12 +655,12 @@ const styles = StyleSheet.create({
   tfChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.cardBorder },
   tfChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryMuted },
   tfChipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
-  tfChipTextActive: { color: colors.primary },
+  tfChipTextActive: { color: colors.positiveOn },
   togglesRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 8, gap: 6 },
   togglePill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.cardBorder },
   togglePillActive: { borderColor: colors.primary, backgroundColor: colors.primaryMuted },
   togglePillText: { color: colors.textSecondary, fontSize: 12 },
-  togglePillTextActive: { color: colors.primary, fontWeight: '600' },
+  togglePillTextActive: { color: colors.positiveOn, fontWeight: '600' },
   truncatedNote: { color: colors.textMuted, fontSize: 11, fontStyle: 'italic', paddingHorizontal: 16, paddingTop: 8 },
   listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24 },
   yearHeader: { color: colors.primary, fontSize: 12, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginTop: 12, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: colors.cardBorder, paddingBottom: 4 },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 18,
     height: 18,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     marginRight: 10,
@@ -728,10 +728,10 @@ const styles = StyleSheet.create({
   bulkBody: { paddingHorizontal: 20, paddingVertical: 8, gap: 12 },
   bulkHint: { fontSize: 12, color: colors.textMuted },
   bulkFooter: { flexDirection: 'row', gap: 12, padding: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.cardBorder },
-  bulkCancelButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: colors.cardBorder },
+  bulkCancelButton: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.full, borderWidth: 1, borderColor: colors.cardBorder },
   bulkCancelText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  bulkApplyButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10 },
-  bulkApplyText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
-  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14, alignSelf: 'flex-start' },
-  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.primary },
+  bulkApplyButton: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: radius.full },
+  bulkApplyText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: radius.sm, paddingVertical: 10, paddingHorizontal: 14, alignSelf: 'flex-start' },
+  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.positiveOn },
 });

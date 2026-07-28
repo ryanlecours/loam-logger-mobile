@@ -44,6 +44,16 @@ export interface RideShareCardProps {
   averageHr?: string | null;
 }
 
+/**
+ * `allowFontScaling={false}` below is a deliberate exception to this app's rule
+ * that text scales with Dynamic Type.
+ *
+ * This node is never read on screen: it is rendered off-screen and captured by
+ * `captureRef` into a fixed-size image the rider shares. Letting it scale would
+ * mean the exported graphic changed dimensions per person and overflowed the
+ * capture canvas, so the image would clip for exactly the readers who need
+ * larger type. The on-screen share sheet around it scales normally.
+ */
 export const RideShareCard = forwardRef<View, RideShareCardProps>(
   function RideShareCard({ title, distance, elevation, duration, averageHr }, ref) {
     return (

@@ -12,13 +12,14 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ComponentFieldsFragment,
   useInstallComponentMutation,
 } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { isTierError, getTierErrorMessage } from '../../utils/tierErrors';
 import { formatComponentType } from '../../utils/formatComponentType';
 import type { ApolloError } from '@apollo/client';
@@ -42,6 +43,7 @@ export function ReplaceComponentSheet({
   onClose,
   onReplaced,
 }: ReplaceComponentSheetProps) {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('spare');
   const [selectedSpareId, setSelectedSpareId] = useState<string | null>(null);
   const [brand, setBrand] = useState('');
@@ -171,16 +173,21 @@ export function ReplaceComponentSheet({
       transparent
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
+      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
         <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
+          <TouchableWithoutFeedback accessible={false}>
+            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <View style={styles.handle} />
 
               {/* Header */}
               <View style={styles.header}>
                 <Text style={styles.title}>Replace {typeName}</Text>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close replace component"
+                >
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -190,6 +197,9 @@ export function ReplaceComponentSheet({
                 <TouchableOpacity
                   style={[styles.tab, activeTab === 'spare' && styles.tabActive]}
                   onPress={() => setActiveTab('spare')}
+                  accessibilityRole="tab"
+                  accessibilityLabel="Use a spare component"
+                  accessibilityState={{ selected: activeTab === 'spare' }}
                 >
                   <Text
                     style={[styles.tabText, activeTab === 'spare' && styles.tabTextActive]}
@@ -200,6 +210,9 @@ export function ReplaceComponentSheet({
                 <TouchableOpacity
                   style={[styles.tab, activeTab === 'new' && styles.tabActive]}
                   onPress={() => setActiveTab('new')}
+                  accessibilityRole="tab"
+                  accessibilityLabel="Add a new component"
+                  accessibilityState={{ selected: activeTab === 'new' }}
                 >
                   <Text
                     style={[styles.tabText, activeTab === 'new' && styles.tabTextActive]}
@@ -233,6 +246,9 @@ export function ReplaceComponentSheet({
                             isSelected && styles.spareItemSelected,
                           ]}
                           onPress={() => setSelectedSpareId(spare.id)}
+                          accessibilityRole="radio"
+                          accessibilityLabel={spareBrandModel || 'Spare component'}
+                          accessibilityState={{ selected: isSelected }}
                         >
                           <View style={styles.spareContent}>
                             <Text style={styles.spareBrand}>
@@ -280,6 +296,8 @@ export function ReplaceComponentSheet({
                   <TouchableOpacity
                     style={styles.dateButton}
                     onPress={() => setShowDatePicker(!showDatePicker)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Install date: ${installedAt.toLocaleDateString()}. Change date.`}
                   >
                     <Ionicons name="calendar-outline" size={16} color={colors.primary} />
                     <Text style={styles.dateButtonText}>
@@ -326,6 +344,9 @@ export function ReplaceComponentSheet({
                   ]}
                   onPress={handleSubmit}
                   disabled={!canSubmit || loading}
+                  accessibilityRole="button"
+                  accessibilityLabel="Replace component"
+                  accessibilityState={{ disabled: !canSubmit || loading, busy: loading }}
                 >
                   {loading ? (
                     <ActivityIndicator color={colors.card} />
@@ -356,13 +377,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
-    paddingBottom: 34,
   },
   handle: {
     width: 36,
     height: 4,
     backgroundColor: colors.cardBorder,
-    borderRadius: 2,
+    borderRadius: radius.full,
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
@@ -380,6 +400,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   closeButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     padding: 4,
   },
   tabs: {
@@ -389,10 +411,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tab: {
+    minHeight: 44,
+    justifyContent: 'center',
     flex: 1,
     paddingVertical: 10,
     backgroundColor: colors.cardBorder,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     alignItems: 'center',
   },
   tabActive: {
@@ -426,7 +450,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: radius.md,
     marginBottom: 8,
   },
   spareItemSelected: {
@@ -460,7 +484,7 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     padding: 14,
     fontSize: 16,
     borderWidth: 1,
@@ -472,11 +496,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dateButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignSelf: 'flex-start',
@@ -484,7 +510,7 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.primary,
+    color: colors.positiveOn,
   },
   noteSection: {
     marginTop: 20,
@@ -507,14 +533,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.full,
     gap: 8,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: colors.card,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

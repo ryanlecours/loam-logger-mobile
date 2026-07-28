@@ -11,7 +11,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { isUnauthorizedError } from '../../src/utils/errors';
 import { LegalDocument } from '../../src/components/legal/LegalDocument';
 import { TERMS_SECTIONS, CURRENT_TERMS_VERSION } from '../../src/legal/terms';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function TermsScreen() {
   const { refetchUser, logout } = useAuth();
@@ -70,7 +70,7 @@ export default function TermsScreen() {
           disabled={!hasScrolledToEnd || loading}
         >
           {loading ? (
-            <ActivityIndicator color={colors.textPrimary} />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
             <Text style={styles.buttonText}>I Accept</Text>
           )}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   error: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 24,
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
   },
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

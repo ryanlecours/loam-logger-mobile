@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 const MIN_AGE = 16;
 const MAX_AGE = 120;
@@ -132,17 +132,17 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   inputError: {
-    borderColor: colors.danger,
+    borderColor: colors.criticalBorder,
   },
   errorText: {
-    color: colors.danger,
+    color: colors.criticalOn,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
   },
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

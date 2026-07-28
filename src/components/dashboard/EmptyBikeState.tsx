@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Href } from 'expo-router';
-import { colors } from '../../constants/theme';
+import { colors, radius, space, type } from '../../constants/theme';
 
 export function EmptyBikeState() {
   const router = useRouter();
@@ -18,8 +18,10 @@ export function EmptyBikeState() {
       <TouchableOpacity
         style={styles.button}
         onPress={() => router.push('/bike/add' as Href)}
+        accessibilityRole="button"
+        accessibilityLabel="Add your first bike"
       >
-        <Ionicons name="add" size={20} color={colors.textPrimary} />
+        <Ionicons name="add" size={20} color={colors.onPrimary} />
         <Text style={styles.buttonText}>Add Bike</Text>
       </TouchableOpacity>
     </View>
@@ -29,48 +31,48 @@ export function EmptyBikeState() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 32,
+    marginHorizontal: space.xl,
+    marginVertical: space.md,
+    padding: space.section,
     alignItems: 'center',
   },
   iconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.full,
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: space.xl,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...type.subtitle,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: space.md,
   },
   subtitle: {
-    fontSize: 14,
+    ...type.footnote,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 20,
+    marginBottom: space.xxl,
   },
   button: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
+    paddingHorizontal: space.xxl,
+    paddingVertical: space.lg,
+    borderRadius: radius.full,
+    gap: space.sm,
   },
   buttonText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '600',
+    ...type.calloutStrong,
+    color: colors.onPrimary,
   },
 });

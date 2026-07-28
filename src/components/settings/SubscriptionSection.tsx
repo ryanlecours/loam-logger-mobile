@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../hooks/useUserTier';
 import { useMeQuery, useCreateBillingPortalSessionMutation, CheckoutPlatform } from '../../graphql/generated';
 import { restorePurchases } from '../../lib/revenuecat';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 
 export function SubscriptionSection() {
   const router = useRouter();
@@ -168,14 +168,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 12,
     marginTop: 16,
   },
   upgradeButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   restoreButton: {
     alignItems: 'center',
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 10,
     marginTop: 16,
   },

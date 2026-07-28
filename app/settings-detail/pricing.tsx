@@ -13,7 +13,7 @@ import RevenueCatUI from 'react-native-purchases-ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { useMeQuery, useCreateBillingPortalSessionMutation, CheckoutPlatform } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function PricingScreen() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function PricingScreen() {
         <Stack.Screen options={{ title: 'Pro' }} />
         <View style={styles.proContent}>
           <View style={styles.proIconContainer}>
-            <Ionicons name="checkmark-circle" size={64} color={colors.good} />
+            <Ionicons name="checkmark-circle" size={64} color={colors.positiveOn} />
           </View>
           <Text style={styles.proTitle}>
             {isFoundingRider ? 'Founding Rider' : "You're on Pro!"}
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1,
     borderColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 14,
     paddingHorizontal: 24,
   },

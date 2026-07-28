@@ -15,7 +15,7 @@ import { useNotifications } from '../../src/hooks/useNotifications';
 import { getAccessToken } from '../../src/lib/auth';
 import { isUnauthorizedError } from '../../src/utils/errors';
 import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 interface BulletProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -162,7 +162,7 @@ export default function NotificationsOnboardingScreen() {
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator color={colors.textPrimary} />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
             <Text style={styles.buttonText}>Enable Notifications</Text>
           )}
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   bulletIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

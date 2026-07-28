@@ -71,7 +71,12 @@ export interface RideStats {
   truncated: boolean;
 }
 
-const RIDES_FETCH_CAP = 500;
+/**
+ * Newest-N rides pulled once and reduced client-side. Exported so other
+ * consumers can request the *same* variables and share Apollo's cache entry
+ * rather than opening a second window over the same data.
+ */
+export const RIDES_FETCH_CAP = 500;
 
 const DAYS_MS = 24 * 60 * 60 * 1000;
 
@@ -188,7 +193,7 @@ const emptyWeatherBreakdown = (): WeatherBreakdown => ({
 });
 
 export function useRideStats(timeframe: TimeframeOption = '30d') {
-  const { data, loading, refetch } = useRidesPageQuery({
+  const { data, loading, error, refetch } = useRidesPageQuery({
     variables: { take: RIDES_FETCH_CAP },
     fetchPolicy: 'cache-and-network',
   });
@@ -456,6 +461,9 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
   return {
     stats: statsWithWeather,
     loading,
+    // Surfaced so callers can tell "no rides yet" from "we could not load your
+    // rides". Collapsing both into an empty card hides a failure as a fact.
+    error,
     refetch,
   };
 }

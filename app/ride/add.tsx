@@ -17,7 +17,7 @@ import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useAddRideMutation } from '../../src/graphql/generated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../src/components/common/PickerSelect';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -313,7 +313,7 @@ export default function AddRideScreen() {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color={colors.textPrimary} />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.submitButtonText}>Add Ride</Text>
         )}
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.card,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.card,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginTop: 12,
@@ -438,12 +438,12 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   cancelButton: {
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center' as const,
     marginTop: 12,

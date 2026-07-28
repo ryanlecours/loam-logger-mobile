@@ -3,7 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsFragment } from '../../graphql/generated';
 import { RideListItem } from '../rides/RideListItem';
 import type { RideItem } from '../../hooks/useRidesPaginated';
-import { colors } from '../../constants/theme';
+import type { ApolloError } from '@apollo/client';
+import { colors, radius, space, type } from '../../constants/theme';
+import { Skeleton, SkeletonGroup } from '../common/Skeleton';
+import { ErrorState } from '../common/ErrorState';
+import { describeError } from '../../utils/errorCopy';
 
 // Reuse the rides-tab row shape so the dashboard preview renders with the
 // same RideListItem component. Single source of truth means visual changes
@@ -16,6 +20,9 @@ interface RecentRidesListProps {
   rides: Ride[];
   bikes: BikeFieldsFragment[];
   loading?: boolean;
+  /** A failed read must not collapse into "no rides yet". */
+  error?: ApolloError;
+  onRetry?: () => void;
   onSeeAll?: () => void;
   onRidePress?: (ride: Ride) => void;
   onConnectPress?: () => void;
@@ -26,6 +33,8 @@ export function RecentRidesList({
   rides,
   bikes,
   loading,
+  error,
+  onRetry,
   onSeeAll,
   onRidePress,
   onConnectPress,
@@ -44,16 +53,34 @@ export function RecentRidesList({
         <View style={styles.header}>
           <Text style={styles.title}>RECENT RIDES</Text>
         </View>
-        <View style={styles.card}>
+        <SkeletonGroup label="Loading your recent rides" style={styles.card}>
           {[1, 2, 3].map((i) => (
             <View key={i} style={styles.skeletonRow}>
-              <View style={styles.skeletonIcon} />
+              <Skeleton width={36} height={36} />
               <View style={styles.skeletonContent}>
-                <View style={styles.skeletonLine} />
-                <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+                <Skeleton width="60%" height={14} />
+                <Skeleton width="40%" height={12} style={styles.skeletonLineShort} />
               </View>
             </View>
           ))}
+        </SkeletonGroup>
+      </View>
+    );
+  }
+
+  // Before the empty state, not after it. A failed read rendering as "No rides
+  // yet, connect a data source" tells a rider with 400 rides to go connect an
+  // account they already connected.
+  if (error && rides.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title} accessibilityRole="header">
+            RECENT RIDES
+          </Text>
+        </View>
+        <View style={styles.errorWrap}>
+          <ErrorState variant="card" {...describeError(error, 'rides')} onRetry={onRetry} />
         </View>
       </View>
     );
@@ -69,16 +96,31 @@ export function RecentRidesList({
           <Ionicons name="bicycle-outline" size={32} color={colors.textMuted} />
           <Text style={styles.emptyText}>No rides yet</Text>
           <Text style={styles.emptySubtext}>
-            Connect Strava, Garmin, WHOOP, or Suunto to import past rides — or log one manually.
+            Connect Strava, Garmin, WHOOP, or Suunto to import past rides, or log one manually.
           </Text>
           {onConnectPress && (
-            <TouchableOpacity style={styles.emptyPrimaryButton} onPress={onConnectPress}>
-              <Ionicons name="link-outline" size={16} color={colors.textPrimary} />
+            <TouchableOpacity
+              style={styles.emptyPrimaryButton}
+              onPress={onConnectPress}
+              accessibilityRole="button"
+              accessibilityLabel="Connect a data source"
+            >
+              <Ionicons
+                name="link-outline"
+                size={16}
+                color={colors.onPrimary}
+                accessibilityElementsHidden
+              />
               <Text style={styles.emptyPrimaryButtonText}>Connect a data source</Text>
             </TouchableOpacity>
           )}
           {onAddRidePress && (
-            <TouchableOpacity style={styles.emptySecondaryButton} onPress={onAddRidePress}>
+            <TouchableOpacity
+              style={styles.emptySecondaryButton}
+              onPress={onAddRidePress}
+              accessibilityRole="button"
+              accessibilityLabel="Log a ride manually"
+            >
               <Text style={styles.emptySecondaryButtonText}>Log a ride manually</Text>
             </TouchableOpacity>
           )}
@@ -90,11 +132,25 @@ export function RecentRidesList({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>RECENT RIDES</Text>
+        <Text style={styles.title} accessibilityRole="header">
+          RECENT RIDES
+        </Text>
         {onSeeAll && (
-          <TouchableOpacity onPress={onSeeAll} style={styles.seeAllButton}>
+          <TouchableOpacity
+            onPress={onSeeAll}
+            style={styles.seeAllButton}
+            accessibilityRole="button"
+            // "See all" alone is meaningless out of context, which is exactly
+            // how a screen reader encounters it.
+            accessibilityLabel="See all rides"
+          >
             <Text style={styles.seeAllText}>See all</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.primary}
+              accessibilityElementsHidden
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -114,111 +170,106 @@ export function RecentRidesList({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    marginTop: space.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    paddingHorizontal: space.xl,
+    marginBottom: space.md,
   },
   title: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...type.eyebrow,
     color: colors.textSecondary,
-    letterSpacing: 1,
   },
   seeAllButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
+    // Bare text needs a real target: the row is only ~17pt tall on its own.
+    paddingVertical: space.lg,
+    paddingLeft: space.lg,
   },
   seeAllText: {
-    fontSize: 14,
+    ...type.footnote,
     color: colors.primary,
-    marginRight: 2,
+    marginRight: space.hair,
   },
   card: {
     backgroundColor: colors.card,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    marginHorizontal: space.xl,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
+  errorWrap: {
+    marginHorizontal: space.xl,
+  },
   emptyCard: {
     backgroundColor: colors.card,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    marginHorizontal: space.xl,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    padding: 32,
+    padding: space.section,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...type.calloutStrong,
     color: colors.textSecondary,
-    marginTop: 12,
+    marginTop: space.lg,
   },
   emptySubtext: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: space.xs,
     textAlign: 'center',
     lineHeight: 18,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.md,
   },
   emptyPrimaryButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-    marginTop: 16,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.full,
+    gap: space.sm,
+    marginTop: space.xl,
   },
   emptyPrimaryButtonText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
+    ...type.footnoteStrong,
+    color: colors.onPrimary,
   },
   emptySecondaryButton: {
-    paddingVertical: 10,
-    marginTop: 4,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: space.lg,
+    // 8pt clearance from the primary action above it, not 4.
+    marginTop: space.md,
   },
   emptySecondaryButtonText: {
-    fontSize: 13,
+    ...type.caption,
     color: colors.textMuted,
     textDecorationLine: 'underline',
   },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: space.xl,
+    gap: space.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-  },
-  skeletonIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.skeleton,
-    marginRight: 12,
   },
   skeletonContent: {
     flex: 1,
   },
-  skeletonLine: {
-    height: 14,
-    backgroundColor: colors.skeleton,
-    borderRadius: 4,
-    width: '60%',
-    marginBottom: 8,
-  },
   skeletonLineShort: {
-    width: '40%',
-    marginBottom: 0,
+    marginTop: space.md,
   },
 });

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { UPSELL_COPY, type UpsellFeature } from '../../constants/upsellCopy';
 
 interface UpgradePromptProps {
@@ -18,14 +18,18 @@ export function UpgradePrompt({ message, onUpgrade }: UpgradePromptProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Ionicons name="lock-closed" size={18} color={colors.monitor} />
-        <Text style={styles.message}>{message}</Text>
-      </View>
+      {/* No padlock. A lock says "you are shut out"; the copy already says
+          what Pro adds, and the icon was doing the emotional work of making
+          the absence feel like a fault. */}
+      <Text style={styles.message}>{message}</Text>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-          <Ionicons name="arrow-up-circle-outline" size={16} color={colors.textPrimary} />
-          <Text style={styles.upgradeText}>Upgrade to Pro</Text>
+        <TouchableOpacity
+          style={styles.upgradeButton}
+          onPress={handleUpgrade}
+          accessibilityRole="button"
+          accessibilityLabel="See Pro plans"
+        >
+          <Text style={styles.upgradeText}>See Pro</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -43,10 +47,10 @@ export function ProChip() {
     <TouchableOpacity
       style={styles.chip}
       onPress={() => router.push('/settings-detail/pricing' as Href)}
-      hitSlop={8}
-      accessibilityLabel="Pro feature — see plans"
+      hitSlop={12}
+      accessibilityRole="button"
+      accessibilityLabel="Included with Pro, see plans"
     >
-      <Ionicons name="lock-closed" size={9} color={colors.monitor} />
       <Text style={styles.chipText}>Pro</Text>
     </TouchableOpacity>
   );
@@ -88,7 +92,15 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.cardDismiss} onPress={dismiss} hitSlop={8} accessibilityLabel="Dismiss">
+      <TouchableOpacity
+        style={styles.cardDismiss}
+        onPress={dismiss}
+        // 14pt icon: hitSlop carries it to 46pt without growing a close X that
+        // sits in the card's corner.
+        hitSlop={16}
+        accessibilityRole="button"
+        accessibilityLabel={`Dismiss: ${copy.title}`}
+      >
         <Ionicons name="close" size={14} color={colors.textMuted} />
       </TouchableOpacity>
       <Text style={styles.cardTitle}>{copy.title}</Text>
@@ -96,6 +108,8 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
       <TouchableOpacity
         style={styles.cardButton}
         onPress={() => router.push('/settings-detail/pricing' as Href)}
+        accessibilityRole="button"
+        accessibilityLabel="See Pro plans"
       >
         <Text style={styles.cardButtonText}>See Pro</Text>
       </TouchableOpacity>
@@ -105,23 +119,19 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.monitorBg,
+    // Commercial messaging lives in the sage family, never the health ramp.
+    // A paywall must not wear the same color as a worn component.
+    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.monitorBg,
+    borderColor: colors.primaryBorder,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
+    gap: 14,
   },
   message: {
-    flex: 1,
     fontSize: 14,
-    color: colors.monitor,
+    color: colors.textPrimary,
     lineHeight: 20,
     textAlign: 'center',
   },
@@ -132,26 +142,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   upgradeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    paddingHorizontal: 20,
   },
   upgradeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   chip: {
+    // Deliberately not 44pt tall. This is a small inline mark sitting beside
+    // text; growing the box would wreck the line it sits in. The target comes
+    // from hitSlop instead (21 + 24 = 45pt), which is what hitSlop is for.
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     borderWidth: 1,
-    borderColor: colors.monitor,
-    backgroundColor: colors.monitorBg,
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primaryMuted,
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -162,12 +173,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    color: colors.monitor,
+    color: colors.textPrimary,
   },
   card: {
-    backgroundColor: colors.monitorBg,
+    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.monitorBg,
+    borderColor: colors.primaryBorder,
     borderRadius: 12,
     padding: 16,
   },
@@ -180,7 +191,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.monitor,
+    color: colors.textPrimary,
     paddingRight: 20,
   },
   cardBody: {
@@ -191,16 +202,18 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   cardButton: {
+    minHeight: 44,
+    justifyContent: 'center',
     marginTop: 12,
     alignSelf: 'flex-start',
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
   cardButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
 });

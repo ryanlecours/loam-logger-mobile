@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { CalibrationComponentRow } from './CalibrationComponentRow';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import type { ComponentPrediction } from '../../graphql/generated';
 
 interface BikeCalibrationSectionProps {
@@ -73,7 +73,7 @@ export function BikeCalibrationSection({
           <Text style={styles.bikeName}>{bikeName}</Text>
           {allCalibrated ? (
             <View style={styles.doneBadge}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.good} />
+              <Ionicons name="checkmark-circle" size={14} color={colors.positiveOn} />
               <Text style={styles.doneText}>All set</Text>
             </View>
           ) : (
@@ -160,7 +160,7 @@ export function BikeCalibrationSection({
 
       {isExpanded && allCalibrated && (
         <View style={styles.allDone}>
-          <Ionicons name="checkmark-circle-outline" size={32} color={colors.good} />
+          <Ionicons name="checkmark-circle-outline" size={32} color={colors.positiveOn} />
           <Text style={styles.allDoneText}>All components calibrated</Text>
         </View>
       )}
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   doneText: {
     fontSize: 13,
-    color: colors.good,
+    color: colors.positiveOn,
     fontWeight: '500',
   },
   bulkAction: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primaryMuted,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
@@ -245,14 +245,14 @@ const styles = StyleSheet.create({
   applyButton: {
     backgroundColor: colors.primary,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radius.full,
     alignItems: 'center',
   },
   applyButtonDisabled: {
     opacity: 0.5,
   },
   applyButtonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
   },

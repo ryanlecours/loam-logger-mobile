@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusDot } from '../gear/StatusDot';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
 import type { ComponentPrediction } from '../../graphql/generated';
 
@@ -30,7 +30,7 @@ export function CalibrationComponentRow({
   if (isCalibrated) {
     return (
       <View style={[styles.row, styles.rowCalibrated]}>
-        <Ionicons name="checkmark-circle" size={24} color={colors.good} />
+        <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
         <View style={styles.content}>
           <Text style={[styles.typeName, styles.textCalibrated]}>{label}</Text>
           {brandModel ? (
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 13,
-    color: colors.good,
+    color: colors.positiveOn,
     fontWeight: '500',
   },
   actions: {
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',

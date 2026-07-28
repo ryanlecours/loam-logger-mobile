@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../constants/theme';
 
 interface PasswordRequirementsProps {
   password: string;
@@ -62,7 +63,7 @@ export function PasswordRequirements({ password }: PasswordRequirementsProps) {
             <Ionicons
               name={isMet ? 'checkmark-circle' : 'close-circle-outline'}
               size={18}
-              color={isMet ? '#22c55e' : '#9ca3af'}
+              color={isMet ? colors.positiveOn : colors.textMuted}
             />
             <Text style={[styles.label, isMet && styles.labelMet]}>
               {req.label}
@@ -78,13 +79,14 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#f9fafb',
+    // Was a light-theme island (#f9fafb) inside a dark-only app.
+    backgroundColor: colors.surface,
     borderRadius: 8,
   },
   title: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   requirement: {
@@ -95,9 +97,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#9ca3af',
+    color: colors.textMuted,
   },
   labelMet: {
-    color: '#374151',
+    color: colors.textPrimary,
   },
 });

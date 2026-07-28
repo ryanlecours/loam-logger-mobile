@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   segmentTextActive: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
   },
   thresholdRow: {
     marginTop: 4,
@@ -281,7 +281,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
-    width: 56,
+    // Same class as the sheets' custom-hours field: a hard box clips a
+    // three-digit value once the reader's text size goes up.
+    minWidth: 56,
+    flexShrink: 1,
     textAlign: 'center',
   },
   thresholdUnit: {

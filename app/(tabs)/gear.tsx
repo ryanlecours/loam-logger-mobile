@@ -7,7 +7,7 @@ import { useGearLightQuery, BikeFieldsLightFragment } from '../../src/graphql/ge
 import { BikeCard } from '../../src/components/gear/BikeCard';
 import { EmptyGearState } from '../../src/components/gear/EmptyGearState';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function GearScreen() {
   const router = useRouter();
@@ -55,7 +55,7 @@ export default function GearScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.danger} />
+        <Ionicons name="alert-circle-outline" size={48} color={colors.criticalOn} />
         <Text style={styles.errorTitle}>Failed to load bikes</Text>
         <Text style={styles.errorText}>{error.message}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
@@ -189,10 +189,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
   },
   retryText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radius.full,
     overflow: 'hidden',
   },
   inactiveBikeWrapper: {

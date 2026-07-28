@@ -1,10 +1,6 @@
-export { DashboardGreeting } from './DashboardGreeting';
-export { BikeHealthCard } from './BikeHealthCard';
-export { BikeCarousel } from './BikeCarousel';
 export { DashboardSkeleton } from './DashboardSkeleton';
 export { EmptyBikeState } from './EmptyBikeState';
 export { RecentRidesList } from './RecentRidesList';
 export { RideStatsCard } from './RideStatsCard';
-export { BikeSelectorSheet } from './BikeSelectorSheet';
-export { DashboardComponentCard } from './DashboardComponentCard';
+export { BikeTriageGroup } from './BikeTriageGroup';
 export { ComponentActionSheet } from './ComponentActionSheet';

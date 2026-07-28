@@ -12,7 +12,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
 import type { IntegrationProvider } from '../../src/api/integrations';
 
@@ -175,7 +175,9 @@ const styles = StyleSheet.create({
   connectButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
-    borderRadius: 6,
+    // Partner-branded control: the fill is the provider's color, so the shape
+    // stays conservative rather than taking our pill. The 8pt floor still applies.
+    borderRadius: radius.sm,
     minWidth: 96,
     alignItems: 'center',
   },
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

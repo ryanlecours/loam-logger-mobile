@@ -17,7 +17,7 @@ import {
   useUpdateBikeComponentInstallMutation,
   useDeleteBikeComponentInstallMutation,
 } from '../../graphql/generated';
-import { colors } from '../../constants/theme';
+import { colors, radius } from '../../constants/theme';
 import { getBaseInstallId } from '../../lib/bikeHistory';
 
 export interface EditableInstallEvent {
@@ -182,7 +182,7 @@ export function EditInstallSheet({
                   onPress={handleDelete}
                   disabled={busy}
                 >
-                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  <Ionicons name="trash-outline" size={16} color={colors.criticalOn} />
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -191,7 +191,7 @@ export function EditInstallSheet({
                   disabled={busy}
                 >
                   {busy ? (
-                    <ActivityIndicator color={colors.textPrimary} />
+                    <ActivityIndicator color={colors.onPrimary} />
                   ) : (
                     <Text style={styles.saveButtonText}>Save</Text>
                   )}
@@ -208,7 +208,7 @@ export function EditInstallSheet({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, maxHeight: '85%' },
-  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
+  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: radius.full, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 4 },
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   closeButton: { padding: 4 },
@@ -216,12 +216,12 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingBottom: 12 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateLabel: { fontSize: 14, color: colors.textSecondary },
-  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
-  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.primary },
+  dateButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryMuted, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: 12 },
+  dateButtonText: { fontSize: 14, fontWeight: '500', color: colors.positiveOn },
   footer: { flexDirection: 'row', gap: 12, padding: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.cardBorder },
-  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: colors.danger },
-  deleteButtonText: { color: colors.danger, fontSize: 14, fontWeight: '600' },
-  saveButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10 },
+  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius.md, borderWidth: 1, borderColor: colors.criticalBorder },
+  deleteButtonText: { color: colors.criticalOn, fontSize: 14, fontWeight: '600' },
+  saveButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 12, borderRadius: radius.full },
   saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: { color: colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
 });

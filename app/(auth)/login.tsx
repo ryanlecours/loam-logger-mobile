@@ -23,7 +23,7 @@ import {
   setBiometricEnabled,
   shouldPromptForEnrollment,
 } from '../../src/lib/biometric';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 /**
  * Build the alert body for a server-side auth failure. When the backend returned
@@ -228,7 +228,7 @@ export default function LoginScreen() {
             disabled={isLoading}
           >
             {loading ? (
-              <ActivityIndicator color={colors.textPrimary} />
+              <ActivityIndicator color={colors.onPrimary} />
             ) : (
               <Text style={styles.buttonText}>Sign In</Text>
             )}
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.textPrimary,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

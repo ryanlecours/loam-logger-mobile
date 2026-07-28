@@ -17,7 +17,7 @@ import {
   useCreateStravaGearMappingMutation,
   useDeleteStravaGearMappingMutation,
 } from '../../src/graphql/generated';
-import { colors } from '../../src/constants/theme';
+import { colors, radius } from '../../src/constants/theme';
 
 export default function StravaMappingsScreen() {
   const { data: mappingsData, loading: mappingsLoading } = useStravaGearMappingsQuery({
@@ -122,7 +122,7 @@ export default function StravaMappingsScreen() {
                       onPress={() => handleDelete(mapping.id, mapping.stravaGearName ?? null)}
                       style={styles.deleteButton}
                     >
-                      <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                      <Ionicons name="trash-outline" size={18} color={colors.criticalOn} />
                     </TouchableOpacity>
                   </View>
                 ))
@@ -198,7 +198,7 @@ export default function StravaMappingsScreen() {
             {/* All mapped */}
             {mappings.length > 0 && unmappedGears.length === 0 && (
               <View style={styles.allMappedContainer}>
-                <Ionicons name="checkmark-circle" size={48} color={colors.good} />
+                <Ionicons name="checkmark-circle" size={48} color={colors.positiveOn} />
                 <Text style={styles.allMappedText}>All Strava bikes are mapped!</Text>
               </View>
             )}
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     backgroundColor: colors.strava,
-    borderRadius: 10,
+    borderRadius: radius.full,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },

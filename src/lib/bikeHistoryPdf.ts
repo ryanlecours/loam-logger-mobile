@@ -14,10 +14,13 @@ import {
   GARMIN_TRADEMARK_NOTICE,
 } from '../constants/garminAttribution';
 
-const SAGE = '#4f7a5a';
-const INK = '#0c0c0e';
-const MUTED = '#6b7280';
-const BORDER = '#e5e7eb';
+// Print palette. The PDF is the one light-medium artifact the app produces, so
+// it uses the deeper end of the DESIGN.md greens (sage #788C80 is only 3.5:1 on
+// white paper) with obsidian ink and warm neutrals.
+const SAGE = '#344A3E';
+const INK = '#0C0C0E';
+const MUTED = '#58585E';
+const BORDER = '#D8D5CF';
 
 function escapeHtml(str: string): string {
   return str
