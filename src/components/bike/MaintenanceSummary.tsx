@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { useBikeAdvisorSummaryQuery } from '../../graphql/generated';
-import { colors, radius, space } from '../../constants/theme';
+import { colors, space } from '../../constants/theme';
 import { GarminDerivedNote } from '../attribution/GarminAttribution';
 import { ErrorState } from '../common/ErrorState';
 import { Skeleton, SkeletonGroup } from '../common/Skeleton';

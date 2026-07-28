@@ -1,18 +1,9 @@
-import {
-  ScrollView,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-  useWindowDimensions,
-} from 'react-native';
+import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter, Href } from 'expo-router';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import { useBikeTriage } from '../../src/hooks/useBikeTriage';
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
 import {
   BikeFieldsFragment,
@@ -23,8 +14,7 @@ import {
 import {
   DashboardSkeleton,
   EmptyBikeState,
-  BikeSelectorSheet,
-  DashboardComponentCard,
+  BikeTriageGroup,
   ComponentActionSheet,
   RecentRidesList,
   RideStatsCard,
@@ -33,12 +23,12 @@ import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
-import { UpgradePrompt, ProChip } from '../../src/components/common/UpgradePrompt';
+import { UpgradePrompt } from '../../src/components/common/UpgradePrompt';
 import { ErrorState } from '../../src/components/common/ErrorState';
+import { Skeleton, SkeletonGroup } from '../../src/components/common/Skeleton';
 import { useUserTier } from '../../src/hooks/useUserTier';
-import { usePersistedBikeSelection } from '../../src/hooks/usePersistedBikeSelection';
-import { colors, radius } from '../../src/constants/theme';
-import { formatComponentType } from '../../src/utils/formatComponentType';
+import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
 import { selectionTick } from '../../src/lib/haptics';
 
@@ -57,76 +47,47 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   YTD: 'Year to date',
 };
 
-/**
- * Above this text scale the three-across health row stops being readable:
- * "Due soon" cannot sit under a 24pt numeral in a third of a phone's width
- * without wrapping to three lines or clipping. The row restructures into a
- * stacked list instead of shrinking, which is the same information in the
- * shape that fits.
- */
-const STACK_HEALTH_ABOVE_FONT_SCALE = 1.3;
-
-function HealthTile({
-  count,
-  label,
-  tone,
-  stacked,
-}: {
-  count: number;
-  label: string;
-  tone: { on: string; bg: string; border: string };
-  stacked: boolean;
-}) {
-  const idle = count === 0;
-  return (
-    <View
-      style={[
-        styles.healthTile,
-        stacked && styles.healthTileStacked,
-        !idle && { backgroundColor: tone.bg, borderColor: tone.border },
-      ]}
-      accessible
-      accessibilityLabel={`${count} ${label}`}
-    >
-      <Text
-        style={[styles.healthCount, !idle && { color: tone.on }]}
-        numberOfLines={1}
-        // The count is the point of the tile, so it is the one thing allowed to
-        // keep growing; everything around it gives way instead.
-        maxFontSizeMultiplier={2}
-      >
-        {count}
-      </Text>
-      <Text
-        style={[styles.healthLabel, stacked && styles.healthLabelStacked, !idle && { color: tone.on }]}
-        numberOfLines={2}
-      >
-        {label}
-      </Text>
-    </View>
-  );
+/** "Hightower, Chameleon and Stumpjumper" */
+function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
+const nameOf = (b: BikeFieldsFragment) => b.nickname || `${b.manufacturer} ${b.model}`;
+
+/**
+ * The dashboard triages; the Gear tab inventories.
+ *
+ * It answers one question: is the bike I want to ride good to go, or what needs
+ * doing? So it lists only bikes that need work, names the components, and
+ * collapses everything healthy into a single line. Managing what you own lives
+ * in Gear, and duplicating that list here would just be a second inventory.
+ */
 export default function DashboardScreen() {
   const router = useRouter();
-  // fontScale, not width: this reflow is driven by the reader's text size, and
-  // it has to react live because Dynamic Type can change while the app is open.
-  const { fontScale } = useWindowDimensions();
-  const stackHealth = fontScale >= STACK_HEALTH_ABOVE_FONT_SCALE;
-  const { isPro, isFoundingRider } = useUserTier();
+  const { isPro } = useUserTier();
   const {
-    bikes,
-    spareComponents,
+    needsAttention,
+    healthy,
+    untracked,
+    totalBikes,
     loading: bikesLoading,
     error: bikesError,
+    predictionsReady,
+    predictionsError,
     refetch: refetchBikes,
-  } = useBikesWithPredictions();
+  } = useBikeTriage();
+  const { spareComponents } = useBikesWithPredictions();
 
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const [showBikeSelector, setShowBikeSelector] = useState(false);
   const [timeframe, setTimeframe] = useState<TimeframeOption>('YTD');
-  const [selectedPrediction, setSelectedPrediction] = useState<ComponentPrediction | null>(null);
+  // The bike travels with the prediction: with every bike on screen, a tapped
+  // component no longer belongs to whichever bike happened to be selected.
+  const [selected, setSelected] = useState<{
+    prediction: ComponentPrediction;
+    bike: BikeFieldsFragment;
+  } | null>(null);
   const [showLogService, setShowLogService] = useState(false);
   const [showReplace, setShowReplace] = useState(false);
   const [showCalibration, setShowCalibration] = useState(false);
@@ -135,15 +96,13 @@ export default function DashboardScreen() {
     fetchPolicy: 'cache-and-network',
   });
 
-  // Three most recent rides for the dashboard preview. Uses the same
-  // `RidesPage` query as the rides tab (just with a smaller `take`) so the
-  // returned row shape matches `RideListItem` exactly — no shape adapter
-  // and no duplicate GraphQL fragment to keep in sync. `refetchQueries:
-  // ['RidesPage']` calls scattered around the app (pickBike, addRide,
-  // updateRide) refresh this preview alongside the rides tab.
+  // Three most recent rides for the preview. Same `RidesPage` query as the
+  // rides tab with a smaller `take`, so the row shape matches `RideListItem`
+  // exactly and `refetchQueries: ['RidesPage']` from anywhere refreshes both.
   const {
     data: recentRidesData,
     loading: recentRidesLoading,
+    error: recentRidesError,
     refetch: refetchRecentRides,
   } = useRidesPageQuery({
     variables: { take: 3 },
@@ -156,10 +115,6 @@ export default function DashboardScreen() {
     }
   }, [calibrationData]);
 
-  // One instance for the screen. This hook was previously mounted twice on the
-  // dashboard (here and inside RideStatsCard), so every timeframe change
-  // recomputed streaks, records and location buckets over up to 500 rides
-  // twice on the JS thread.
   const {
     stats: rideStats,
     loading: statsLoading,
@@ -169,8 +124,8 @@ export default function DashboardScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // A failing refetch must not leave the spinner up forever. Each read owns
-    // its own error surface, so swallowing here is safe.
+    // A failing refetch must not strand the spinner. Each read owns its own
+    // error surface, so swallowing here is safe.
     await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
     setRefreshing(false);
   }, [refetchBikes, refetchStats, refetchRecentRides]);
@@ -181,84 +136,7 @@ export default function DashboardScreen() {
     setRetrying(false);
   }, [refetchBikes, refetchStats, refetchRecentRides]);
 
-  const typedBikes = bikes as BikeFieldsFragment[];
-
-  const { activeBikeId, selectBike, hydrated: selectionHydrated } =
-    usePersistedBikeSelection(typedBikes);
-  const selectedBike = typedBikes.find((b) => b.id === activeBikeId) || null;
-
-  // Get components needing attention
-  const attentionComponents = useMemo(() => {
-    if (!selectedBike?.predictions?.components) return [];
-    return selectedBike.predictions.components.filter(
-      (p) => p.status === 'DUE_NOW' || p.status === 'DUE_SOON' || p.status === 'OVERDUE'
-    );
-  }, [selectedBike]);
-
-  /**
-   * The top row's counts, derived from the component list rather than from
-   * `predictions.dueNowCount` / `dueSoonCount`.
-   *
-   * Two reasons. The summary has no overdue bucket, so an overdue fork used to
-   * be invisible up here; and counting from a different source than the list
-   * below meant the badge number and the list length could disagree in front
-   * of the rider.
-   */
-  const healthCounts = useMemo(() => {
-    const counts = { overdue: 0, dueNow: 0, dueSoon: 0 };
-    for (const c of attentionComponents) {
-      if (c.status === 'OVERDUE') counts.overdue += 1;
-      else if (c.status === 'DUE_NOW') counts.dueNow += 1;
-      else if (c.status === 'DUE_SOON') counts.dueSoon += 1;
-    }
-    return counts;
-  }, [attentionComponents]);
-
-  /**
-   * What a free rider is owed: the components they have ridden past their own
-   * service interval, by name.
-   *
-   * The API's `degradeSummaryForFreeTier` nulls only the predictive fields
-   * (status, hoursRemaining, confidence, why). It deliberately keeps the raw
-   * counters, so "hours since service has passed the interval" is a fact the
-   * client can derive without touching the Pro forecast. It is also the exact
-   * condition the engine calls OVERDUE (`hoursRemaining <= 0`), just computed
-   * from numbers free users already hold.
-   *
-   * This replaces a fallback to `dueNowCount`, which was wrong twice over: it
-   * carries no component names, and the engine counts DUE_NOW as
-   * `0 < hoursRemaining <= 2h`, so an overdue fork appears in neither
-   * `dueNowCount` nor `dueSoonCount`. A free rider 40 hours past a fork
-   * service was being told "Ready to ride".
-   */
-  const pastIntervalComponents = useMemo(() => {
-    const comps = selectedBike?.predictions?.components ?? [];
-    return comps.filter(
-      (c) => c.serviceIntervalHours > 0 && c.hoursSinceService >= c.serviceIntervalHours
-    );
-  }, [selectedBike]);
-
-  const attentionCount = isPro
-    ? healthCounts.overdue + healthCounts.dueNow + healthCounts.dueSoon
-    : pastIntervalComponents.length;
-
-  /** The cards under the health row: real statuses on Pro, derived facts on free. */
-  const listedComponents = isPro ? attentionComponents : pastIntervalComponents;
-
-  const displayName = selectedBike
-    ? selectedBike.nickname || `${selectedBike.manufacturer} ${selectedBike.model}`
-    : 'No Bike Selected';
-
-  // Order matters, and it is the whole point of this block. Loading, then
-  // failure, then genuinely-empty. Reading `bikes.length === 0` before ruling
-  // out a failed query is what told riders with four bikes that they owned
-  // none, and offered to add their first.
-  // The hydration gate is unconditional on purpose. On a warm start Apollo has
-  // bikes cached immediately, so without it the screen would render the
-  // fallback bike's health and then swap to the remembered one. Showing a
-  // rider the wrong bike's service state, even for a frame, is worse than a
-  // brief skeleton; the read is capped at 400ms in the hook.
-  if ((bikesLoading && !typedBikes.length) || !selectionHydrated) {
+  if (bikesLoading && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <DashboardSkeleton />
@@ -267,23 +145,26 @@ export default function DashboardScreen() {
   }
 
   // Stale cached bikes beat an error screen, so this only takes over when the
-  // failure left us with nothing to show.
-  if (bikesError && !typedBikes.length) {
-    const copy = describeError(bikesError, 'gear');
+  // failure left nothing to show.
+  if (bikesError && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ErrorState title={copy.title} body={copy.body} onRetry={onRetry} retrying={retrying} />
+        <ErrorState {...describeError(bikesError, 'gear')} onRetry={onRetry} retrying={retrying} />
       </SafeAreaView>
     );
   }
 
-  if (!bikesError && !bikesLoading && typedBikes.length === 0) {
+  if (!bikesError && !bikesLoading && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <EmptyBikeState />
       </SafeAreaView>
     );
   }
+
+  const single = totalBikes === 1;
+  const attentionCount = needsAttention.length;
+  const topBike = needsAttention[0]?.bike ?? null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -294,210 +175,136 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            // tintColor is iOS-only. Without `colors` and `progressBackgroundColor`
-            // Android drew a platform-default blue spinner on an obsidian
-            // background, the one piece of stock Material left in the app.
+            // tintColor is iOS-only; without `colors` Android draws a stock
+            // blue spinner on an obsidian background.
             tintColor={colors.primary}
             colors={[colors.primary]}
             progressBackgroundColor={colors.card}
           />
         }
       >
-        {/* Bike header. The photo is part of the identity line rather than a
-            160pt band of its own: it was the largest element on a screen about
-            service state, carried no information (not tappable, no health), and
-            pushed the actual gear signal a full thumb-scroll down. At 56pt it
-            still tells a multi-bike rider which bike they are looking at, which
-            is the only job it had. */}
-        <View style={styles.headerSection}>
-          <TouchableOpacity
-            style={styles.identityRow}
-            onPress={() => setShowBikeSelector(true)}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={`Selected bike: ${displayName}. Change bike.`}
-          >
-            {selectedBike?.thumbnailUrl ? (
-              <Image
-                source={{ uri: selectedBike.thumbnailUrl }}
-                style={styles.avatar}
-                resizeMode="cover"
-                accessibilityElementsHidden
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <Ionicons name="bicycle-outline" size={26} color={colors.textMuted} />
-              </View>
-            )}
-            <View style={styles.identityCopy}>
-              <View style={styles.bikeNameRow}>
-                <Text style={styles.bikeName} numberOfLines={1}>
-                  {displayName}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
-              </View>
-              <View style={styles.subtitleRow}>
-                <Text style={styles.subtitle} numberOfLines={1}>
-                  {typedBikes.length > 1
-                    ? `${typedBikes.length} bikes  ·  Component Wear Tracker`
-                    : 'Component Wear Tracker'}
-                </Text>
-                <View
-                  style={[styles.tierBadge, isPro ? styles.tierBadgePro : styles.tierBadgeFree]}
-                >
-                  <Text
-                    style={[
-                      styles.tierBadgeText,
-                      isPro ? styles.tierBadgeTextPro : styles.tierBadgeTextFree,
-                    ]}
-                  >
-                    {isFoundingRider ? 'Founding Rider' : isPro ? 'Pro' : 'Free'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        </View>
+        {/* Predictions are the whole answer, and the light query carries none of
+            them. Until phase 2 lands there is nothing to say, so this must read
+            as waiting rather than as a clean bill of health. Rendering the
+            all-clear from an empty array is the bug this ordering exists to
+            prevent. */}
+        {!predictionsReady && !predictionsError && (
+          <SkeletonGroup label="Checking your bikes" style={styles.headlineBlock}>
+            <Skeleton width="70%" height={20} />
+            <Skeleton width="45%" height={14} style={styles.headlineSkeletonLine} />
+          </SkeletonGroup>
+        )}
 
-        {/* Bike health. This row is the reason the screen exists, so it holds
-            nothing else: it used to sit beside account-wide hours and distance,
-            which put a number about every bike next to a number about this one,
-            under this bike's name and photo. */}
-        {attentionCount === 0 ? (
-          <View style={[styles.healthRow, styles.healthRowSingle]}>
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={20}
-              color={colors.health.allGood.on}
-              accessibilityElementsHidden
-            />
-            {/* Free tier cannot see the due-soon lookahead, so it must not
-                claim the bike is ready, only that nothing is past due. */}
-            <Text style={styles.readyText} accessibilityRole="header">
-              {isPro ? 'Ready to ride' : 'Nothing past due'}
-            </Text>
-          </View>
-        ) : !isPro ? (
-          // Free tier gets the fact it can be given (what is past its interval,
-          // by name, below) and sees exactly what Pro adds in the slot where it
-          // would appear, rather than a withheld answer.
-          <View style={[styles.healthRow, stackHealth && styles.healthRowStacked]}>
-            <HealthTile
-              count={pastIntervalComponents.length}
-              label="Past due"
-              tone={colors.health.overdue}
-              stacked={stackHealth}
-            />
-            <View style={[styles.healthTile, stackHealth && styles.healthTileStacked]}>
-              <ProChip />
-              <Text style={[styles.healthLabel, stackHealth && styles.healthLabelStacked]} numberOfLines={2}>
-                Due soon
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View style={[styles.healthRow, stackHealth && styles.healthRowStacked]}>
-            <HealthTile
-              count={healthCounts.overdue}
-              label="Overdue"
-              tone={colors.health.overdue}
-              stacked={stackHealth}
-            />
-            <HealthTile
-              count={healthCounts.dueNow}
-              label="Due now"
-              tone={colors.health.dueNow}
-              stacked={stackHealth}
-            />
-            <HealthTile
-              count={healthCounts.dueSoon}
-              label="Due soon"
-              tone={colors.health.dueSoon}
-              stacked={stackHealth}
+        {/* Bikes loaded, service state did not. Saying nothing here would read
+            as "all good" for a question that was never answered. */}
+        {!predictionsReady && predictionsError && (
+          <View style={styles.headlineBlock}>
+            <ErrorState
+              variant="card"
+              {...describeError(predictionsError, 'service status')}
+              onRetry={onRetry}
+              retrying={retrying}
             />
           </View>
         )}
 
-        {/* The components behind the counts above, immediately below them.
-            These used to sit under the paywall and the ride list, roughly a
-            full screen from the number that summarizes them, so the count and
-            its detail could not be read as one thought. */}
-        {listedComponents.length > 0 && (
-          <View style={styles.section}>
-            {listedComponents.map((comp) => (
-              <DashboardComponentCard
-                key={comp.componentId}
-                name={formatComponentType(comp.componentType)}
-                installDate={undefined}
-                currentHours={comp.currentHours}
-                serviceIntervalHours={comp.serviceIntervalHours}
-                // On free the status field is null, but every component in this
-                // list is past its interval by the engine's own definition of
-                // OVERDUE, so labelling it as such states a fact rather than
-                // leaking the gated forecast.
-                status={isPro ? (comp.status ?? 'UNKNOWN') : 'OVERDUE'}
-                onPress={() => setSelectedPrediction(comp)}
+        {predictionsReady && (
+          <>
+            <View style={styles.headlineBlock}>
+              {attentionCount === 0 ? (
+                <Text style={styles.headlineGood} accessibilityRole="header">
+                  {single ? 'Good to go' : `All ${totalBikes} bikes are good to go`}
+                </Text>
+              ) : (
+                <Text style={styles.headline} accessibilityRole="header">
+                  {single
+                    ? 'Needs attention before you ride'
+                    : `${attentionCount} of your ${totalBikes} bikes need work`}
+                </Text>
+              )}
+            </View>
+
+            {needsAttention.map(({ bike, components }) => (
+              <BikeTriageGroup
+                key={bike.id}
+                bike={bike}
+                components={components}
+                showStatus={isPro}
+                showBikeName={!single}
+                onComponentPress={(prediction) => setSelected({ prediction, bike })}
               />
             ))}
-          </View>
+
+            {/* Healthy bikes are a reassurance, not a list. One line, and it
+                links into Gear rather than repeating Gear here. */}
+            {attentionCount > 0 && healthy.length > 0 && (
+              <TouchableOpacity
+                style={styles.goodRow}
+                onPress={() => router.push('/(tabs)/gear' as Href)}
+                accessibilityRole="button"
+                accessibilityLabel={`${listNames(healthy.map(nameOf))} good to go. Open gear.`}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color={colors.health.allGood.on}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.goodText} numberOfLines={2}>
+                  {listNames(healthy.map(nameOf))} good to go
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* A frameset with nothing tracked is not healthy; it is unknown,
+                and saying "good to go" about it would be a guess. */}
+            {untracked.length > 0 && (
+              <TouchableOpacity
+                style={styles.goodRow}
+                onPress={() => router.push('/(tabs)/gear' as Href)}
+                accessibilityRole="button"
+                accessibilityLabel={`No components tracked on ${listNames(untracked.map(nameOf))}. Open gear to add them.`}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={18}
+                  color={colors.textMuted}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.untrackedText} numberOfLines={2}>
+                  No components tracked on {listNames(untracked.map(nameOf))}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
-        {/* AI maintenance summary for the selected bike. Same gate as the
-            bike-detail screen (Pro + non-empty components); the widget itself
-            renders nothing when the bike is all-good or the advisor returns
-            null, so the space just collapses. Re-queries when the selected
-            bike changes. */}
-        {isPro && activeBikeId && (selectedBike?.predictions?.components?.length ?? 0) > 0 && (
-          <MaintenanceSummary bikeId={activeBikeId} />
-        )}
+        {/* Advisor prose for the bike at the top of the list only. It is a
+            per-bike query, and firing one per bike on a triage screen would
+            trade the rider's data plan for prose they did not ask for. */}
+        {isPro && topBike && <MaintenanceSummary bikeId={topBike.id} />}
 
-        {/* Inspect Bike Button */}
-        {activeBikeId && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/bike/${activeBikeId}` as Href)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={`Inspect ${displayName}`}
-          >
-            <Ionicons
-              name="search-outline"
-              size={22}
-              color={colors.onPrimary}
-              accessibilityElementsHidden
-            />
-            <Text style={styles.actionButtonText}>Inspect Bike</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Names what Pro adds instead of what free lacks. The old copy opened
-            with "Unlock", which this project's own tone rules ban, and claimed
-            "all 23+ components", a number nothing on this screen substantiates.
-            What is actually gated is the forecast: hours remaining, and the
-            due-soon lookahead. */}
         {!isPro && (
           <View style={styles.upgradeBanner}>
             <UpgradePrompt message="Pro tells you how many hours each part has left, and flags what's coming due, so a wrench night beats a trailside fix." />
           </View>
         )}
 
-        {/* Recent Rides — three most recent, with "See all" jumping to the
-            rides tab for the full list. */}
         <RecentRidesList
           rides={recentRidesData?.rides ?? []}
-          bikes={typedBikes}
+          bikes={needsAttention.map((t) => t.bike).concat(healthy, untracked)}
           loading={recentRidesLoading && !recentRidesData}
+          error={recentRidesError}
+          onRetry={onRetry}
           onSeeAll={() => router.push('/(tabs)/rides' as Href)}
           onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
           onConnectPress={() => router.push('/(tabs)/settings' as Href)}
           onAddRidePress={() => router.push('/ride/add' as Href)}
         />
 
-        {/* The screen's one timeframe control, sitting directly above the only
-            block it governs. It used to live at the top of the scroll, where it
-            appeared to control the health row it does not touch, while a second
-            control inside the stats card drove the same hook with a different
-            default. */}
+        {/* One timeframe control, directly above the only block it governs. */}
         <View style={styles.timeframeTabs}>
           {TIMEFRAME_OPTIONS.map(({ key, label }) => {
             const active = timeframe === key;
@@ -516,9 +323,7 @@ export default function DashboardScreen() {
                 accessibilityLabel={TIMEFRAME_LABELS[key]}
                 accessibilityState={{ selected: active }}
               >
-                <Text
-                  style={[styles.timeframeTabText, active && styles.timeframeTabTextActive]}
-                >
+                <Text style={[styles.timeframeTabText, active && styles.timeframeTabTextActive]}>
                   {label}
                 </Text>
               </TouchableOpacity>
@@ -533,79 +338,49 @@ export default function DashboardScreen() {
           onRetry={refetchStats}
           timeframeLabel={TIMEFRAME_LABELS[timeframe]}
         />
-
       </ScrollView>
 
-      {/* Bike Selector Sheet */}
-      <BikeSelectorSheet
-        visible={showBikeSelector}
-        bikes={typedBikes}
-        selectedBikeId={activeBikeId}
-        onSelect={(bikeId) => {
-          // Switching bikes rewrites the whole screen's meaning, and the sheet
-          // dismisses over it, so the tick is what marks the change as yours.
-          selectionTick();
-          selectBike(bikeId);
-        }}
-        onAddBike={() => {
-          setShowBikeSelector(false);
-          router.push('/bike/add' as Href);
-        }}
-        onClose={() => setShowBikeSelector(false)}
-      />
-
-      {/* Component Action Sheet */}
       <ComponentActionSheet
-        visible={!!selectedPrediction && !showLogService && !showReplace}
-        prediction={selectedPrediction}
-        onClose={() => setSelectedPrediction(null)}
+        visible={!!selected && !showLogService && !showReplace}
+        prediction={selected?.prediction ?? null}
+        onClose={() => setSelected(null)}
         onLogService={() => setShowLogService(true)}
         onReplace={() => setShowReplace(true)}
         onActionComplete={() => refetchBikes()}
       />
 
-      {/* Log Service Sheet */}
       <LogServiceSheet
         visible={showLogService}
         onClose={() => {
           setShowLogService(false);
-          setSelectedPrediction(null);
+          setSelected(null);
         }}
-        components={selectedBike?.components ?? []}
-        preSelectedId={selectedPrediction?.componentId}
+        components={selected?.bike.components ?? []}
+        preSelectedId={selected?.prediction.componentId}
         onServiceLogged={() => refetchBikes()}
       />
 
-      {/* Replace Component Sheet */}
-      {selectedBike && (
+      {selected && (
         <ReplaceComponentSheet
           visible={showReplace}
           component={
-            selectedPrediction
-              ? selectedBike.components.find(
-                  (c) => c.id === selectedPrediction.componentId
-                ) ?? null
-              : null
+            selected.bike.components.find((c) => c.id === selected.prediction.componentId) ?? null
           }
-          bikeId={selectedBike.id}
+          bikeId={selected.bike.id}
           spareComponents={spareComponents}
           onClose={() => {
             setShowReplace(false);
-            setSelectedPrediction(null);
+            setSelected(null);
           }}
           onReplaced={() => {
             setShowReplace(false);
-            setSelectedPrediction(null);
+            setSelected(null);
             refetchBikes();
           }}
         />
       )}
 
-      {/* Calibration Sheet */}
-      <CalibrationSheet
-        visible={showCalibration}
-        onClose={() => setShowCalibration(false)}
-      />
+      <CalibrationSheet visible={showCalibration} onClose={() => setShowCalibration(false)} />
     </SafeAreaView>
   );
 }
@@ -619,93 +394,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 24,
+    paddingBottom: space.xxxl,
   },
-  headerSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    // Tighter than the gap between blocks: the header and the health row are
-    // one thought (this bike, its state), so they sit closer to each other
-    // than to anything below.
-    paddingBottom: 12,
+  headlineBlock: {
+    paddingHorizontal: space.xl,
+    paddingTop: space.xl,
   },
-  identityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    // The whole row is the bike switcher, so it carries the 44pt floor rather
-    // than relying on the text's own height.
-    minHeight: 56,
-  },
-  identityCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.md,
-    backgroundColor: colors.card,
-  },
-  avatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  bikeNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  bikeName: {
-    flexShrink: 1,
-    fontSize: 22,
-    fontWeight: '700',
+  headline: {
+    ...type.title,
     color: colors.textPrimary,
   },
-  subtitleRow: {
+  headlineGood: {
+    ...type.title,
+    color: colors.health.allGood.on,
+  },
+  headlineSkeletonLine: {
+    marginTop: space.md,
+  },
+  goodRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 8,
+    gap: space.md,
+    minHeight: 44,
+    marginHorizontal: space.xl,
+    marginTop: space.xl,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
   },
-  subtitle: {
-    flexShrink: 1,
-    fontSize: 13,
-    color: colors.textSecondary,
+  goodText: {
+    flex: 1,
+    ...type.footnote,
+    color: colors.health.allGood.on,
   },
-  tierBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-  },
-  tierBadgePro: {
-    backgroundColor: colors.primaryMuted,
-  },
-  tierBadgeFree: {
-    backgroundColor: colors.surface,
-  },
-  tierBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  tierBadgeTextPro: {
-    color: colors.positiveOn,
-  },
-  tierBadgeTextFree: {
+  untrackedText: {
+    flex: 1,
+    ...type.footnote,
     color: colors.textSecondary,
   },
   upgradeBanner: {
-    paddingHorizontal: 16,
-    marginTop: 16,
+    paddingHorizontal: space.xl,
+    marginTop: space.xl,
   },
   timeframeTabs: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 12,
+    paddingHorizontal: space.xl,
+    gap: space.md,
+    marginTop: space.section,
   },
   timeframeTab: {
     minHeight: 44,
@@ -721,97 +459,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   timeframeTabText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...type.captionStrong,
     color: colors.textSecondary,
-    letterSpacing: 0.5,
   },
   timeframeTabTextActive: {
     color: colors.onPrimary,
-  },
-  healthRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  healthRowSingle: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginHorizontal: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-  },
-  readyText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.health.allGood.on,
-  },
-  healthRowStacked: {
-    flexDirection: 'column',
-    gap: 8,
-  },
-  healthTile: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    gap: 2,
-  },
-  healthTileStacked: {
-    // Full width, and the count sits beside its label rather than above it:
-    // stacking the row and the tile both would waste the width we just gained.
-    flex: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  healthCount: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  healthLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.9,
-    color: colors.textMuted,
-  },
-  healthLabelStacked: {
-    // Reads as a sentence at this size, so it drops the tracking that suits a
-    // 11pt all-caps label under a numeral.
-    flex: 1,
-    fontSize: 15,
-    letterSpacing: 0,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    marginHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 14,
-    borderRadius: radius.full,
-    gap: 8,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.onPrimary,
-  },
-  section: {
-    paddingHorizontal: 16,
-    // Tight to the health row above: the counts and the cards that explain
-    // them are one group. The old "NEEDS ATTENTION" header is gone with it,
-    // since the row directly above already names these three states.
-    marginTop: 12,
   },
 });

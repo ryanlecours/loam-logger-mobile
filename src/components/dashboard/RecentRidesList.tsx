@@ -3,8 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsFragment } from '../../graphql/generated';
 import { RideListItem } from '../rides/RideListItem';
 import type { RideItem } from '../../hooks/useRidesPaginated';
+import type { ApolloError } from '@apollo/client';
 import { colors, radius, space, type } from '../../constants/theme';
 import { Skeleton, SkeletonGroup } from '../common/Skeleton';
+import { ErrorState } from '../common/ErrorState';
+import { describeError } from '../../utils/errorCopy';
 
 // Reuse the rides-tab row shape so the dashboard preview renders with the
 // same RideListItem component. Single source of truth means visual changes
@@ -17,6 +20,9 @@ interface RecentRidesListProps {
   rides: Ride[];
   bikes: BikeFieldsFragment[];
   loading?: boolean;
+  /** A failed read must not collapse into "no rides yet". */
+  error?: ApolloError;
+  onRetry?: () => void;
   onSeeAll?: () => void;
   onRidePress?: (ride: Ride) => void;
   onConnectPress?: () => void;
@@ -27,6 +33,8 @@ export function RecentRidesList({
   rides,
   bikes,
   loading,
+  error,
+  onRetry,
   onSeeAll,
   onRidePress,
   onConnectPress,
@@ -56,6 +64,24 @@ export function RecentRidesList({
             </View>
           ))}
         </SkeletonGroup>
+      </View>
+    );
+  }
+
+  // Before the empty state, not after it. A failed read rendering as "No rides
+  // yet, connect a data source" tells a rider with 400 rides to go connect an
+  // account they already connected.
+  if (error && rides.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title} accessibilityRole="header">
+            RECENT RIDES
+          </Text>
+        </View>
+        <View style={styles.errorWrap}>
+          <ErrorState variant="card" {...describeError(error, 'rides')} onRetry={onRetry} />
+        </View>
       </View>
     );
   }
@@ -178,6 +204,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     overflow: 'hidden',
+  },
+  errorWrap: {
+    marginHorizontal: space.xl,
   },
   emptyCard: {
     backgroundColor: colors.card,

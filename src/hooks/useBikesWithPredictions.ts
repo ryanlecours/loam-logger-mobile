@@ -31,6 +31,14 @@ export function useBikesWithPredictions() {
     predictionsLoading: fullQuery.loading,
     hasPredictions: !!fullQuery.data,
     error: lightQuery.error || fullQuery.error,
+    /**
+     * Surfaced separately because the two failures need different UI. A failed
+     * light query means "we have no bikes to show". A failed predictions query
+     * means "we have your bikes but cannot say whether they are ready", and a
+     * caller that only checks the merged `error` alongside `bikes.length` will
+     * silently render a clean bill of health for a query that never answered.
+     */
+    predictionsError: fullQuery.error,
     refetch: async () => {
       await Promise.all([
         lightQuery.refetch(),

@@ -86,7 +86,7 @@ export default tseslint.config([
     // migrate; the goal is for it to grow to cover app/ and src/.
     files: [
       'src/components/common/ErrorState.tsx',
-      'src/components/dashboard/DashboardComponentCard.tsx',
+      'src/components/dashboard/BikeTriageGroup.tsx',
       'src/components/dashboard/EmptyBikeState.tsx',
       'src/components/dashboard/RecentRidesList.tsx',
       'src/components/gear/ComponentHealthBadge.tsx',
