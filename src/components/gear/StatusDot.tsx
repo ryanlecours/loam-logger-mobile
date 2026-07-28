@@ -1,5 +1,5 @@
 import { View, StyleSheet } from 'react-native';
-import { colors, healthTone } from '../../constants/theme';
+import { colors, healthTone, radius } from '../../constants/theme';
 
 interface StatusDotProps {
   /** Null/undefined (e.g. free-tier gated predictions) renders nothing. */
@@ -21,7 +21,6 @@ export function StatusDot({ status, size = 10 }: StatusDotProps) {
         {
           width: size,
           height: size,
-          borderRadius: size / 2,
           backgroundColor: tone.base,
         },
       ]}
@@ -31,6 +30,9 @@ export function StatusDot({ status, size = 10 }: StatusDotProps) {
 
 const styles = StyleSheet.create({
   dot: {
+    // Stays circular at any `size` without arithmetic, and without producing a
+    // sub-8 radius value that only reads as legal because a circle is exempt.
+    borderRadius: radius.full,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.35,
