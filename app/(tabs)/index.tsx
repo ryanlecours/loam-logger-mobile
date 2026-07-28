@@ -30,6 +30,7 @@ import { useUserTier } from '../../src/hooks/useUserTier';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
+import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
 import { selectionTick } from '../../src/lib/haptics';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -165,6 +166,12 @@ export default function DashboardScreen() {
   const single = totalBikes === 1;
   const attentionCount = needsAttention.length;
   const topBike = needsAttention[0]?.bike ?? null;
+  const headline = dashboardHeadline({
+    attentionCount,
+    healthyCount: healthy.length,
+    untrackedCount: untracked.length,
+    totalBikes,
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -211,17 +218,12 @@ export default function DashboardScreen() {
         {predictionsReady && (
           <>
             <View style={styles.headlineBlock}>
-              {attentionCount === 0 ? (
-                <Text style={styles.headlineGood} accessibilityRole="header">
-                  {single ? 'Good to go' : `All ${totalBikes} bikes are good to go`}
-                </Text>
-              ) : (
-                <Text style={styles.headline} accessibilityRole="header">
-                  {single
-                    ? 'Needs attention before you ride'
-                    : `${attentionCount} of your ${totalBikes} bikes need work`}
-                </Text>
-              )}
+              <Text
+                style={headline.tone === 'good' ? styles.headlineGood : styles.headline}
+                accessibilityRole="header"
+              >
+                {headline.text}
+              </Text>
             </View>
 
             {needsAttention.map(({ bike, components }) => (
@@ -236,8 +238,10 @@ export default function DashboardScreen() {
             ))}
 
             {/* Healthy bikes are a reassurance, not a list. One line, and it
-                links into Gear rather than repeating Gear here. */}
-            {attentionCount > 0 && healthy.length > 0 && (
+                links into Gear rather than repeating Gear here. Skipped only
+                when the headline already reads "All N bikes are good to go",
+                which happens exactly when every bike is in this bucket. */}
+            {headline.tone !== 'good' && healthy.length > 0 && (
               <TouchableOpacity
                 style={styles.goodRow}
                 onPress={() => router.push('/(tabs)/gear' as Href)}
