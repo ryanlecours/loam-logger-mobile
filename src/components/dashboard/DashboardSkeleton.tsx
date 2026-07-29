@@ -5,12 +5,15 @@ import { colors, radius, space } from '../../constants/theme';
 /**
  * Placeholder for the dashboard's first paint.
  *
- * It mirrors the screen that actually exists now: identity row with a 56pt
- * avatar, the three-tile health row, the component cards behind those counts,
- * the Inspect Bike action, and the recent-rides card. The previous version
- * still described a layout that had been replaced (a greeting line, a
- * three-across stat row, a single card), so the app rearranged itself the
- * moment real data arrived.
+ * It mirrors the screen that actually exists now: the headline, then one
+ * collapsible group per bike needing work, then the recent-rides card. The
+ * previous version still described a layout that had been replaced twice over
+ * (a 56pt avatar row, three health tiles, component cards, an Inspect Bike
+ * pill), so the app rearranged itself the moment real data arrived.
+ *
+ * The first group is drawn open with rows because the screen seeds the top
+ * bike expanded. If that ever changes, this has to lose those rows in the same
+ * commit or the jump comes straight back.
  *
  * Only the durable structure is drawn. The AI summary, the upsell and the
  * stats block are all conditional, and a skeleton that promises blocks which
@@ -19,43 +22,34 @@ import { colors, radius, space } from '../../constants/theme';
 export function DashboardSkeleton() {
   return (
     <SkeletonGroup label="Loading your dashboard" style={styles.container}>
-      {/* Identity row: avatar, bike name, subtitle */}
-      <View style={styles.headerSection}>
-        <View style={styles.identityRow}>
-          <Skeleton width={56} height={56} radius={radius.md} />
-          <View style={styles.identityCopy}>
-            <Skeleton width="70%" height={22} />
-            <Skeleton width="45%" height={13} style={styles.subtitleLine} />
-          </View>
+      {/* Headline: "3 of your 5 bikes need work" */}
+      <View style={styles.headlineBlock}>
+        <Skeleton width="70%" height={20} />
+      </View>
+
+      {/* Top bike, open: photo header plus its component rows */}
+      <View style={styles.group}>
+        <BikeHeader />
+        <View style={styles.rows}>
+          {[0, 1].map((i) => (
+            <View key={i} style={[styles.componentRow, i === 0 && styles.componentRowDivided]}>
+              <Skeleton width={space.md} height={space.md} radius={radius.full} />
+              <View style={styles.componentCopy}>
+                <Skeleton width="45%" height={15} />
+                <Skeleton width="60%" height={13} style={styles.componentSubline} />
+              </View>
+              <Skeleton width={84} height={13} />
+            </View>
+          ))}
         </View>
       </View>
 
-      {/* Health row: three tiles */}
-      <View style={styles.healthRow}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={styles.healthTile}>
-            <Skeleton width={28} height={24} />
-            <Skeleton width="80%" height={11} style={styles.tileLabel} />
-          </View>
-        ))}
-      </View>
-
-      {/* Two component cards behind those counts */}
-      <View style={styles.section}>
-        {[0, 1].map((i) => (
-          <View key={i} style={styles.card}>
-            <Skeleton width="55%" height={16} />
-            <Skeleton width="100%" height={6} style={styles.bar} />
-            <View style={styles.cardFooter}>
-              <Skeleton width={110} height={13} />
-              <Skeleton width={78} height={20} />
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* Inspect Bike */}
-      <Skeleton height={50} radius={radius.full} style={styles.action} />
+      {/* Remaining bikes, collapsed to their headers */}
+      {[0, 1].map((i) => (
+        <View key={i} style={styles.group}>
+          <BikeHeader />
+        </View>
+      ))}
 
       {/* Recent rides: eyebrow plus three rows */}
       <View style={styles.ridesHeader}>
@@ -76,69 +70,71 @@ export function DashboardSkeleton() {
   );
 }
 
+/** The 48pt photo, the bike name, and the pill-plus-count meta line. */
+function BikeHeader() {
+  return (
+    <View style={styles.header}>
+      <Skeleton width={48} height={48} radius={radius.sm} />
+      <View style={styles.headerCopy}>
+        <Skeleton width="65%" height={15} />
+        <Skeleton width="50%" height={13} style={styles.metaLine} />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerSection: {
+  headlineBlock: {
     paddingHorizontal: space.xl,
     paddingTop: space.xl,
-    paddingBottom: space.lg,
   },
-  identityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.lg,
-    minHeight: 56,
-  },
-  identityCopy: {
-    flex: 1,
-  },
-  subtitleLine: {
-    marginTop: space.md,
-  },
-  healthRow: {
-    flexDirection: 'row',
-    paddingHorizontal: space.xl,
-    gap: 10,
-  },
-  healthTile: {
-    flex: 1,
+  group: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingVertical: 14,
-    paddingHorizontal: space.lg,
-    gap: space.hair,
-  },
-  tileLabel: {
-    marginTop: space.xs,
-  },
-  section: {
-    paddingHorizontal: space.xl,
-    marginTop: space.lg,
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: space.xl,
-    marginBottom: space.lg,
-    gap: space.lg,
-  },
-  bar: {
-    marginTop: space.xs,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  action: {
     marginHorizontal: space.xl,
     marginTop: space.xl,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.lg,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    minHeight: 72,
+  },
+  headerCopy: {
+    flex: 1,
+  },
+  metaLine: {
+    marginTop: space.md,
+  },
+  rows: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
+  componentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xl,
+    gap: space.lg,
+  },
+  componentRowDivided: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.cardBorder,
+  },
+  componentCopy: {
+    flex: 1,
+  },
+  componentSubline: {
+    marginTop: space.xs,
   },
   ridesHeader: {
     paddingHorizontal: space.xl,

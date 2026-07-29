@@ -60,9 +60,15 @@ const nameOf = (b: BikeFieldsFragment) => b.nickname || `${b.manufacturer} ${b.m
  * The dashboard triages; the Gear tab inventories.
  *
  * It answers one question: is the bike I want to ride good to go, or what needs
- * doing? So it lists only bikes that need work, names the components, and
- * collapses everything healthy into a single line. Managing what you own lives
- * in Gear, and duplicating that list here would just be a second inventory.
+ * doing? So it lists only bikes that need work, and collapses everything
+ * healthy into a single line. Managing what you own lives in Gear, and
+ * duplicating that list here would just be a second inventory.
+ *
+ * Each bike that needs work is one collapsed row carrying its photo, its worst
+ * state by name, and a count. Naming the components inline for every bike put
+ * a rider with five bikes in front of eleven near-identical rows they could
+ * not tell apart, which is triage in name only. The photo comes from Gear so
+ * the two tabs agree on what a bike looks like; the parts are one tap away.
  */
 export default function DashboardScreen() {
   const router = useRouter();
@@ -83,6 +89,10 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [timeframe, setTimeframe] = useState<TimeframeOption>('YTD');
+  // Which bikes are showing their component rows. Lives here rather than in
+  // BikeTriageGroup so it survives Apollo re-renders and remounts, and so the
+  // screen can seed it below.
+  const [expandedBikes, setExpandedBikes] = useState<Record<string, boolean>>({});
   // The bike travels with the prediction: with every bike on screen, a tapped
   // component no longer belongs to whichever bike happened to be selected.
   const [selected, setSelected] = useState<{
@@ -115,6 +125,19 @@ export default function DashboardScreen() {
       setShowCalibration(true);
     }
   }, [calibrationData]);
+
+  // The bike at the top of the list arrives open. The advisor summary is the
+  // screen's only prose and it now hangs inside that bike's group, so shipping
+  // every group collapsed would put a Pro feature behind a tap nobody knows to
+  // make. One open group still trades a wall of rows for a column of photos.
+  //
+  // Keyed on presence rather than truthiness: a rider who collapses the top
+  // bike must not have it reopened by the next refetch.
+  useEffect(() => {
+    const topBikeId = needsAttention[0]?.bike.id;
+    if (!topBikeId) return;
+    setExpandedBikes((prev) => (topBikeId in prev ? prev : { ...prev, [topBikeId]: true }));
+  }, [needsAttention]);
 
   const {
     stats: rideStats,
@@ -163,9 +186,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const single = totalBikes === 1;
   const attentionCount = needsAttention.length;
-  const topBike = needsAttention[0]?.bike ?? null;
   const headline = dashboardHeadline({
     attentionCount,
     healthyCount: healthy.length,
@@ -226,14 +247,27 @@ export default function DashboardScreen() {
               </Text>
             </View>
 
-            {needsAttention.map(({ bike, components }) => (
+            {needsAttention.map(({ bike, components }, index) => (
               <BikeTriageGroup
                 key={bike.id}
                 bike={bike}
                 components={components}
                 showStatus={isPro}
-                showBikeName={!single}
+                expanded={!!expandedBikes[bike.id]}
+                onToggle={() =>
+                  setExpandedBikes((prev) => ({ ...prev, [bike.id]: !prev[bike.id] }))
+                }
                 onComponentPress={(prediction) => setSelected({ prediction, bike })}
+                // Advisor prose for the bike at the top of the list only. It is
+                // a per-bike query, and firing one per bike on a triage screen
+                // would trade the rider's data plan for prose they did not ask
+                // for. Rendering it inside the group is what tells the rider
+                // which bike it is about.
+                footer={
+                  index === 0 && isPro ? (
+                    <MaintenanceSummary bikeId={bike.id} variant="inset" />
+                  ) : null
+                }
               />
             ))}
 
@@ -284,11 +318,6 @@ export default function DashboardScreen() {
             )}
           </>
         )}
-
-        {/* Advisor prose for the bike at the top of the list only. It is a
-            per-bike query, and firing one per bike on a triage screen would
-            trade the rider's data plan for prose they did not ask for. */}
-        {isPro && topBike && <MaintenanceSummary bikeId={topBike.id} />}
 
         {!isPro && (
           <View style={styles.upgradeBanner}>

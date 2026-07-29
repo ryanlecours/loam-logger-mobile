@@ -11,6 +11,14 @@ import { describeError } from '../../utils/errorCopy';
 
 interface MaintenanceSummaryProps {
   bikeId: string;
+  /**
+   * `card` is the standalone widget on the bike-detail screen: its own fill,
+   * border and margins. `inset` is for rendering INSIDE a container that
+   * already draws that chrome, as the dashboard does when it hangs this
+   * beneath a bike's component rows. A card inside a card is never right, so
+   * the inset form drops the chrome and keeps only a hairline separator.
+   */
+  variant?: 'card' | 'inset';
 }
 
 /**
@@ -27,7 +35,7 @@ interface MaintenanceSummaryProps {
  * matches terms §9.1 and EU AI Act transparency norms; the user can never
  * mistake the summary prose for human-authored maintenance advice.
  */
-export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
+export function MaintenanceSummary({ bikeId, variant = 'card' }: MaintenanceSummaryProps) {
   const { data, loading, error, refetch } = useBikeAdvisorSummaryQuery({
     variables: { id: bikeId },
     fetchPolicy: 'cache-and-network',
@@ -61,6 +69,11 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
     );
   }, [error, bikeId]);
 
+  // Every branch below renders chrome of its own, so the variant has to reach
+  // all three: a skeleton or an error card nested inside the dashboard's bike
+  // container would double the borders just as the prose would.
+  const sectionStyle = variant === 'inset' ? styles.sectionInset : styles.section;
+
   const summary = data?.bike?.predictions?.advisorSummary;
   // This summary is LLM output built from predictions, which are built from
   // ride duration. Where Garmin rides contributed those hours, the Garmin API
@@ -72,7 +85,7 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
 
   if (loading && !summary) {
     return (
-      <SkeletonGroup label="Loading the service summary" style={styles.section}>
+      <SkeletonGroup label="Loading the service summary" style={sectionStyle}>
         <Skeleton width="100%" height={14} />
         <Skeleton width="60%" height={14} style={styles.skeletonLineShort} />
       </SkeletonGroup>
@@ -85,7 +98,7 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
   if (error && !summary?.text) {
     const copy = describeError(error, 'service summary');
     return (
-      <View style={styles.errorWrap}>
+      <View style={variant === 'inset' ? styles.errorWrapInset : styles.errorWrap}>
         <ErrorState variant="card" title={copy.title} body={copy.body} onRetry={() => refetch()} />
       </View>
     );
@@ -99,7 +112,7 @@ export function MaintenanceSummary({ bikeId }: MaintenanceSummaryProps) {
   }
 
   return (
-    <View style={styles.section}>
+    <View style={sectionStyle}>
       <Text style={styles.summaryText}>{summary.text}</Text>
       <View style={styles.footer}>
         <Ionicons
@@ -120,6 +133,13 @@ const styles = StyleSheet.create({
     marginTop: space.xl,
     marginHorizontal: space.xl,
   },
+  // Inside a bike's triage container the surrounding card already supplies the
+  // outer margins; only the inner breathing room is this component's to set.
+  errorWrapInset: {
+    padding: space.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
+  },
   attribution: {
     marginTop: 6,
   },
@@ -131,6 +151,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+  },
+  // The container this sits in draws the fill, border and radius. All that is
+  // left to do is separate the prose from the component rows above it, which a
+  // hairline does the same way it does between two rows.
+  sectionInset: {
+    padding: space.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
   },
   summaryText: {
     fontSize: 15,

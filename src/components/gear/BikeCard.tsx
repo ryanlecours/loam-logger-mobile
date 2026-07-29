@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BikeFieldsLightFragment } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
+import { BikeThumbnail } from './BikeThumbnail';
 import { colors, radius } from '../../constants/theme';
 
 interface BikeCardProps {
@@ -16,15 +17,7 @@ export function BikeCard({ bike, overallStatus, onPress }: BikeCardProps) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.imageContainer}>
-        {bike.thumbnailUrl ? (
-          <Image source={{ uri: bike.thumbnailUrl }} style={styles.image} resizeMode="cover" />
-        ) : (
-          <View style={styles.placeholder}>
-            <Ionicons name="bicycle" size={40} color={colors.textMuted} />
-          </View>
-        )}
-      </View>
+      <BikeThumbnail uri={bike.thumbnailUrl} size={80} />
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>
@@ -61,22 +54,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 6,
     padding: 12,
-  },
-  imageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: colors.background,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,
