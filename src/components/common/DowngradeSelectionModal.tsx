@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  Image,
   ActivityIndicator,
   Alert,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 import { gql, useMutation } from '@apollo/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useGearLightQuery, useMeQuery } from '../../graphql/generated';
+import { BikeThumbnail } from '../gear/BikeThumbnail';
 import { colors, radius } from '../../constants/theme';
 
 const SELECT_BIKE = gql`
@@ -72,13 +72,7 @@ export function DowngradeSelectionModal() {
                     onPress={() => setSelectedBikeId(bike.id)}
                     disabled={selecting}
                   >
-                    {bike.thumbnailUrl ? (
-                      <Image source={{ uri: bike.thumbnailUrl }} style={styles.thumbnail} />
-                    ) : (
-                      <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
-                        <Ionicons name="bicycle" size={20} color={colors.textMuted} />
-                      </View>
-                    )}
+                    <BikeThumbnail uri={bike.thumbnailUrl} size={44} />
                     <View style={styles.bikeInfo}>
                       <Text style={styles.bikeName} numberOfLines={1}>{bikeName}</Text>
                       <Text style={styles.bikeYear}>{bike.year}</Text>
@@ -160,6 +154,9 @@ const styles = StyleSheet.create({
   bikeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Was the thumbnail's own marginRight before BikeThumbnail took over the
+    // image; spacing belongs to the row, not to the picture inside it.
+    gap: 12,
     padding: 12,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -169,17 +166,6 @@ const styles = StyleSheet.create({
   bikeRowSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.primaryMuted,
-  },
-  thumbnail: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  thumbnailPlaceholder: {
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   bikeInfo: {
     flex: 1,
