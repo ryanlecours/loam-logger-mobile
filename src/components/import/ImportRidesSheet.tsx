@@ -37,11 +37,22 @@ interface ImportRidesSheetProps {
 
 type Step = 'select' | 'importing' | 'complete';
 
-const PROVIDER_CONFIG: Record<IntegrationProvider, { label: string; color: string }> = {
-  garmin: { label: 'Garmin', color: '#007dc3' },
-  strava: { label: 'Strava', color: '#fc4c02' },
-  whoop: { label: 'WHOOP', color: '#00a651' },
-  suunto: { label: 'Suunto', color: '#0072CE' },
+/**
+ * Provider display names, and deliberately nothing else.
+ *
+ * This used to carry each provider's brand color, which then filled the sync
+ * button, the header accent, the radios, the spinners and the success icon. The
+ * primary action of this sheet was therefore Garmin blue or Strava orange
+ * depending on who you had connected. DESIGN.md's Guest Jersey Rule reserves
+ * those colors for the integrations' own logos and badges: they never color
+ * Loam UI, and there is no provider mark in this sheet, only its name in the
+ * title. The chrome speaks sage like the rest of the app.
+ */
+const PROVIDER_CONFIG: Record<IntegrationProvider, { label: string }> = {
+  garmin: { label: 'Garmin' },
+  strava: { label: 'Strava' },
+  whoop: { label: 'WHOOP' },
+  suunto: { label: 'Suunto' },
 };
 
 function getStravaYearOptions(): string[] {
@@ -183,7 +194,7 @@ export function ImportRidesSheet({
 
               {/* Header */}
               <View style={styles.header}>
-                <View style={[styles.headerAccent, { backgroundColor: config.color }]} />
+                <View style={styles.headerAccent} />
                 <Text style={styles.title}>Sync {config.label} Rides</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                   <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -198,7 +209,7 @@ export function ImportRidesSheet({
 
                   {historyLoading ? (
                     <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color={config.color} />
+                      <ActivityIndicator size="small" color={colors.primary} />
                     </View>
                   ) : (
                     <ScrollView style={styles.yearList} showsVerticalScrollIndicator={false}>
@@ -224,7 +235,7 @@ export function ImportRidesSheet({
                             key={year}
                             style={[
                               styles.yearItem,
-                              isSelected && { backgroundColor: config.color + '10', borderColor: config.color },
+                              isSelected && styles.yearItemSelected,
                               isDisabled && styles.yearItemDisabled,
                             ]}
                             onPress={() => !isDisabled && setSelectedYear(year)}
@@ -233,13 +244,16 @@ export function ImportRidesSheet({
                           >
                             <View style={styles.yearRadio}>
                               {isCompleted && !rolling ? (
-                                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                                // `positive` is the theme's confirmations-and-completed-work
+                                // role. The emerald #10b981 that was here is a stoplight
+                                // green, which DESIGN.md's palette does not contain.
+                                <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
                               ) : isInProgress ? (
-                                <ActivityIndicator size="small" color={config.color} />
+                                <ActivityIndicator size="small" color={colors.primary} />
                               ) : isProLocked ? (
                                 <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
                               ) : isSelected ? (
-                                <Ionicons name="radio-button-on" size={24} color={config.color} />
+                                <Ionicons name="radio-button-on" size={24} color={colors.primary} />
                               ) : (
                                 <Ionicons name="radio-button-off" size={24} color={colors.cardBorder} />
                               )}
@@ -294,13 +308,12 @@ export function ImportRidesSheet({
                     <TouchableOpacity
                       style={[
                         styles.importButton,
-                        { backgroundColor: config.color },
                         !selectedYear && styles.importButtonDisabled,
                       ]}
                       onPress={handleImport}
                       disabled={!selectedYear}
                     >
-                      <Ionicons name="download-outline" size={20} color="#fff" />
+                      <Ionicons name="download-outline" size={20} color={colors.onPrimary} />
                       <Text style={styles.importButtonText}>
                         {selectedYear ? `Sync ${getYearLabel(selectedYear, provider)}` : 'Sync Rides'}
                       </Text>
@@ -311,7 +324,7 @@ export function ImportRidesSheet({
 
               {step === 'importing' && (
                 <View style={styles.processingContainer}>
-                  <ActivityIndicator size="large" color={config.color} />
+                  <ActivityIndicator size="large" color={colors.primary} />
                   <Text style={styles.processingTitle}>
                     Syncing rides from {config.label}...
                   </Text>
@@ -325,8 +338,8 @@ export function ImportRidesSheet({
 
               {step === 'complete' && result && (
                 <View style={styles.completeContainer}>
-                  <View style={[styles.completeIcon, { backgroundColor: config.color + '15' }]}>
-                    <Ionicons name="checkmark-circle" size={48} color={config.color} />
+                  <View style={styles.completeIcon}>
+                    <Ionicons name="checkmark-circle" size={48} color={colors.positiveOn} />
                   </View>
 
                   {provider === 'strava' && 'imported' in result && 'updated' in result ? (
@@ -375,7 +388,7 @@ export function ImportRidesSheet({
 
                   <View style={styles.footer}>
                     <TouchableOpacity
-                      style={[styles.importButton, { backgroundColor: config.color }]}
+                      style={styles.importButton}
                       onPress={handleClose}
                     >
                       <Text style={styles.importButtonText}>Done</Text>
@@ -429,6 +442,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 24,
     borderRadius: radius.full,
+    backgroundColor: colors.primary,
     marginRight: 12,
   },
   title: {
@@ -463,6 +477,10 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
     borderWidth: 1,
     borderColor: 'transparent',
+  },
+  yearItemSelected: {
+    backgroundColor: colors.primaryMuted,
+    borderColor: colors.primaryBorder,
   },
   yearItemDisabled: {
     opacity: 0.6,
@@ -502,13 +520,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
     borderRadius: radius.full,
+    backgroundColor: colors.primary,
     gap: 8,
   },
   importButtonDisabled: {
     opacity: 0.5,
   },
   importButtonText: {
-    color: '#fff',
+    // Obsidian, not white. DESIGN.md bans pure #FFF outright, and a flat sage
+    // fill takes obsidian ink: cream on sage is 3.37:1 and fails AA, while
+    // obsidian on sage reads 5.05:1.
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -543,6 +565,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: radius.full,
+    backgroundColor: colors.positiveBg,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
