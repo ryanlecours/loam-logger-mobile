@@ -56,16 +56,31 @@ function getStravaYearOptions(): string[] {
   return years;
 }
 
-// Garmin limits historical data access to the past 30 days
+// Garmin imports are rolling windows, shortest first. They nest (7 days is
+// inside 30), so the rider picks exactly one.
+const GARMIN_PERIOD_LABELS: Record<string, string> = {
+  '7d': 'Last 7 Days',
+  '14d': 'Last 14 Days',
+  '30d': 'Last 30 Days',
+};
+
 function getGarminYearOptions(): string[] {
-  return ['ytd'];
+  return Object.keys(GARMIN_PERIOD_LABELS);
 }
 
 function getYearLabel(year: string, provider: string): string {
   if (year === 'ytd') {
     return provider === 'garmin' ? 'Last 30 Days' : 'Year to Date';
   }
-  return year;
+  return GARMIN_PERIOD_LABELS[year] ?? year;
+}
+
+/**
+ * Windows that keep moving, so a finished run should not lock the option: it is
+ * how a rider picks up rides recorded since. Only a run in flight blocks one.
+ */
+function isRollingPeriod(year: string): boolean {
+  return year === 'ytd' || year in GARMIN_PERIOD_LABELS;
 }
 
 export function ImportRidesSheet({
@@ -192,15 +207,17 @@ export function ImportRidesSheet({
                         const isCompleted = request?.status === 'completed';
                         const isInProgress = request?.status === 'pending' || request?.status === 'in_progress';
                         const isSelected = selectedYear === year;
-                        // Past seasons are a Pro feature — free accounts can
+                        const rolling = isRollingPeriod(year);
+                        // Past seasons are a Pro feature: free accounts can
                         // import the current year only. Mirrors the server's
-                        // canBackfillYear, which accepts both 'ytd' and the
-                        // literal current-year entry.
+                        // canBackfillYear, which accepts 'ytd', the rolling
+                        // windows, and the literal current-year entry.
                         const isProLocked =
                           !isPro &&
-                          year !== 'ytd' &&
+                          !rolling &&
                           parseInt(year, 10) !== new Date().getFullYear();
-                        const isDisabled = isCompleted || isInProgress || isProLocked;
+                        const isDisabled =
+                          (isCompleted && !rolling) || isInProgress || isProLocked;
 
                         return (
                           <TouchableOpacity
@@ -215,7 +232,7 @@ export function ImportRidesSheet({
                             activeOpacity={0.7}
                           >
                             <View style={styles.yearRadio}>
-                              {isCompleted ? (
+                              {isCompleted && !rolling ? (
                                 <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                               ) : isInProgress ? (
                                 <ActivityIndicator size="small" color={config.color} />
@@ -257,7 +274,7 @@ export function ImportRidesSheet({
 
                   {provider === 'garmin' && (
                     <Text style={styles.garminNote}>
-                      Garmin limits historical data access to the past 30 days. New rides sync automatically going forward.
+                      Garmin sends the rides in the window you pick. New rides keep syncing automatically, and you can run this again anytime.
                     </Text>
                   )}
 
@@ -284,7 +301,9 @@ export function ImportRidesSheet({
                       disabled={!selectedYear}
                     >
                       <Ionicons name="download-outline" size={20} color="#fff" />
-                      <Text style={styles.importButtonText}>Sync Rides</Text>
+                      <Text style={styles.importButtonText}>
+                        {selectedYear ? `Sync ${getYearLabel(selectedYear, provider)}` : 'Sync Rides'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </>
