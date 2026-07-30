@@ -11,6 +11,46 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.1.2 - 2026-07-30
+
+### App Store "What's New"
+
+Improvements
+- Your riding totals on the dashboard no longer run into each other
+- The sync sheet now looks like the rest of the app, and its Done button is a
+  proper button again
+- Garmin Connect™ is named in full wherever you sync from it
+
+### Internal
+- `fix(dashboard)`: the four totals in "Your riding" were laid out at 25% each
+  with no column gap, so on a 440pt screen the columns were 94pt wide and
+  butted against each other ("175h 24m853 mi"). Two across at 182pt with a
+  12pt gutter, matching the two-column stat grids in the component sheets. The
+  longest value no longer shrinks to fit either.
+- `fix(import)`: the complete step's footer is a child of a centered container
+  rather than a sibling of the sheet, so the Done button and its divider hugged
+  the word "Done" instead of spanning the sheet. The container stretches now
+  and its children center themselves.
+- `fix(import)`: the sheet's primary action was the provider's brand color,
+  which made it Garmin blue or Strava orange depending on who was connected.
+  DESIGN.md's Guest Jersey Rule reserves those colors for the integrations' own
+  logos and badges. All chrome speaks sage now, and two off-system literals went
+  with it: `#fff` on the button label (banned outright, and the wrong ink on a
+  sage fill at 3.37:1) and `#10b981` on the completed checkmark (a stoplight
+  green this palette does not contain).
+- `fix(garmin)`: the sheet read "Sync Garmin Rides" and "sync rides from
+  Garmin". Those name the connection, which the Garmin Developer API Brand
+  Guidelines require the unabbreviated app name in, so they read from
+  GARMIN_CONNECT_APP_NAME now. Device attribution is a different context and is
+  unchanged: rides still credit "Garmin Edge 840" or plain "Garmin". Mirrored on
+  web in loam-logger#272, which fixes the same naming in the Settings import
+  modal, the admin clear-rides control, and an onboarding label that was missing
+  its ™.
+
+> **Note:** if 1.1.1 was never submitted to the App Store, its "What's New"
+> below (the 7/14/30 day Garmin sync windows) has not reached anyone, and this
+> release's copy should absorb it.
+
 ## 1.1.1 - 2026-07-30
 
 ### App Store "What's New"
