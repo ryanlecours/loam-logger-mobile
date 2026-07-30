@@ -529,8 +529,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   completeContainer: {
-    padding: 20,
-    alignItems: 'center',
+    // The footer is a CHILD here, where in the select step it is a sibling of
+    // the sheet. A centered container therefore sized the footer to its
+    // content, so the Done button and the hairline above it hugged the word
+    // "Done" instead of spanning the sheet. The container stretches and each
+    // child centers itself; horizontal padding is left to the children so the
+    // footer keeps the same 20pt inset as the select step's sync button
+    // rather than doubling it.
+    paddingTop: 20,
+    alignItems: 'stretch',
   },
   completeIcon: {
     width: 80,
@@ -538,12 +545,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
     marginBottom: 16,
   },
   completeTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.textPrimary,
+    textAlign: 'center',
+    paddingHorizontal: 20,
     marginBottom: 8,
   },
   completeMessage: {
@@ -552,11 +562,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
-    paddingHorizontal: 12,
+    // 32 = the container's old 20pt padding plus this block's own 12pt
+    // tightening, so the copy sits exactly where it did before.
+    paddingHorizontal: 32,
   },
   statsRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
     gap: 32,
+    paddingHorizontal: 20,
     marginBottom: 20,
   },
   stat: {
