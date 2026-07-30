@@ -11,6 +11,35 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.1.1 - 2026-07-30
+
+### App Store "What's New"
+
+Improvements
+- Syncing previous rides from Garmin now lets you choose the last 7, 14 or 30
+  days instead of pulling the whole season
+- You can run a Garmin sync again to pick up rides recorded since the last one
+
+### Internal
+- `feat(garmin)`: the import sheet offers real rolling windows (`7d`/`14d`/
+  `30d`). The single option it had, labeled "Last 30 Days", sent `ytd`, which
+  the API expanded to Jan 1 through now. Windows nest, so the sheet takes one
+  choice and the sync button names it.
+- A finished run no longer locks a window: re-running one is how a rider picks
+  up rides recorded since. The completed checkmark is now reserved for closed
+  spans, where it means something.
+- Fixes a Pro lock that would have caught every window on a free account:
+  `parseInt('7d')` is `7`, which is not the current year, so each window read as
+  a past season. Now mirrors the server's `canBackfillYear`.
+- Requires the API side (loam-logger#270) for the window keys. It still accepts
+  `ytd`, so this build is safe ahead of that deploy, but the windows only
+  behave correctly once it lands.
+- Maps on backfilled Garmin rides are fixed server-side in loam-logger#271, not
+  here. Nothing in this build affects it; affected rides get their track once
+  the rider runs a sync covering them after that deploy.
+
+> **Note:** 1.1.0 shipped without an entry in this file.
+
 ## 1.0.10 - 2026-07-26
 
 ### App Store "What's New"
