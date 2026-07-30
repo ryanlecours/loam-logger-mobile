@@ -47,10 +47,6 @@ Improvements
   modal, the admin clear-rides control, and an onboarding label that was missing
   its ™.
 
-> **Note:** if 1.1.1 was never submitted to the App Store, its "What's New"
-> below (the 7/14/30 day Garmin sync windows) has not reached anyone, and this
-> release's copy should absorb it.
-
 ## 1.1.1 - 2026-07-30
 
 ### App Store "What's New"
