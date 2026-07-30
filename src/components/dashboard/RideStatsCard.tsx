@@ -250,13 +250,25 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    // Rows breathe more than columns so the block reads as two pairs rather
+    // than an even mesh of four.
     rowGap: space.xl,
+    columnGap: space.lg,
   },
   metric: {
-    // Two per row at large Dynamic Type, four when there is room.
-    minWidth: 80,
+    // Four numbers do not fit one phone row. At 25% of this card's 376pt inner
+    // width a column was 94pt with no gutter at all, so "175h 24m" ended where
+    // "853 mi" began and the row read as one run-on string. "204,793 ft" needs
+    // ~114pt at title size, so narrowing the columns further to buy a gutter
+    // would only push the longest value past its minimumFontScale floor.
+    //
+    // Two across gives each value ~182pt: room for the longest one at full
+    // size, and a real 12pt gutter between them. Matches the two-column stat
+    // grids in the component sheets. Falls to one column when a container or
+    // Dynamic Type genuinely leaves no room for two.
+    minWidth: 120,
     flexGrow: 1,
-    flexBasis: '25%',
+    flexBasis: '47%',
   },
   metricValue: {
     ...type.title,
