@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -53,6 +53,7 @@ const TIMEFRAME_OPTIONS = buildTimeframeOptions();
  * more than four choices at once.
  */
 export default function RideInsightsScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [timeframe, setTimeframe] = useState<TimeframeOption>('30d');
@@ -73,8 +74,29 @@ export default function RideInsightsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Riding Insights' }} />
-      <View style={styles.screen}>
+      {/* The root Stack runs headerShown: false, so the `title` this screen used
+          to set was never rendered: it had no header, no back control, and no
+          top inset, which put the timeframe row under the status bar. Every
+          other pushed screen draws its own header, so this one does too. */}
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.headerButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Riding Insights
+          </Text>
+          {/* Balances the back button so the title sits optically centered. */}
+          <View style={styles.headerButton} />
+        </View>
+
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.section }]}
         >
@@ -268,6 +290,28 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 const styles = StyleSheet.create({
+  // Same shape as component-rides and the other pushed screens: a 40pt back
+  // target, a centered title, and a matching spacer so the title is centered
+  // against the screen rather than against the remaining space.
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.background,
