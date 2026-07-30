@@ -27,6 +27,7 @@ import type { IntegrationProvider } from '../../api/integrations';
 import { useUserTier } from '../../hooks/useUserTier';
 import { UpsellCard } from '../common/UpgradePrompt';
 import { colors, radius } from '../../constants/theme';
+import { GARMIN_CONNECT_APP_NAME } from '../../constants/garminAttribution';
 
 interface ImportRidesSheetProps {
   visible: boolean;
@@ -49,7 +50,11 @@ type Step = 'select' | 'importing' | 'complete';
  * title. The chrome speaks sage like the rest of the app.
  */
 const PROVIDER_CONFIG: Record<IntegrationProvider, { label: string }> = {
-  garmin: { label: 'Garmin' },
+  // The full app name, never "Garmin". Every string built from this label names
+  // the connection ("Sync … Rides", "sync rides from …"), which is the context
+  // the guidelines require the unabbreviated name in. Device attribution is a
+  // different context and keeps using formatGarminSource().
+  garmin: { label: GARMIN_CONNECT_APP_NAME },
   strava: { label: 'Strava' },
   whoop: { label: 'WHOOP' },
   suunto: { label: 'Suunto' },
