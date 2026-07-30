@@ -57,6 +57,31 @@ function listNames(names: string[]): string {
 const nameOf = (b: BikeFieldsFragment) => b.nickname || `${b.manufacturer} ${b.model}`;
 
 /**
+ * The wordmark, and this screen's title.
+ *
+ * Sage and bold, matching the sign-in screen's treatment, so the brand reads
+ * the same way in the two places the app names itself. Left-aligned on the same
+ * 16pt gutter as every other block here, and one step larger than the Gear
+ * tab's "My Bikes" because this is the app's front door rather than a section
+ * label. Tracking tightens as the type grows, per DESIGN.md's Trail Marker
+ * Rule.
+ *
+ * Rendered in all four of this screen's states, including loading and error,
+ * so the title does not pop in once data arrives. It scrolls with the content
+ * rather than pinning: the triage list is what the rider came for, and a fixed
+ * bar would spend permanent vertical space on a name they already know.
+ */
+function BrandHeader() {
+  return (
+    <View style={styles.brandHeader}>
+      <Text style={styles.brandTitle} accessibilityRole="header">
+        Loam Logger
+      </Text>
+    </View>
+  );
+}
+
+/**
  * The dashboard triages; the Gear tab inventories.
  *
  * It answers one question: is the bike I want to ride good to go, or what needs
@@ -163,6 +188,7 @@ export default function DashboardScreen() {
   if (bikesLoading && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <BrandHeader />
         <DashboardSkeleton />
       </SafeAreaView>
     );
@@ -173,6 +199,7 @@ export default function DashboardScreen() {
   if (bikesError && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <BrandHeader />
         <ErrorState {...describeError(bikesError, 'gear')} onRetry={onRetry} retrying={retrying} />
       </SafeAreaView>
     );
@@ -181,6 +208,7 @@ export default function DashboardScreen() {
   if (!bikesError && !bikesLoading && totalBikes === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <BrandHeader />
         <EmptyBikeState />
       </SafeAreaView>
     );
@@ -211,6 +239,8 @@ export default function DashboardScreen() {
           />
         }
       >
+        <BrandHeader />
+
         {/* Predictions are the whole answer, and the light query carries none of
             them. Until phase 2 lands there is nothing to say, so this must read
             as waiting rather than as a clean bill of health. Rendering the
@@ -428,6 +458,16 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: space.xxxl,
+  },
+  brandHeader: {
+    paddingHorizontal: space.xl,
+    paddingTop: space.lg,
+  },
+  brandTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    color: colors.primary,
   },
   headlineBlock: {
     paddingHorizontal: space.xl,
