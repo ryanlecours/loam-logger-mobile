@@ -82,7 +82,7 @@ You agree that you are solely responsible for:
     body: `You are responsible for maintaining the confidentiality of your account credentials (including any passwords, tokens, or biometric unlock settings) and for all activity that occurs under your account. You agree to:
 
 \u2022 Keep your login credentials secure and not share them with others
-\u2022 Notify us promptly at support@loamlogger.app if you suspect unauthorized access to your account
+\u2022 Notify us promptly at ryan.lecours@loamlogger.app if you suspect unauthorized access to your account
 
 We are not liable for any loss or damage arising from unauthorized use of your account.`,
   },
@@ -286,7 +286,7 @@ If any portion of this arbitration provision is found unenforceable, the remaini
     body: `For questions regarding these Terms, contact:
 
 Loam Labs LLC
-Email: support@loamlogger.app
+Email: ryan.lecours@loamlogger.app
 
 BY USING LOAM LOGGER, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREED TO THESE TERMS, INCLUDING THE DISCLAIMERS AND LIMITATIONS OF LIABILITY.`,
   },
