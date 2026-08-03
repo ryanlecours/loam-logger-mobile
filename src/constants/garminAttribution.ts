@@ -130,7 +130,9 @@ export function garminSourceDevice(ride: {
   garminDeviceName?: string | null;
   stravaDeviceName?: string | null;
 }): string | undefined {
-  if (ride.garminActivityId) return ride.garminDeviceName ?? undefined;
+  // Prefer Garmin's own model; if it reported none but Strava saw the same ride
+  // on a Garmin unit, use that specific model instead of the plain fallback.
+  if (ride.garminActivityId && ride.garminDeviceName) return ride.garminDeviceName;
   if (isGarminDevice(ride.stravaDeviceName)) return ride.stravaDeviceName ?? undefined;
   return undefined;
 }
