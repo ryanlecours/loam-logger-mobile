@@ -53,6 +53,27 @@ export const GARMIN_TRADEMARK_NOTICE =
 export const GARMIN_SOURCE_FALLBACK = 'Garmin';
 
 /**
+ * Placeholder device values Garmin sends when there is no real model (e.g.
+ * deviceName "unknown" on manually-edited activities). Treat as "no device" so
+ * we fall back to plain "Garmin" instead of rendering "Garmin Unknown".
+ */
+const GARMIN_DEVICE_SENTINELS = new Set([
+  'unknown',
+  'unknown_device',
+  'undefined',
+  'null',
+  'none',
+]);
+
+/** A real model, or undefined for non-strings, blanks, and the sentinels above. */
+export function normalizeGarminDeviceName(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed || GARMIN_DEVICE_SENTINELS.has(trimmed.toLowerCase())) return undefined;
+  return trimmed;
+}
+
+/**
  * Normalize a raw Garmin `deviceName` for display. Separators and casing only —
  * no curated model table, and no heuristic splitting of digit-bearing tokens
  * (inventing a model name Garmin does not use is a misrepresentation).
@@ -76,7 +97,7 @@ export function humanizeGarminDevice(raw: string): string {
  * ride.garminDeviceName directly.
  */
 export function formatGarminSource(deviceName?: string | null): string {
-  const device = deviceName?.trim();
+  const device = normalizeGarminDeviceName(deviceName);
   if (!device) return GARMIN_SOURCE_FALLBACK;
 
   const humanized = humanizeGarminDevice(device);
