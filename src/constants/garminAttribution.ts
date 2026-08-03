@@ -136,6 +136,18 @@ export function garminSourceDevice(ride: {
 }
 
 /**
+ * A non-Garmin recording device Strava reported (a Wahoo, a phone, ...), shown
+ * muted as info rather than a provider badge. Garmin devices are surfaced as
+ * their own attribution via garminSourceDevice, so they are excluded here.
+ * Strava's device_name is already display-ready, so it is returned as-is.
+ */
+export function stravaRecordingDevice(ride: { stravaDeviceName?: string | null }): string | undefined {
+  const device = ride.stravaDeviceName?.trim();
+  if (!device || isGarminDevice(device)) return undefined;
+  return device;
+}
+
+/**
  * Whether a ride carries Garmin device-sourced data and so requires attribution.
  * True when it came from Garmin directly (garminActivityId) OR was recorded on a
  * Garmin device but imported via Strava (Strava's device_name begins with
