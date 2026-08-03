@@ -14,7 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
 import { useRideQuery, useDeleteRideMutation, useUpdateRideMutation } from '../../src/graphql/generated';
 import { colors, radius } from '../../src/constants/theme';
-import { formatGarminSource } from '../../src/constants/garminAttribution';
+import {
+  formatGarminSource,
+  garminSourceDevice,
+  hasGarminData,
+} from '../../src/constants/garminAttribution';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import {
   formatDuration,
@@ -62,6 +66,7 @@ function getSourceInfo(ride: {
   garminActivityId?: string | null;
   garminDeviceName?: string | null;
   stravaActivityId?: string | null;
+  stravaDeviceName?: string | null;
   whoopWorkoutId?: string | null;
   suuntoWorkoutId?: string | null;
 }): { label: string; color: string }[] {
@@ -73,10 +78,12 @@ function getSourceInfo(ride: {
   // guidelines require the device model on detail screens and treat a reworded
   // attribution as noncompliant. Emitted whenever Garmin data is present, even
   // alongside another provider — a cross-provider ride still contains Garmin
-  // device-sourced data, and dropping the attribution there is exactly the
-  // kind of omission the guidelines are aimed at.
-  if (ride.garminActivityId) {
-    badges.push({ label: formatGarminSource(ride.garminDeviceName), color: colors.garmin });
+  // device-sourced data, and dropping the attribution there is exactly the kind
+  // of omission the guidelines are aimed at. hasGarminData/garminSourceDevice
+  // also cover a ride recorded on a Garmin unit but imported purely via Strava
+  // (no garminActivityId), where the device comes from Strava's device_name.
+  if (hasGarminData(ride)) {
+    badges.push({ label: formatGarminSource(garminSourceDevice(ride)), color: colors.garmin });
   }
   if (ride.whoopWorkoutId) {
     badges.push({ label: 'Synced from WHOOP', color: colors.whoop });

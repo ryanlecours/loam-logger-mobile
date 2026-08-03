@@ -8,7 +8,12 @@ import {
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors, radius } from '../../constants/theme';
-import { formatGarminSource } from '../../constants/garminAttribution';
+import {
+  formatGarminSource,
+  garminSourceDevice,
+  hasGarminData,
+  stravaRecordingDevice,
+} from '../../constants/garminAttribution';
 import { WeatherBadge } from '../weather/WeatherBadge';
 
 interface RideListItemProps {
@@ -55,8 +60,11 @@ function getSourceBadges(ride: RideItem): { label: string; color: string }[] {
   if (ride.stravaActivityId) {
     badges.push({ label: 'Strava', color: colors.strava });
   }
-  if (ride.garminActivityId) {
-    badges.push({ label: formatGarminSource(ride.garminDeviceName), color: colors.garmin });
+  // Garmin is attributed wherever its device-sourced data is present, including
+  // a ride recorded on a Garmin device but imported via Strava. So a
+  // cross-provider ride shows both a Strava and a Garmin badge.
+  if (hasGarminData(ride)) {
+    badges.push({ label: formatGarminSource(garminSourceDevice(ride)), color: colors.garmin });
   }
   if (ride.whoopWorkoutId) {
     badges.push({ label: 'WHOOP', color: colors.whoop });
@@ -74,6 +82,9 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
   const distanceStr = formatDistance(ride.distanceMeters);
   const elevationStr = formatElevation(ride.elevationGainMeters, distanceUnit);
   const sourceBadges = getSourceBadges(ride);
+  // A non-Garmin recording device (Wahoo, phone, ...) Strava reported, shown
+  // muted next to the badges. Garmin devices appear in their own badge already.
+  const recordingDevice = stravaRecordingDevice(ride);
 
   // Garmin's activity name lands in our `notes` column during ingest (Garmin
   // doesn't reliably populate `location`, so for those rides this is the only
@@ -120,6 +131,11 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
               <Text style={styles.sourceBadgeText}>{badge.label}</Text>
             </View>
           ))}
+          {recordingDevice && (
+            <Text style={styles.recordingDevice} numberOfLines={1}>
+              {recordingDevice}
+            </Text>
+          )}
         </View>
 
         <View style={styles.statsRow}>
@@ -201,6 +217,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: colors.textPrimary,
+  },
+  // Non-Garmin recording device: muted info, not a provider badge.
+  recordingDevice: {
+    marginLeft: 8,
+    fontSize: 10,
+    color: colors.textMuted,
+    flexShrink: 1,
   },
   statsRow: {
     flexDirection: 'row',

@@ -109,12 +109,56 @@ export function formatGarminSource(deviceName?: string | null): string {
 }
 
 /**
- * Whether a ride carries Garmin device-sourced data and so requires
- * attribution. Keyed on garminActivityId presence, not on a single "primary
- * source" ranking — a cross-provider ride still contains Garmin data. Must stay
- * false for non-Garmin rides: the guidelines forbid Garmin branding where
- * Garmin data is not present.
+ * Whether a device-model string names a Garmin device. Used to recognize a ride
+ * recorded on a Garmin unit that reached us via Strava (Strava reports it as
+ * e.g. "Garmin Edge 840"). Only meaningful for a foreign device string such as
+ * Strava's device_name — not garminDeviceName, which uses unprefixed tokens.
  */
-export function hasGarminData(ride: { garminActivityId?: string | null }): boolean {
-  return Boolean(ride.garminActivityId);
+export function isGarminDevice(deviceName?: string | null): boolean {
+  const device = normalizeGarminDeviceName(deviceName);
+  return device !== undefined && /^garmin\b/i.test(device);
+}
+
+/**
+ * The device model to attribute to Garmin for this ride, or undefined when it
+ * carries no Garmin device-sourced data. Native Garmin ride: Garmin's model.
+ * Strava ride recorded on Garmin: the model Strava reported. Feed into
+ * formatGarminSource().
+ */
+export function garminSourceDevice(ride: {
+  garminActivityId?: string | null;
+  garminDeviceName?: string | null;
+  stravaDeviceName?: string | null;
+}): string | undefined {
+  // Prefer Garmin's own model; if it reported none but Strava saw the same ride
+  // on a Garmin unit, use that specific model instead of the plain fallback.
+  if (ride.garminActivityId && ride.garminDeviceName) return ride.garminDeviceName;
+  if (isGarminDevice(ride.stravaDeviceName)) return ride.stravaDeviceName ?? undefined;
+  return undefined;
+}
+
+/**
+ * A non-Garmin recording device Strava reported (a Wahoo, a phone, ...), shown
+ * muted as info rather than a provider badge. Garmin devices are surfaced as
+ * their own attribution via garminSourceDevice, so they are excluded here.
+ * Strava's device_name is already display-ready, so it is returned as-is.
+ */
+export function stravaRecordingDevice(ride: { stravaDeviceName?: string | null }): string | undefined {
+  const device = ride.stravaDeviceName?.trim();
+  if (!device || isGarminDevice(device)) return undefined;
+  return device;
+}
+
+/**
+ * Whether a ride carries Garmin device-sourced data and so requires attribution.
+ * True when it came from Garmin directly (garminActivityId) OR was recorded on a
+ * Garmin device but imported via Strava (Strava's device_name begins with
+ * "Garmin"). Must stay false for non-Garmin rides: the guidelines forbid Garmin
+ * branding where Garmin data is not present.
+ */
+export function hasGarminData(ride: {
+  garminActivityId?: string | null;
+  stravaDeviceName?: string | null;
+}): boolean {
+  return Boolean(ride.garminActivityId) || isGarminDevice(ride.stravaDeviceName);
 }
