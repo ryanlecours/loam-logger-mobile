@@ -8,7 +8,7 @@ import {
 } from '../../utils/greetingMessages';
 import { useDistanceUnit } from '../../hooks/useDistanceUnit';
 import { colors, radius } from '../../constants/theme';
-import { formatGarminSource } from '../../constants/garminAttribution';
+import { formatGarminSource, garminSourceDevice, hasGarminData } from '../../constants/garminAttribution';
 import { WeatherBadge } from '../weather/WeatherBadge';
 
 interface RideListItemProps {
@@ -55,8 +55,11 @@ function getSourceBadges(ride: RideItem): { label: string; color: string }[] {
   if (ride.stravaActivityId) {
     badges.push({ label: 'Strava', color: colors.strava });
   }
-  if (ride.garminActivityId) {
-    badges.push({ label: formatGarminSource(ride.garminDeviceName), color: colors.garmin });
+  // Garmin is attributed wherever its device-sourced data is present, including
+  // a ride recorded on a Garmin device but imported via Strava. So a
+  // cross-provider ride shows both a Strava and a Garmin badge.
+  if (hasGarminData(ride)) {
+    badges.push({ label: formatGarminSource(garminSourceDevice(ride)), color: colors.garmin });
   }
   if (ride.whoopWorkoutId) {
     badges.push({ label: 'WHOOP', color: colors.whoop });

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '../../constants/theme';
-import { formatGarminSource } from '../../constants/garminAttribution';
+import { formatGarminSource, garminSourceDevice, hasGarminData } from '../../constants/garminAttribution';
 import { formatDuration, formatRideDate } from '../../utils/greetingMessages';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -19,6 +19,8 @@ export interface AttributionRide {
   bikeId?: string | null;
   garminActivityId?: string | null;
   garminDeviceName?: string | null;
+  stravaActivityId?: string | null;
+  stravaDeviceName?: string | null;
 }
 
 interface ComponentRideRowProps {
@@ -96,10 +98,10 @@ export function ComponentRideRow({
               attribution in expanded views too — per entry or globally in a
               header. Per entry is the honest choice here, since a component's
               hours can mix providers. */}
-          {ride.garminActivityId && (
+          {hasGarminData(ride) && (
             <Text style={styles.attribution}>
               {' · '}
-              {formatGarminSource(ride.garminDeviceName)}
+              {formatGarminSource(garminSourceDevice(ride))}
             </Text>
           )}
           {beforeAnchor && <Text style={styles.warning}> · predates last service</Text>}

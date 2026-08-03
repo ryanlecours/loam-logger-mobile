@@ -25,6 +25,7 @@ query ComponentRides($componentId: ID!, $take: Int, $after: ID) {
         garminActivityId
         garminDeviceName
         stravaActivityId
+        stravaDeviceName
         whoopWorkoutId
         suuntoWorkoutId
         weather {

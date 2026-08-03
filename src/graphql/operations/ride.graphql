@@ -13,6 +13,7 @@ query Ride($id: ID!) {
     garminActivityId
     garminDeviceName
     stravaActivityId
+    stravaDeviceName
     whoopWorkoutId
     suuntoWorkoutId
     weather {
