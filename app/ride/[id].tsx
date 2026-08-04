@@ -30,6 +30,9 @@ import { WeatherCard } from '../../src/components/ride/WeatherCard';
 import { RideTrackMap } from '../../src/components/ride/RideTrackMap';
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { useShareRideOverlay } from '../../src/hooks/useShareRideOverlay';
+// Doubles as the in-flight key for the picker's "Not my bike" row: it shares
+// `assigningBikeId` with the real bike rows so one write disables the list.
+import { UNOWNED_BIKE_VALUE } from '../../src/constants/rideBike';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -95,7 +98,10 @@ function getSourceInfo(ride: {
 }
 
 export default function RideDetailScreen() {
-  const { id, action } = useLocalSearchParams<{ id: string; action?: string }>();
+  // `action=pickBike` still arrives on the deep link from the bike-pick push,
+  // but nothing reads it any more: the picker below shows for every unassigned
+  // ride, so the notification only needs to get the rider to this screen.
+  const { id } = useLocalSearchParams<{ id: string; action?: string }>();
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const { isFree } = useUserTier();
@@ -128,11 +134,9 @@ export default function RideDetailScreen() {
   const { bikes } = useBikesWithPredictions();
   const [deleteRide] = useDeleteRideMutation();
   const [updateRide] = useUpdateRideMutation();
-  // The bike picker is shown when the user lands here from the
-  // "Which bike did you ride?" push notification (action=pickBike) AND the
-  // ride is still unassigned. Once they pick, we hide the picker locally so
-  // it doesn't briefly re-render before the cache refetch settles.
-  const [pickerDismissed, setPickerDismissed] = useState(false);
+  // Once the rider picks, hide the picker locally so it doesn't briefly
+  // re-render before the cache refetch settles.
+  const [justAssigned, setJustAssigned] = useState(false);
   // Track which specific bike row is being assigned. The mutation's own
   // `loading` flag is global to the mutation hook, so using it would render
   // a spinner on every row simultaneously when the user taps one — they'd
@@ -178,9 +182,9 @@ export default function RideDetailScreen() {
       try {
         await updateRide({
           variables: { id: id!, input: { bikeId } },
-          refetchQueries: ['RidesPage', 'RecentRides'],
+          refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
         });
-        setPickerDismissed(true);
+        setJustAssigned(true);
       } catch (err) {
         Alert.alert(
           'Could not assign bike',
@@ -192,6 +196,28 @@ export default function RideDetailScreen() {
     },
     [updateRide, id]
   );
+
+  // "Not my bike": a demo, loaner, rental or a friend's bike. Recorded as an
+  // answer rather than a dismissal, so the ride stops being counted as
+  // outstanding without pretending it was ridden on gear the rider maintains.
+  // The server clears any bikeId alongside this and returns that bike's hours.
+  const handleUnownedBike = useCallback(async () => {
+    setAssigningBikeId(UNOWNED_BIKE_VALUE);
+    try {
+      await updateRide({
+        variables: { id: id!, input: { unownedBike: true } },
+        refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
+      });
+      setJustAssigned(true);
+    } catch (err) {
+      Alert.alert(
+        'Could not update ride',
+        err instanceof Error ? err.message : 'Please try again.'
+      );
+    } finally {
+      setAssigningBikeId(null);
+    }
+  }, [updateRide, id]);
 
   const handleDelete = () => {
     Alert.alert(
@@ -207,7 +233,7 @@ export default function RideDetailScreen() {
             try {
               await deleteRide({
                 variables: { id: id! },
-                refetchQueries: ['RidesPage', 'RecentRides'],
+                refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
               });
               router.back();
             } catch (_error) {
@@ -273,8 +299,17 @@ export default function RideDetailScreen() {
   const bikeName = getBikeName(ride.bikeId);
   const sourceInfo = getSourceInfo(ride);
 
+  // Shown for ANY unassigned ride, not just one reached from the
+  // "Which bike did you ride?" push (which arrives as action=pickBike).
+  // Garmin never reports gear, so on a multi-bike account every Garmin ride
+  // lands here unassigned; gating the only in-app assignment UI behind that
+  // notification meant a missed or dismissed push stranded the ride with no
+  // route to a bike at all, and its hours reached no component.
+  // `unownedBike` is the rider having already answered "it wasn't mine", so the
+  // picker stays closed for those rides. They can still change it from the edit
+  // screen, which is the way back if they marked one by mistake.
   const showBikePicker =
-    action === 'pickBike' && !ride.bikeId && !pickerDismissed && bikes.length > 0;
+    !ride.bikeId && !ride.unownedBike && !justAssigned && bikes.length > 0;
 
   return (
     <ScrollView
@@ -293,12 +328,11 @@ export default function RideDetailScreen() {
         />
       }
     >
-      {/* Inline bike picker — sits OUTSIDE the tap-to-edit touchable so
-          tapping its title or subtitle text doesn't bubble up to handleEdit
-          and navigate the user away from the picker. Rendered first in the
-          ScrollView so it's visible immediately when the user arrives from
-          the "Which bike did you ride?" push notification rather than
-          buried below header/stats/weather. */}
+      {/* Inline bike picker. Sits OUTSIDE the tap-to-edit touchable so tapping
+          its title or subtitle text doesn't bubble up to handleEdit and
+          navigate the user away from the picker. Rendered first in the
+          ScrollView so an unassigned ride opens on the one thing it's missing
+          rather than burying it below header/stats/weather. */}
       {showBikePicker && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
@@ -337,6 +371,35 @@ export default function RideDetailScreen() {
               </TouchableOpacity>
             );
           })}
+
+          {/* Escape hatch for a bike the rider doesn't own. Without it the only
+              ways to clear this prompt are to leave it forever or to assign a
+              bike that never turned a wheel on this ride, which is the one
+              thing that would corrupt the wear math. */}
+          <TouchableOpacity
+            style={[
+              styles.bikePickerRow,
+              !!assigningBikeId &&
+                assigningBikeId !== UNOWNED_BIKE_VALUE &&
+                styles.bikePickerRowDisabled,
+            ]}
+            onPress={handleUnownedBike}
+            disabled={!!assigningBikeId}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Not my bike. A demo, loaner or rental. Records no component hours."
+          >
+            <Ionicons name="help-circle-outline" size={20} color={colors.textMuted} />
+            <View style={styles.unownedCopy}>
+              <Text style={styles.unownedLabel}>Not my bike</Text>
+              <Text style={styles.unownedHint}>Demo, loaner or rental</Text>
+            </View>
+            {assigningBikeId === UNOWNED_BIKE_VALUE ? (
+              <ActivityIndicator size="small" color={colors.textMuted} />
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            )}
+          </TouchableOpacity>
         </View>
       )}
 
@@ -417,14 +480,27 @@ export default function RideDetailScreen() {
           isFree && <UpsellCard feature="weather" />
         )}
 
-        {/* Bike Card */}
-        {bikeName && (
+        {/* Bike Card. Shown for an unowned ride too, so "not my bike" reads as
+            a recorded fact the rider can see and edit rather than a silently
+            missing section. */}
+        {(bikeName || ride.unownedBike) && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Bike</Text>
             <View style={styles.bikeRow}>
-              <Ionicons name="bicycle" size={20} color={colors.textMuted} />
-              <Text style={styles.bikeName}>{bikeName}</Text>
+              <Ionicons
+                name={ride.unownedBike ? 'help-circle-outline' : 'bicycle'}
+                size={20}
+                color={colors.textMuted}
+              />
+              <Text style={styles.bikeName}>
+                {ride.unownedBike ? 'Not my bike' : bikeName}
+              </Text>
             </View>
+            {ride.unownedBike && (
+              <Text style={styles.unownedHint}>
+                Demo, loaner or rental. No component hours recorded.
+              </Text>
+            )}
           </View>
         )}
 
@@ -645,6 +721,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: colors.textPrimary,
+  },
+  unownedCopy: {
+    flex: 1,
+  },
+  // Not `bikePickerLabel`: that one carries flex: 1 to fill the row, which
+  // inside this two-line column would stretch the text box vertically.
+  unownedLabel: {
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  unownedHint: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   notes: {
     fontSize: 15,

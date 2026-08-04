@@ -8,6 +8,7 @@ query Ride($id: ID!) {
     averageHr
     rideType
     bikeId
+    unownedBike
     location
     notes
     garminActivityId

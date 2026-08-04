@@ -10,6 +10,7 @@ import {
   ComponentPrediction,
   useCalibrationStateQuery,
   useRidesPageQuery,
+  useUnassignedRideCountQuery,
 } from '../../src/graphql/generated';
 import {
   DashboardSkeleton,
@@ -18,6 +19,7 @@ import {
   ComponentActionSheet,
   RecentRidesList,
   RideStatsCard,
+  UnassignedRidesBanner,
 } from '../../src/components/dashboard';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
@@ -145,6 +147,14 @@ export default function DashboardScreen() {
     fetchPolicy: 'cache-and-network',
   });
 
+  // Counted server-side across the whole history rather than derived from the
+  // three rides above: a rider can have dozens of unassigned rides sitting
+  // outside the preview window, and each one's hours are credited to no
+  // component until a bike is picked.
+  const { data: unassignedData, refetch: refetchUnassigned } = useUnassignedRideCountQuery({
+    fetchPolicy: 'cache-and-network',
+  });
+
   useEffect(() => {
     if (calibrationData?.calibrationState?.showOverlay) {
       setShowCalibration(true);
@@ -175,15 +185,25 @@ export default function DashboardScreen() {
     setRefreshing(true);
     // A failing refetch must not strand the spinner. Each read owns its own
     // error surface, so swallowing here is safe.
-    await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
+    await Promise.allSettled([
+      refetchBikes(),
+      refetchStats(),
+      refetchRecentRides(),
+      refetchUnassigned(),
+    ]);
     setRefreshing(false);
-  }, [refetchBikes, refetchStats, refetchRecentRides]);
+  }, [refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned]);
 
   const onRetry = useCallback(async () => {
     setRetrying(true);
-    await Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides()]);
+    await Promise.allSettled([
+      refetchBikes(),
+      refetchStats(),
+      refetchRecentRides(),
+      refetchUnassigned(),
+    ]);
     setRetrying(false);
-  }, [refetchBikes, refetchStats, refetchRecentRides]);
+  }, [refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned]);
 
   if (bikesLoading && totalBikes === 0) {
     return (
@@ -354,6 +374,13 @@ export default function DashboardScreen() {
             <UpgradePrompt message="Pro tells you how many hours each part has left, and flags what's coming due, so a wrench night beats a trailside fix." />
           </View>
         )}
+
+        {/* Above the rides list, not inside it: the count spans the rider's
+            whole history while the list below shows three. */}
+        <UnassignedRidesBanner
+          count={unassignedData?.unassignedRideCount ?? 0}
+          onPress={() => router.push('/(tabs)/rides?unassigned=1' as Href)}
+        />
 
         <RecentRidesList
           rides={recentRidesData?.rides ?? []}

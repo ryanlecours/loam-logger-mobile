@@ -21,6 +21,7 @@ import { colors, radius } from '../../../src/constants/theme';
 import { useDistanceUnit } from '../../../src/hooks/useDistanceUnit';
 import { useBikesWithPredictions } from '../../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../../src/components/common/PickerSelect';
+import { UNOWNED_BIKE_VALUE } from '../../../src/constants/rideBike';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -76,7 +77,10 @@ export default function EditRideScreen() {
       setDistance(String(parseFloat(fromMeters(ride.distanceMeters).toFixed(1))));
       setElevation(String(distanceUnit === 'km' ? Math.round(ride.elevationGainMeters) : parseFloat((ride.elevationGainMeters * 3.28084).toFixed(0))));
       setRideType(ride.rideType);
-      setBikeId(ride.bikeId || '');
+      // "Not my bike" shares the bike picker's single value slot: a ride is on
+      // one of your bikes, on nobody's, or on someone else's, and those are
+      // mutually exclusive. The sentinel is mapped back out on submit.
+      setBikeId(ride.unownedBike ? UNOWNED_BIKE_VALUE : ride.bikeId || '');
       setAverageHr(ride.averageHr ? String(ride.averageHr) : '');
       setLocation(ride.location || '');
       setNotes(ride.notes || '');
@@ -135,6 +139,8 @@ export default function EditRideScreen() {
     const durationSeconds =
       parseInt(hours || '0', 10) * 3600 + parseInt(minutes || '0', 10) * 60;
 
+    const unownedBike = bikeId === UNOWNED_BIKE_VALUE;
+
     try {
       await updateRide({
         variables: {
@@ -145,13 +151,16 @@ export default function EditRideScreen() {
             distanceMeters: toMeters(parseFloat(distance)),
             elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
             rideType,
-            bikeId: bikeId || null,
+            // Never send both: the server rejects a bikeId alongside
+            // unownedBike: true rather than silently picking one.
+            bikeId: unownedBike ? null : bikeId || null,
+            unownedBike,
             averageHr: averageHr ? parseInt(averageHr, 10) : null,
             location: location || null,
             notes: notes || null,
           },
         },
-        refetchQueries: ['RidesPage', 'RecentRides'],
+        refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
       });
       router.back();
     } catch (_error) {
@@ -297,24 +306,25 @@ export default function EditRideScreen() {
         />
       </View>
 
-      {/* Bike */}
-      {bikes.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bike</Text>
-          <PickerSelect
-            selectedValue={bikeId}
-            onValueChange={setBikeId}
-            options={[
-              { label: 'No bike selected', value: '' },
-              ...bikes.map((bike) => ({
-                label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
-                value: bike.id,
-              })),
-            ]}
-            placeholder="Select a bike"
-          />
-        </View>
-      )}
+      {/* Bike. Rendered even with no bikes on the account, because "Not my
+          bike" is exactly the answer a rider with no bikes of their own needs,
+          and it is the only way back out of that state once set. */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Bike</Text>
+        <PickerSelect
+          selectedValue={bikeId}
+          onValueChange={setBikeId}
+          options={[
+            { label: 'No bike selected', value: '' },
+            ...bikes.map((bike) => ({
+              label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
+              value: bike.id,
+            })),
+            { label: 'Not my bike (demo or loaner)', value: UNOWNED_BIKE_VALUE },
+          ]}
+          placeholder="Select a bike"
+        />
+      </View>
 
       {/* Optional: Average HR */}
       <View style={styles.section}>
