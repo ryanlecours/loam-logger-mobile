@@ -8,6 +8,7 @@ query RidesPage($take: Int, $after: ID, $filter: RidesFilterInput) {
     averageHr
     rideType
     bikeId
+    unownedBike
     location
     notes
     garminActivityId

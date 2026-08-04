@@ -102,6 +102,7 @@ export type AddRideInput = {
   rideType: Scalars['String']['input'];
   startTime: Scalars['String']['input'];
   trailSystem?: InputMaybe<Scalars['String']['input']>;
+  unownedBike?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type AdvisorSummary = {
@@ -958,6 +959,7 @@ export type Query = {
   servicePreferenceDefaults: Array<ServicePreferenceDefault>;
   sharedBikeHistory?: Maybe<SharedBikeHistory>;
   stravaGearMappings: Array<StravaGearMapping>;
+  unassignedRideCount: Scalars['Int']['output'];
   unassignedRides: UnassignedRidesPage;
   unmappedStravaGears: Array<StravaGearInfo>;
 };
@@ -1084,6 +1086,15 @@ export type Ride = {
   stravaGearId?: Maybe<Scalars['String']['output']>;
   suuntoWorkoutId?: Maybe<Scalars['String']['output']>;
   trailSystem?: Maybe<Scalars['String']['output']>;
+  /**
+   * Ridden on a bike the rider does not own: a demo, a loaner, a rental, a
+   * friend's bike. Always paired with a null bikeId, and the two are kept in
+   * sync by the server (assigning a bike clears this; setting this clears the
+   * bike). Distinguishes "not my bike" from "not assigned yet", so clients can
+   * stop prompting for a bike that is never coming. The ride still counts
+   * toward ride stats and insights; it credits no component either way.
+   */
+  unownedBike: Scalars['Boolean']['output'];
   updatedAt: Scalars['String']['output'];
   userId: Scalars['ID']['output'];
   weather?: Maybe<RideWeather>;
@@ -1146,6 +1157,7 @@ export type RidesFilterInput = {
   bikeId?: InputMaybe<Scalars['ID']['input']>;
   endDate?: InputMaybe<Scalars['String']['input']>;
   startDate?: InputMaybe<Scalars['String']['input']>;
+  unassigned?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type ServiceEvent = {
@@ -1492,6 +1504,7 @@ export type UpdateRideInput = {
   rideType?: InputMaybe<Scalars['String']['input']>;
   startTime?: InputMaybe<Scalars['String']['input']>;
   trailSystem?: InputMaybe<Scalars['String']['input']>;
+  unownedBike?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type UpdateServiceLogInput = {
@@ -1875,7 +1888,7 @@ export type RideQueryVariables = Exact<{
 }>;
 
 
-export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
+export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
 
 export type RideTrackQueryVariables = Exact<{
   rideId: Scalars['ID']['input'];
@@ -1889,7 +1902,7 @@ export type RecentRidesQueryVariables = Exact<{
 }>;
 
 
-export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
+export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
 
 export type RidesPageQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -1898,7 +1911,7 @@ export type RidesPageQueryVariables = Exact<{
 }>;
 
 
-export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
 
 export type UpdateServiceLogMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1939,13 +1952,18 @@ export type DeleteStravaGearMappingMutationVariables = Exact<{
 
 export type DeleteStravaGearMappingMutation = { __typename?: 'Mutation', deleteStravaGearMapping: { __typename?: 'DeleteResult', ok: boolean, id: string } };
 
+export type UnassignedRideCountQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UnassignedRideCountQuery = { __typename?: 'Query', unassignedRideCount: number };
+
 export type UpdateRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
   input: UpdateRideInput;
 }>;
 
 
-export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null } };
 
 export type UpdateUserPreferencesMutationVariables = Exact<{
   input: UpdateUserPreferencesInput;
@@ -3694,6 +3712,7 @@ export const RideDocument = gql`
     averageHr
     rideType
     bikeId
+    unownedBike
     location
     notes
     garminActivityId
@@ -3808,6 +3827,7 @@ export const RecentRidesDocument = gql`
     elevationGainMeters
     rideType
     bikeId
+    unownedBike
     location
     weather {
       id
@@ -3864,6 +3884,7 @@ export const RidesPageDocument = gql`
     averageHr
     rideType
     bikeId
+    unownedBike
     location
     notes
     garminActivityId
@@ -4158,6 +4179,46 @@ export function useDeleteStravaGearMappingMutation(baseOptions?: Apollo.Mutation
 export type DeleteStravaGearMappingMutationHookResult = ReturnType<typeof useDeleteStravaGearMappingMutation>;
 export type DeleteStravaGearMappingMutationResult = Apollo.MutationResult<DeleteStravaGearMappingMutation>;
 export type DeleteStravaGearMappingMutationOptions = Apollo.BaseMutationOptions<DeleteStravaGearMappingMutation, DeleteStravaGearMappingMutationVariables>;
+export const UnassignedRideCountDocument = gql`
+    query UnassignedRideCount {
+  unassignedRideCount
+}
+    `;
+
+/**
+ * __useUnassignedRideCountQuery__
+ *
+ * To run a query within a React component, call `useUnassignedRideCountQuery` and pass it any options that fit your needs.
+ * When your component renders, `useUnassignedRideCountQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useUnassignedRideCountQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useUnassignedRideCountQuery(baseOptions?: Apollo.QueryHookOptions<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>(UnassignedRideCountDocument, options);
+      }
+export function useUnassignedRideCountLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>(UnassignedRideCountDocument, options);
+        }
+// @ts-ignore
+export function useUnassignedRideCountSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>): Apollo.UseSuspenseQueryResult<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>;
+export function useUnassignedRideCountSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>): Apollo.UseSuspenseQueryResult<UnassignedRideCountQuery | undefined, UnassignedRideCountQueryVariables>;
+export function useUnassignedRideCountSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>(UnassignedRideCountDocument, options);
+        }
+export type UnassignedRideCountQueryHookResult = ReturnType<typeof useUnassignedRideCountQuery>;
+export type UnassignedRideCountLazyQueryHookResult = ReturnType<typeof useUnassignedRideCountLazyQuery>;
+export type UnassignedRideCountSuspenseQueryHookResult = ReturnType<typeof useUnassignedRideCountSuspenseQuery>;
+export type UnassignedRideCountQueryResult = Apollo.QueryResult<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>;
 export const UpdateRideDocument = gql`
     mutation UpdateRide($id: ID!, $input: UpdateRideInput!) {
   updateRide(id: $id, input: $input) {
@@ -4168,6 +4229,7 @@ export const UpdateRideDocument = gql`
     elevationGainMeters
     rideType
     bikeId
+    unownedBike
     location
     notes
   }

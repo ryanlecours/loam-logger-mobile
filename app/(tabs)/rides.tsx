@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useRouter, Href } from 'expo-router';
+import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRidesPaginated, RideItem } from '../../src/hooks/useRidesPaginated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
@@ -52,7 +52,30 @@ function getDateRangeFilter(range: DateRange): RidesFilterInput | undefined {
 export default function RidesScreen() {
   const router = useRouter();
   const [dateRange, setDateRange] = useState<DateRange>('all');
-  const filter = useMemo(() => getDateRangeFilter(dateRange), [dateRange]);
+
+  // The dashboard's "N rides need a bike" banner links here with
+  // ?unassigned=1. Mirrored into state so the rider can clear it from the
+  // banner row below without navigating away.
+  const { unassigned: unassignedParam } = useLocalSearchParams<{ unassigned?: string }>();
+  const [unassignedOnly, setUnassignedOnly] = useState(unassignedParam === '1');
+  useEffect(() => {
+    if (unassignedParam === '1') setUnassignedOnly(true);
+  }, [unassignedParam]);
+
+  const filter = useMemo(() => {
+    const range = getDateRangeFilter(dateRange);
+    // `unassigned` and `bikeId` are mutually exclusive server-side; this screen
+    // never sets bikeId, so combining with the date range is safe.
+    return unassignedOnly ? { ...(range ?? {}), unassigned: true } : range;
+  }, [dateRange, unassignedOnly]);
+
+  const clearUnassignedFilter = useCallback(() => {
+    setUnassignedOnly(false);
+    // Drop the param too. Left in place, returning to this tab later would
+    // re-apply the filter through the effect above.
+    router.setParams({ unassigned: undefined });
+  }, [router]);
+
   const { rides, loading, hasMore, loadMore, refetch } = useRidesPaginated(filter);
   const { bikes } = useBikesWithPredictions();
   const [refreshing, setRefreshing] = useState(false);
@@ -98,6 +121,24 @@ export default function RidesScreen() {
 
   const renderEmpty = () => {
     if (loading) return null;
+    // Checked before the date-range branches: with the filter on, an empty
+    // list means every ride has a bike, not that the rider has no rides.
+    if (unassignedOnly) {
+      return (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Ionicons name="checkmark-circle-outline" size={48} color={colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>Every ride has a bike</Text>
+          <Text style={styles.emptySubtitle}>
+            All your rides are counting toward component wear.
+          </Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={clearUnassignedFilter}>
+            <Text style={styles.emptyButtonText}>Show all rides</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     if (dateRange === 'all') {
       return (
         <View style={styles.emptyContainer}>
@@ -143,6 +184,26 @@ export default function RidesScreen() {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
+      {unassignedOnly && (
+        <View style={styles.unassignedBar}>
+          <Ionicons
+            name="bicycle-outline"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <Text style={styles.unassignedText}>Rides with no bike</Text>
+          <TouchableOpacity
+            onPress={clearUnassignedFilter}
+            style={styles.unassignedClear}
+            accessibilityRole="button"
+            accessibilityLabel="Show all rides"
+          >
+            <Text style={styles.unassignedClearText}>Show all</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -231,6 +292,38 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingBottom: 8,
+  },
+  // Sage interactive voice, not the component-health ramp: an unassigned ride
+  // is a missing input, not a worn part (DESIGN.md).
+  unassignedBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingLeft: 14,
+    paddingRight: 6,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primaryMuted,
+  },
+  unassignedText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  unassignedClear: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  unassignedClearText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   filterBar: {
     paddingHorizontal: 16,

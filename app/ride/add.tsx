@@ -17,6 +17,7 @@ import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useAddRideMutation } from '../../src/graphql/generated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../src/components/common/PickerSelect';
+import { UNOWNED_BIKE_VALUE } from '../../src/constants/rideBike';
 import { colors, radius } from '../../src/constants/theme';
 
 const RIDE_TYPES = [
@@ -106,6 +107,8 @@ export default function AddRideScreen() {
     const durationSeconds =
       (parseInt(hours || '0', 10) * 3600) + (parseInt(minutes || '0', 10) * 60);
 
+    const unownedBike = bikeId === UNOWNED_BIKE_VALUE;
+
     try {
       await addRide({
         variables: {
@@ -115,13 +118,16 @@ export default function AddRideScreen() {
             distanceMeters: toMeters(parseFloat(distance)),
             elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
             rideType,
-            bikeId: bikeId || null,
+            // Never send both: the server rejects a bikeId alongside
+            // unownedBike: true rather than silently picking one.
+            bikeId: unownedBike ? null : bikeId || null,
+            unownedBike,
             averageHr: averageHr ? parseInt(averageHr, 10) : null,
             location: location || null,
             notes: notes || null,
           },
         },
-        refetchQueries: ['RidesPage', 'RecentRides'],
+        refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
       });
       router.back();
     } catch (_error) {
@@ -247,21 +253,23 @@ export default function AddRideScreen() {
         />
       </View>
 
-      {/* Bike */}
-      {bikes.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Bike</Text>
-          <PickerSelect
-            selectedValue={bikeId}
-            onValueChange={setBikeId}
-            options={bikes.map((bike) => ({
+      {/* Bike. Rendered even with no bikes on the account: "Not my bike" is a
+          valid answer for a rider logging a demo or rental. */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Bike</Text>
+        <PickerSelect
+          selectedValue={bikeId}
+          onValueChange={setBikeId}
+          options={[
+            ...bikes.map((bike) => ({
               label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
               value: bike.id,
-            }))}
-            placeholder="Select a bike"
-          />
-        </View>
-      )}
+            })),
+            { label: 'Not my bike (demo or loaner)', value: UNOWNED_BIKE_VALUE },
+          ]}
+          placeholder="Select a bike"
+        />
+      </View>
 
       {/* Optional: Average HR */}
       <View style={styles.section}>

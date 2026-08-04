@@ -94,6 +94,20 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
     ? ride.notes ?? ride.location
     : ride.location;
 
+  // A ride with no bike credits its duration to no component at all, so the
+  // row has to say so instead of rendering an empty slot. Garmin never reports
+  // gear, so on a multi-bike account this is the normal state of a freshly
+  // synced ride, not an edge case.
+  //
+  // Keyed on `ride.bikeId`, not on a missing `bikeName`: the name is also
+  // absent while the bike list is still loading and for a bike outside the
+  // loaded set, and flashing "Assign bike" at a rider whose bikes simply
+  // haven't arrived yet would be wrong.
+  //
+  // A ride the rider marked as someone else's bike is settled, not
+  // outstanding, so it gets a plain label instead of a call to action.
+  const needsBike = !ride.bikeId && !ride.unownedBike;
+
   // One spoken summary for the row. Read element by element this was up to
   // eight stops (date, two source badges, title, distance, duration,
   // elevation, bike) with no stated relationship between them.
@@ -103,6 +117,8 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
     distanceStr,
     durationStr,
     bikeName,
+    ride.unownedBike ? 'not my bike' : null,
+    needsBike ? 'no bike assigned, open to assign one' : null,
     sourceBadges.length ? `from ${sourceBadges.map((b) => b.label).join(' and ')}` : null,
   ]
     .filter(Boolean)
@@ -154,7 +170,7 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
           <WeatherBadge weather={ride.weather} distanceUnit={distanceUnit as 'mi' | 'km'} />
         </View>
 
-        {(titleText || bikeName) && (
+        {(titleText || bikeName || needsBike || ride.unownedBike) && (
           <View style={styles.bottomRow}>
             {titleText && (
               <Text style={styles.location} numberOfLines={1}>
@@ -165,6 +181,24 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
               <Text style={styles.bikeName} numberOfLines={1}>
                 {bikeName}
               </Text>
+            )}
+            {/* Muted text, not a chip: it sits in the same slot a bike name
+                would, because it is the answer to the same question. */}
+            {ride.unownedBike && (
+              <Text style={styles.bikeName} numberOfLines={1}>
+                Not my bike
+              </Text>
+            )}
+            {/* Deliberately not its own touchable: the whole row already
+                navigates to the ride, which opens straight onto the bike
+                picker for an unassigned ride. A nested button here would add
+                a second target with an identical destination. Hidden from the
+                screen reader because `spoken` above already says it. */}
+            {needsBike && (
+              <View style={styles.assignBikeChip} accessibilityElementsHidden>
+                <Ionicons name="add-circle-outline" size={12} color={colors.primary} />
+                <Text style={styles.assignBikeText}>Assign bike</Text>
+              </View>
             )}
           </View>
         )}
@@ -253,5 +287,24 @@ const styles = StyleSheet.create({
   bikeName: {
     fontSize: 12,
     color: colors.textMuted,
+  },
+  // Sage interactive voice, never the component-health ramp: a ride with no
+  // bike is missing an input, not a worn part, and borrowing the ramp here
+  // would make it read as a service state (DESIGN.md).
+  assignBikeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryMuted,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  assignBikeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
