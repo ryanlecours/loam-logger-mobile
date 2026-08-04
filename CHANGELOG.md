@@ -46,9 +46,11 @@ New
   prompt were to ignore it forever or to assign a bike that never turned a
   wheel on that ride, which is the one action that corrupts component wear.
   Marked rides drop out of the count and the filter, show "Not my bike" where a
-  bike name would sit, and can be changed back from the edit screen. The edit
-  and add screens now render the Bike section even with no bikes on the
-  account, since that is exactly when the answer is needed.
+  bike name would sit, and can be changed back from the edit screen. All three
+  surfaces offer the answer even with no bikes on the account, since a rider
+  with no bikes is exactly the one whose rides sit unassigned; the detail
+  picker adapts its copy rather than asking which bike they rode when there
+  are none.
 - Requires the API changes in loam-logger#289. Sage interactive voice
   throughout, never the component-health ramp: an unassigned or unowned ride is
   a missing input, not a worn part.

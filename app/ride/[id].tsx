@@ -308,8 +308,15 @@ export default function RideDetailScreen() {
   // `unownedBike` is the rider having already answered "it wasn't mine", so the
   // picker stays closed for those rides. They can still change it from the edit
   // screen, which is the way back if they marked one by mistake.
-  const showBikePicker =
-    !ride.bikeId && !ride.unownedBike && !justAssigned && bikes.length > 0;
+  //
+  // Deliberately NOT gated on `bikes.length > 0`. With no bikes on the account
+  // there is nothing to assign, but "Not my bike" is still a valid and useful
+  // answer, and it is the whole reason a rider with no bikes has unassigned
+  // rides sitting around. Hiding the card meant the edit screen was the only
+  // way out, which is the same trap this screen was fixed to escape. The copy
+  // below adapts rather than asking which bike they rode when there are none.
+  const showBikePicker = !ride.bikeId && !ride.unownedBike && !justAssigned;
+  const hasBikesToPick = bikes.length > 0;
 
   return (
     <ScrollView
@@ -335,9 +342,13 @@ export default function RideDetailScreen() {
           rather than burying it below header/stats/weather. */}
       {showBikePicker && (
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Which bike did you ride?</Text>
+          <Text style={styles.sectionTitle}>
+            {hasBikesToPick ? 'Which bike did you ride?' : 'This ride has no bike'}
+          </Text>
           <Text style={styles.pickerSubtitle}>
-            Tap to assign this ride so component hours track correctly.
+            {hasBikesToPick
+              ? 'Tap to assign this ride so component hours track correctly.'
+              : 'You have no bikes yet. Add one in Gear to start tracking hours, or mark this as a bike you do not own.'}
           </Text>
           {bikes.map((bike) => {
             const label = bike.nickname || `${bike.manufacturer} ${bike.model}`;
