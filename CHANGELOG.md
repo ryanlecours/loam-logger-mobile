@@ -11,6 +11,48 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.1.4 - 2026-08-04
+
+### App Store "What's New"
+
+New
+- Rides that sync without a bike now say so on the ride list, and you can pick
+  the bike right from the ride instead of hunting for it
+- The dashboard tells you how many rides are still waiting on a bike, and taps
+  through to just those rides. Until a ride has a bike, its hours are not
+  counted toward any part's wear
+- Rode a demo, a loaner or a rental? Mark it "Not my bike" and it stops asking
+
+### Internal
+- `feat(rides)`: the ride-detail bike picker now shows for any unassigned ride.
+  It was gated on arriving from the "Which bike did you ride?" push
+  (`action=pickBike`), and nothing in the app produced that param, so a missed
+  or dismissed notification stranded the ride: the list row rendered nothing
+  (the bike slot is gated on a truthy name) and the detail screen hid its bike
+  section outright. The deep link still works, it just no longer has to be the
+  way in. `pickerDismissed` became `justAssigned`, since only a successful
+  assignment ever set it.
+- `feat(rides)`: rows carry an "Assign bike" chip when a ride has no bike,
+  keyed on `bikeId` rather than a missing bike name so it cannot flash at a
+  rider whose bikes have not loaded yet. Not its own touchable: the row already
+  navigates to the ride, which now opens onto the picker.
+- `feat(dashboard)`: a banner counting rides that need a bike across the whole
+  history (server-side `unassignedRideCount`, not derived from the three-ride
+  preview), linking to the rides tab filtered to them, with a clear-filter row
+  and its own empty state.
+- `feat(rides)`: "Not my bike (demo or loaner)" in the detail picker, the edit
+  form and the manual add form, mapped to the API's `unownedBike` flag with a
+  null bikeId via a shared sentinel. Without it the only ways to clear the new
+  prompt were to ignore it forever or to assign a bike that never turned a
+  wheel on that ride, which is the one action that corrupts component wear.
+  Marked rides drop out of the count and the filter, show "Not my bike" where a
+  bike name would sit, and can be changed back from the edit screen. The edit
+  and add screens now render the Bike section even with no bikes on the
+  account, since that is exactly when the answer is needed.
+- Requires the API changes in loam-logger#289. Sage interactive voice
+  throughout, never the component-health ramp: an unassigned or unowned ride is
+  a missing input, not a worn part.
+
 ## 1.1.2 - 2026-07-30
 
 ### App Store "What's New"
