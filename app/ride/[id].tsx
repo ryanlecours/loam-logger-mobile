@@ -98,10 +98,15 @@ function getSourceInfo(ride: {
 }
 
 export default function RideDetailScreen() {
-  // `action=pickBike` still arrives on the deep link from the bike-pick push,
-  // but nothing reads it any more: the picker below shows for every unassigned
-  // ride, so the notification only needs to get the rider to this screen.
-  const { id } = useLocalSearchParams<{ id: string; action?: string }>();
+  // The bike-pick push still deep-links here with `?action=pickBike`, and it is
+  // deliberately absent from this type: nothing on this screen reads it any
+  // more, because the picker below opens for every unassigned ride. The
+  // notification only has to land on the right ride now.
+  //
+  // The API keeps sending it regardless, and should: app versions up to 1.1.3
+  // gate their picker on that param, so dropping it would leave those installs
+  // deep-linking to a ride with no picker at all.
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const { isFree } = useUserTier();

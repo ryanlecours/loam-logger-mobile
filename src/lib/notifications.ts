@@ -92,8 +92,13 @@ export function openNotificationSettings(): void {
  * surface a specific UI affordance on mount. Today the only action is
  * `pickBike`, used by the bike-assignment notification fired for new
  * unassigned rides on multi-bike accounts (see fireRideNotifications in
- * the API). The ride detail screen reads the `?action=pickBike` query
- * param and auto-opens its bike picker.
+ * the API).
+ *
+ * As of 1.1.4 the ride detail screen no longer reads it: its bike picker
+ * opens for any unassigned ride, so the deep link only has to land on the
+ * right ride. The param is still forwarded because app versions up to 1.1.3
+ * do gate their picker on it and are still installed, so the API cannot stop
+ * sending it and this helper must keep passing it through.
  *
  * Returns `true` if a route was dispatched, `false` if the payload was
  * unrecognized — useful for the cold-start path to decide whether to clear
