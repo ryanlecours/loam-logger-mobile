@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   useRidesPageQuery,
   RidesFilterInput,
@@ -16,18 +16,23 @@ export function useRidesPaginated(filter?: RidesFilterInput) {
     notifyOnNetworkStatusChange: true,
   });
 
-  // "Length is a multiple of PAGE_SIZE" is only a guess at whether more pages
-  // exist, and with the cache persisted to disk the restored list can be any
-  // length. Keep the guess for the first paint, but once a fetchMore comes
-  // back short we know the end definitively; a new filter starts over.
+  // The definitive end-of-list signal: a cursor page came back short (or
+  // brought nothing new). Until then, a full head is assumed to have more.
+  // Deliberately NOT a length % PAGE_SIZE check: dedup below can make the
+  // list any length, and a modulo gate would permanently stop pagination
+  // after the first overlapping page. A new filter starts over.
   const [reachedEnd, setReachedEnd] = useState(false);
   useEffect(() => {
     setReachedEnd(false);
   }, [filter]);
 
+  // One cursor request at a time. FlatList fires onEndReached repeatedly
+  // while the rider sits at the bottom; without this, every fire would issue
+  // the same `after` cursor again.
+  const loadingMoreRef = useRef(false);
+
   const rides = data?.rides ?? [];
-  const hasMore =
-    !reachedEnd && rides.length >= PAGE_SIZE && rides.length % PAGE_SIZE === 0;
+  const hasMore = !reachedEnd && rides.length >= PAGE_SIZE;
 
   const loadMore = useCallback(() => {
     const currentRides = data?.rides ?? [];
@@ -36,25 +41,33 @@ export function useRidesPaginated(filter?: RidesFilterInput) {
       !lastRide ||
       reachedEnd ||
       currentRides.length < PAGE_SIZE ||
-      currentRides.length % PAGE_SIZE !== 0
+      loadingMoreRef.current
     ) {
       return;
     }
+    loadingMoreRef.current = true;
     fetchMore({
       variables: { after: lastRide.id },
       updateQuery: (prev, { fetchMoreResult }) => {
         if (!fetchMoreResult) return prev;
-        if (fetchMoreResult.rides.length < PAGE_SIZE) setReachedEnd(true);
         // Dedupe by id: after a restore-from-disk plus background refetch,
         // the head of the list may already contain rides the cursor page
         // returns again, and a naive concat would render duplicates.
         const seen = new Set(prev.rides.map((r) => r.id));
         const fresh = fetchMoreResult.rides.filter((r) => !seen.has(r.id));
+        // A short page is the end. So is a page that deduped to nothing:
+        // the cursor did not advance, and asking again with the same cursor
+        // would loop forever.
+        if (fetchMoreResult.rides.length < PAGE_SIZE || fresh.length === 0) {
+          setReachedEnd(true);
+        }
         return {
           ...prev,
           rides: [...prev.rides, ...fresh],
         };
       },
+    }).finally(() => {
+      loadingMoreRef.current = false;
     });
   }, [data?.rides, fetchMore, reachedEnd]);
 
