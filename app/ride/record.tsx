@@ -5,9 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  BackHandler,
   Linking,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -69,6 +70,20 @@ export default function RecordRideScreen() {
       { text: 'Discard', style: 'destructive', onPress: () => void leave() },
     ]);
   }, [router, snapshot.status]);
+
+  // The layout hides the header back button and disables the swipe gesture,
+  // but neither touches Android's hardware back, which would otherwise pop
+  // this screen silently and leave the singleton recorder running with no UI
+  // attached. Route it into the same explicit discard flow.
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        handleDiscard();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [handleDiscard]),
+  );
 
   // Permission permanently denied: the OS will not re-prompt, so the only
   // useful button is the one that opens Settings.

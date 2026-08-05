@@ -50,7 +50,9 @@ export default function RideLayout() {
       />
       {/* No modal presentation and no back gesture affordance: leaving a
           live recording must be an explicit choice (Finish or Discard),
-          not a swipe. */}
+          not a swipe. These options do NOT cover Android's hardware back;
+          record.tsx and save-recording.tsx each register a BackHandler that
+          routes it into the same discard confirmation. */}
       <Stack.Screen
         name="record"
         options={{

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
@@ -99,7 +100,7 @@ export default function SaveRecordingScreen() {
     }
   };
 
-  const handleDiscard = () => {
+  const handleDiscard = useCallback(() => {
     Alert.alert('Discard this ride?', 'The recording will be deleted.', [
       { text: 'Keep', style: 'cancel' },
       {
@@ -110,7 +111,20 @@ export default function SaveRecordingScreen() {
         },
       },
     ]);
-  };
+  }, [router]);
+
+  // Android hardware back would otherwise pop this screen and strand the
+  // finished-but-unsaved recording (the header back and swipe gesture are
+  // already disabled in the layout). The only exits are Save and Discard.
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        handleDiscard();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [handleDiscard]),
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
