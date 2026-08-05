@@ -256,7 +256,9 @@ export function ImportRidesSheet({
                               ) : isInProgress ? (
                                 <ActivityIndicator size="small" color={colors.primary} />
                               ) : isProLocked ? (
-                                <Ionicons name="lock-closed" size={20} color={colors.textMuted} />
+                                // No padlock: a dimmed radio + the "Included
+                                // with Pro" meta line carry the gate neutrally.
+                                <Ionicons name="radio-button-off" size={24} color={colors.cardBorder} />
                               ) : isSelected ? (
                                 <Ionicons name="radio-button-on" size={24} color={colors.primary} />
                               ) : (
@@ -276,7 +278,7 @@ export function ImportRidesSheet({
                                 <Text style={styles.yearMeta}>Sync in progress...</Text>
                               )}
                               {isProLocked && !isCompleted && !isInProgress && (
-                                <Text style={styles.yearMeta}>Pro</Text>
+                                <Text style={styles.yearMeta}>Included with Pro</Text>
                               )}
                             </View>
                           </TouchableOpacity>

@@ -1,8 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { StatusDot } from './StatusDot';
 import { ComponentFieldsFragment } from '../../graphql/generated';
-import { colors, radius } from '../../constants/theme';
+import { colors } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
 
 interface ComponentRowProps {
@@ -12,7 +11,6 @@ interface ComponentRowProps {
   /** Raw usage from the prediction — shown when hoursRemaining is gated (free tier). */
   hoursSinceService?: number | null;
   ridesSinceService?: number | null;
-  restricted?: boolean;
   /** Off for the last row in a grouped list, whose container draws the edge. */
   showDivider?: boolean;
   onPress?: () => void;
@@ -25,7 +23,7 @@ const STATUS_SPOKEN: Record<string, string> = {
   ALL_GOOD: 'good',
 };
 
-export function ComponentRow({ component, status, hoursRemaining, hoursSinceService, ridesSinceService, restricted, showDivider = true, onPress }: ComponentRowProps) {
+export function ComponentRow({ component, status, hoursRemaining, hoursSinceService, ridesSinceService, showDivider = true, onPress }: ComponentRowProps) {
   const label = formatComponentType(component.type, component.location);
   const brandModel = [component.brand, component.model].filter(Boolean).join(' ');
   const effectiveStatus = status || component.status || 'UNKNOWN';
@@ -57,8 +55,8 @@ export function ComponentRow({ component, status, hoursRemaining, hoursSinceServ
 
   // The dot and the color of the hours text carry the status visually; neither
   // reaches a screen reader, so the status is spoken into the row's own label.
-  const spokenStatus = restricted ? null : STATUS_SPOKEN[effectiveStatus];
-  const accessibilityLabel = [label, brandModel, spokenStatus, restricted ? 'Pro' : hoursText]
+  const spokenStatus = STATUS_SPOKEN[effectiveStatus];
+  const accessibilityLabel = [label, brandModel, spokenStatus, hoursText]
     .filter(Boolean)
     .join(', ');
 
@@ -67,7 +65,6 @@ export function ComponentRow({ component, status, hoursRemaining, hoursSinceServ
       style={[
         styles.container,
         showDivider && styles.containerDivided,
-        restricted && styles.containerRestricted,
       ]}
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
@@ -76,17 +73,13 @@ export function ComponentRow({ component, status, hoursRemaining, hoursSinceServ
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: !onPress }}
     >
-      {restricted ? (
-        <Ionicons name="lock-closed" size={12} color={colors.textMuted} />
-      ) : (
-        <StatusDot status={effectiveStatus} />
-      )}
+      <StatusDot status={effectiveStatus} />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={[styles.type, restricted && styles.textRestricted]}>
+          <Text style={styles.type}>
             {label}
           </Text>
-          {!restricted && hoursText && (
+          {hoursText && (
             <Text
               style={[
                 styles.hours,
@@ -97,12 +90,9 @@ export function ComponentRow({ component, status, hoursRemaining, hoursSinceServ
               {hoursText}
             </Text>
           )}
-          {restricted && (
-            <Text style={styles.restrictedLabel}>Pro</Text>
-          )}
         </View>
         {brandModel && (
-          <Text style={[styles.brandModel, restricted && styles.textRestricted]} numberOfLines={1}>
+          <Text style={styles.brandModel} numberOfLines={1}>
             {brandModel}
           </Text>
         )}
@@ -158,23 +148,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
-  },
-  containerRestricted: {
-    opacity: 0.5,
-  },
-  textRestricted: {
-    color: colors.textMuted,
-  },
-  restrictedLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    // Pro gating is commercial, not component health — keep it neutral.
-    color: colors.textSecondary,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-    overflow: 'hidden',
-    marginLeft: 8,
   },
 });

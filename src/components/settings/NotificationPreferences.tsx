@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useUserTier } from '../../hooks/useUserTier';
+import { ProChip } from '../common/UpgradePrompt';
 import { openNotificationSettings } from '../../lib/notifications';
 import { RideSyncNotificationMode } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
@@ -125,27 +126,40 @@ export function NotificationPreferences() {
             </Text>
           </View>
 
-          {/* Weekly digest: a prediction surface, so Pro only. Hidden (not
-              upsold) for free users: Settings is a control panel, and a
-              toggle that stores but never sends would be a lie. */}
-          {!isFree && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.row}>
-                <View style={styles.rowContent}>
-                  <Text style={styles.rowLabel}>Weekend Bike Check</Text>
-                  <Text style={styles.rowDescription}>
-                    One Friday-morning summary of every bike, before the weekend
-                  </Text>
-                </View>
-                <Switch
-                  value={weeklyDigestEnabled}
-                  onValueChange={handleDigestToggle}
-                  trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                  thumbColor="#fff"
-                />
+          {/* Weekly digest: a prediction surface, so Pro only. Free users see
+              the row with a Pro chip instead of a toggle: a switch that stores
+              but never sends would be a lie, but hiding the row entirely made
+              the feature undiscoverable. */}
+          <View style={styles.divider} />
+          {isFree ? (
+            // Plain View, not a touchable: the ProChip is the single tap
+            // target (it routes to the paywall and carries its own a11y
+            // label), so wrapping the row would nest two touchables that do
+            // the same thing.
+            <View style={styles.row}>
+              <View style={styles.rowContent}>
+                <Text style={styles.rowLabel}>Weekend Bike Check</Text>
+                <Text style={styles.rowDescription}>
+                  One Friday-morning summary of every bike, before the weekend
+                </Text>
               </View>
-            </>
+              <ProChip />
+            </View>
+          ) : (
+            <View style={styles.row}>
+              <View style={styles.rowContent}>
+                <Text style={styles.rowLabel}>Weekend Bike Check</Text>
+                <Text style={styles.rowDescription}>
+                  One Friday-morning summary of every bike, before the weekend
+                </Text>
+              </View>
+              <Switch
+                value={weeklyDigestEnabled}
+                onValueChange={handleDigestToggle}
+                trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
           )}
 
           {/* Service reminders - navigate to per-bike screen */}

@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter, type Href } from 'expo-router';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -43,6 +44,7 @@ export function ReplaceComponentSheet({
   onClose,
   onReplaced,
 }: ReplaceComponentSheetProps) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('spare');
   const [selectedSpareId, setSelectedSpareId] = useState<string | null>(null);
@@ -139,7 +141,20 @@ export function ReplaceComponentSheet({
     } catch (error) {
       const err = error as ApolloError;
       if (isTierError(err)) {
-        Alert.alert('Upgrade Required', getTierErrorMessage(err));
+        // Every tier-error alert offers the path forward, matching add-bike.
+        Alert.alert('Upgrade Required', getTierErrorMessage(err), [
+          { text: 'OK', style: 'cancel' },
+          {
+            text: 'Upgrade',
+            onPress: () => {
+              // handleClose, not onClose: the parent keeps this sheet mounted
+              // and only toggles `visible`, so skipping resetForm() would
+              // leave stale form state for the next open.
+              handleClose();
+              router.push('/settings-detail/pricing' as Href);
+            },
+          },
+        ]);
       } else {
         Alert.alert('Error', err.message);
       }
@@ -156,6 +171,8 @@ export function ReplaceComponentSheet({
     installComponent,
     resetForm,
     onReplaced,
+    handleClose,
+    router,
   ]);
 
   const canSubmit =

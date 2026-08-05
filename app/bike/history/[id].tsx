@@ -264,7 +264,13 @@ export default function BikeHistoryScreen() {
 
       {showPdfUpsell && !isPro && (
         <View style={styles.pdfUpsell}>
-          <UpsellCard feature="pdfExport" />
+          {/* Click-triggered: session-only dismissal, or a persisted
+              dismissal would leave the export button doing nothing. */}
+          <UpsellCard
+            feature="pdfExport"
+            persist={false}
+            onDismiss={() => setShowPdfUpsell(false)}
+          />
         </View>
       )}
 

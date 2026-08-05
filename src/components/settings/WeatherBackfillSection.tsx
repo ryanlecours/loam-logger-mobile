@@ -124,14 +124,16 @@ export function WeatherBackfillSection() {
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <>
+              {/* No padlock for the free state: gating stays neutral, and the
+                  label already says where the feature lives. */}
               <Ionicons
-                name={isPro ? 'cloud-download-outline' : 'lock-closed-outline'}
+                name="cloud-download-outline"
                 size={16}
                 color={isPro ? colors.primary : colors.textMuted}
               />
               <Text style={[styles.buttonText, { color: isPro ? colors.primary : colors.textMuted }]}>
                 {!isPro
-                  ? 'Pro feature'
+                  ? 'Included with Pro'
                   : lastResult === null
                     ? 'Fetch weather'
                     : hasMore

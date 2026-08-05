@@ -15,6 +15,7 @@ import { SubscriptionSection } from '../../src/components/settings/SubscriptionS
 import { WeatherBackfillSection } from '../../src/components/settings/WeatherBackfillSection';
 import { GarminWeatherRepairSection } from '../../src/components/settings/GarminWeatherRepairSection';
 import { BiometricUnlockSection } from '../../src/components/settings/BiometricUnlockSection';
+import { ProChip } from '../../src/components/common/UpgradePrompt';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
 import type { IntegrationProvider } from '../../src/api/integrations';
@@ -354,12 +355,9 @@ export default function SettingsScreen() {
         <View style={styles.prefRow}>
           <View style={styles.prefLabelRow}>
             <Text style={styles.prefLabel}>Wear Predictions</Text>
-            {!isPro && (
-              <View style={styles.proBadge}>
-                <Ionicons name="lock-closed" size={10} color="#fbbf24" />
-                <Text style={styles.proBadgeText}>Pro</Text>
-              </View>
-            )}
+            {/* Neutral Pro chip, no padlock and no gold: gating is commercial
+                messaging and stays in the sage family like every other chip. */}
+            {!isPro && <ProChip />}
           </View>
           <View style={styles.segmentedControl}>
             <TouchableOpacity
@@ -595,20 +593,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  proBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-  },
-  proBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fbbf24',
   },
   segmentLocked: {
     opacity: 0.5,

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { colors, radius } from '../../constants/theme';
 import { UPSELL_COPY, type UpsellFeature } from '../../constants/upsellCopy';
+import { isDismissalCovered, mergeDismissalTokens } from '../../utils/upsellDismissal';
 
 interface UpgradePromptProps {
   message: string;
@@ -58,20 +59,41 @@ export function ProChip() {
 
 /**
  * Dismissible feature upsell card driven by the shared copy map.
- * Dismissal is persisted per feature in SecureStore and respected forever.
+ * Dismissal is persisted per feature in SecureStore and respected until the
+ * user's situation materially changes: pass `rearmKey` as a comma-separated
+ * token set (e.g. the ids of parts past their service interval). A dismissal
+ * stores the set of tokens it covered (legacy dismissals stored the literal
+ * '1', which participates as an ordinary token), so each NEW token re-arms
+ * the card exactly once, while shrinking or repeating token sets stay
+ * dismissed. Pass `persist={false}` for cards revealed by an explicit user
+ * action: they should show every time the action is taken, so dismissal is
+ * session-only.
  */
-export function UpsellCard({ feature }: { feature: UpsellFeature }) {
+export function UpsellCard({
+  feature,
+  rearmKey,
+  body,
+  persist = true,
+  onDismiss,
+}: {
+  feature: UpsellFeature;
+  rearmKey?: string;
+  body?: string;
+  persist?: boolean;
+  onDismiss?: () => void;
+}) {
   const router = useRouter();
   const copy = UPSELL_COPY[feature];
   // Start hidden until the persisted dismissal state loads, so a dismissed
   // card never flashes in.
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(!persist);
 
   useEffect(() => {
+    if (!persist) return;
     let cancelled = false;
     SecureStore.getItemAsync(copy.dismissKey)
       .then((v) => {
-        if (!cancelled && v !== '1') setVisible(true);
+        if (!cancelled) setVisible(!isDismissalCovered(v, rearmKey));
       })
       .catch(() => {
         if (!cancelled) setVisible(true);
@@ -79,15 +101,19 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
     return () => {
       cancelled = true;
     };
-  }, [copy.dismissKey]);
+  }, [copy.dismissKey, rearmKey, persist]);
 
   if (!visible) return null;
 
   const dismiss = () => {
     setVisible(false);
-    SecureStore.setItemAsync(copy.dismissKey, '1').catch(() => {
-      // Storage unavailable — dismissed for this session only.
-    });
+    onDismiss?.();
+    if (!persist) return;
+    SecureStore.getItemAsync(copy.dismissKey)
+      .then((v) => SecureStore.setItemAsync(copy.dismissKey, mergeDismissalTokens(v, rearmKey)))
+      .catch(() => {
+        // Storage unavailable — dismissed for this session only.
+      });
   };
 
   return (
@@ -104,7 +130,7 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
         <Ionicons name="close" size={14} color={colors.textMuted} />
       </TouchableOpacity>
       <Text style={styles.cardTitle}>{copy.title}</Text>
-      <Text style={styles.cardBody}>{copy.body}</Text>
+      <Text style={styles.cardBody}>{body ?? copy.body}</Text>
       <TouchableOpacity
         style={styles.cardButton}
         onPress={() => router.push('/settings-detail/pricing' as Href)}
