@@ -147,7 +147,10 @@ export function ReplaceComponentSheet({
           {
             text: 'Upgrade',
             onPress: () => {
-              onClose();
+              // handleClose, not onClose: the parent keeps this sheet mounted
+              // and only toggles `visible`, so skipping resetForm() would
+              // leave stale form state for the next open.
+              handleClose();
               router.push('/settings-detail/pricing' as Href);
             },
           },
@@ -168,7 +171,7 @@ export function ReplaceComponentSheet({
     installComponent,
     resetForm,
     onReplaced,
-    onClose,
+    handleClose,
     router,
   ]);
 
