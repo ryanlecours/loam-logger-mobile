@@ -13,8 +13,11 @@ import {
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import * as Crypto from 'expo-crypto';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
-import { useAddRideMutation } from '../../src/graphql/generated';
+import { useAddRideMutation, type AddRideInput } from '../../src/graphql/generated';
+import { enqueue, classifyOutboxError } from '../../src/lib/outbox';
+import { isOnline } from '../../src/lib/connectivity';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../src/components/common/PickerSelect';
 import { UNOWNED_BIKE_VALUE } from '../../src/constants/rideBike';
@@ -109,29 +112,58 @@ export default function AddRideScreen() {
 
     const unownedBike = bikeId === UNOWNED_BIKE_VALUE;
 
+    // Generated on every submit, online or not: if the response gets lost in
+    // transit and this exact ride is retried, the server recognizes the key
+    // and returns the original instead of logging the ride twice.
+    const clientMutationId = Crypto.randomUUID();
+
+    const input: AddRideInput = {
+      startTime: date.toISOString(),
+      durationSeconds,
+      distanceMeters: toMeters(parseFloat(distance)),
+      elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
+      rideType,
+      // Never send both: the server rejects a bikeId alongside
+      // unownedBike: true rather than silently picking one.
+      bikeId: unownedBike ? null : bikeId || null,
+      unownedBike,
+      averageHr: averageHr ? parseInt(averageHr, 10) : null,
+      location: location || null,
+      notes: notes || null,
+      clientMutationId,
+    };
+
+    // The ride is committed to the on-device outbox instead of being lost:
+    // it uploads automatically when the app can reach the server again.
+    const queueAndClose = async () => {
+      await enqueue(clientMutationId, 'AddRide', { input });
+      Alert.alert(
+        'Ride saved on this phone',
+        "No connection right now. Your ride will upload automatically once you're back in signal.",
+      );
+      router.back();
+    };
+
+    if (!isOnline()) {
+      await queueAndClose();
+      return;
+    }
+
     try {
       await addRide({
-        variables: {
-          input: {
-            startTime: date.toISOString(),
-            durationSeconds,
-            distanceMeters: toMeters(parseFloat(distance)),
-            elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
-            rideType,
-            // Never send both: the server rejects a bikeId alongside
-            // unownedBike: true rather than silently picking one.
-            bikeId: unownedBike ? null : bikeId || null,
-            unownedBike,
-            averageHr: averageHr ? parseInt(averageHr, 10) : null,
-            location: location || null,
-            notes: notes || null,
-          },
-        },
+        variables: { input },
         refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
       });
       router.back();
-    } catch (_error) {
-      Alert.alert('Error', 'Failed to add ride. Please try again.');
+    } catch (error) {
+      // Only a deterministic rejection (validation, bad input) surfaces as an
+      // error. Transient failures (offline, timeout, 5xx, rate limit) queue,
+      // because a retry with identical bytes can succeed later.
+      if (classifyOutboxError(error).kind === 'retryable') {
+        await queueAndClose();
+      } else {
+        Alert.alert('Error', 'Failed to add ride. Please try again.');
+      }
     }
   };
 

@@ -13,7 +13,8 @@ import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRidesPaginated, RideItem } from '../../src/hooks/useRidesPaginated';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
-import { RideListItem } from '../../src/components/rides';
+import { usePendingRides } from '../../src/hooks/usePendingRides';
+import { RideListItem, PendingRideCard } from '../../src/components/rides';
 import type { RidesFilterInput } from '../../src/graphql/generated';
 import { colors, radius } from '../../src/constants/theme';
 
@@ -78,6 +79,7 @@ export default function RidesScreen() {
 
   const { rides, loading, hasMore, loadMore, refetch } = useRidesPaginated(filter);
   const { bikes } = useBikesWithPredictions();
+  const { pendingRides } = usePendingRides();
   const [refreshing, setRefreshing] = useState(false);
 
   const getBikeName = useCallback(
@@ -121,6 +123,9 @@ export default function RidesScreen() {
 
   const renderEmpty = () => {
     if (loading) return null;
+    // Rides queued offline render in the header above; "No rides yet" under
+    // a ride the rider just logged would read as the app losing it.
+    if (pendingRides.length > 0) return null;
     // Checked before the date-range branches: with the filter on, an empty
     // list means every ride has a bike, not that the rider has no rides.
     if (unassignedOnly) {
@@ -224,6 +229,12 @@ export default function RidesScreen() {
           );
         })}
       </ScrollView>
+      {/* Rides logged without signal, waiting in the outbox. Above the synced
+          list and outside the date filter: a rider who just logged a ride
+          offline needs to see it exists regardless of the active range. */}
+      {pendingRides.map((pendingRide) => (
+        <PendingRideCard key={pendingRide.id} pendingRide={pendingRide} />
+      ))}
       {/* Entry point for streaks, records, heart rate, locations and weather.
           Those used to sit at the bottom of the dashboard; they belong to the
           riding story, not the gear one. A link rather than an inline block so

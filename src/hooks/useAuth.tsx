@@ -22,6 +22,8 @@ import {
   isBiometricEnabled,
   type AuthenticateResult,
 } from '../lib/biometric';
+import { purgePersistedCache } from '../lib/apolloClient';
+import { clearOutbox } from '../lib/outbox';
 import { useViewer } from './useViewer';
 
 interface AuthContextType {
@@ -207,6 +209,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     await logoutAuth();
     await client.clearStore(); // Clear Apollo cache
+    // The in-memory cache is now empty, but its disk copy and any queued
+    // offline mutations would leak this rider's data to the next account
+    // on this device. Purge both.
+    await purgePersistedCache();
+    await clearOutbox().catch(() => {});
     setUser(null);
     setIsAuthenticated(false);
     setLocked(false);

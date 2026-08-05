@@ -3,8 +3,9 @@ import { ApolloProvider } from '@apollo/client';
 import { View, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { AuthProvider, useAuth } from '../src/hooks/useAuth';
-import { client } from '../src/lib/apolloClient';
-import { useEffect } from 'react';
+import { client, restoreApolloCache } from '../src/lib/apolloClient';
+import { initOfflineSync } from '../src/lib/offlineSync';
+import { useEffect, useState } from 'react';
 import { colors } from '../src/constants/theme';
 import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
 import { useNotifications } from '../src/hooks/useNotifications';
@@ -13,6 +14,7 @@ import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
+import { OfflineBanner } from '../src/components/common/OfflineBanner';
 import { LockScreen } from '../src/components/LockScreen';
 import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 
@@ -167,6 +169,7 @@ function RootLayoutNav() {
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <OfflineBanner />
       <Stack
         // `index` is a transient landing route (spinner only) so cold-boot
         // navigation is deterministic — see app/index.tsx.
@@ -226,6 +229,27 @@ const styles = StyleSheet.create({
 });
 
 function RootLayout() {
+  // Block first render until the persisted Apollo cache is restored.
+  // Mounting earlier would let screens fire queries against an empty cache,
+  // then have the restore stomp whatever those queries wrote. The restore is
+  // a local SQLite read, fast enough to hide inside the existing auth
+  // loading state.
+  const [cacheReady, setCacheReady] = useState(false);
+
+  useEffect(() => {
+    restoreApolloCache().finally(() => {
+      setCacheReady(true);
+      // Start connectivity monitoring and drain any rides queued on a
+      // previous launch. After the restore: a drain refetches queries, and
+      // those results should land in the restored cache, not a cold one.
+      initOfflineSync();
+    });
+  }, []);
+
+  if (!cacheReady) {
+    return <LoadingScreen />;
+  }
+
   return (
     <ApolloProvider client={client}>
       <AuthProvider>

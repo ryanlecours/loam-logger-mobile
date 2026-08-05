@@ -94,6 +94,7 @@ export type AddComponentInput = {
 export type AddRideInput = {
   averageHr?: InputMaybe<Scalars['Int']['input']>;
   bikeId?: InputMaybe<Scalars['ID']['input']>;
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   distanceMeters: Scalars['Float']['input'];
   durationSeconds: Scalars['Int']['input'];
   elevationGainMeters: Scalars['Float']['input'];
