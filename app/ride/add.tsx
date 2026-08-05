@@ -16,8 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useAddRideMutation, type AddRideInput } from '../../src/graphql/generated';
-import { enqueue, classifyOutboxError } from '../../src/lib/outbox';
-import { isOnline } from '../../src/lib/connectivity';
+import { submitRideResilient } from '../../src/lib/submitRide';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { PickerSelect } from '../../src/components/common/PickerSelect';
 import { UNOWNED_BIKE_VALUE } from '../../src/constants/rideBike';
@@ -133,37 +132,24 @@ export default function AddRideScreen() {
       clientMutationId,
     };
 
-    // The ride is committed to the on-device outbox instead of being lost:
-    // it uploads automatically when the app can reach the server again.
-    const queueAndClose = async () => {
-      await enqueue(clientMutationId, 'AddRide', { input });
-      Alert.alert(
-        'Ride saved on this phone',
-        "No connection right now. Your ride will upload automatically once you're back in signal.",
-      );
-      router.back();
-    };
-
-    if (!isOnline()) {
-      await queueAndClose();
-      return;
-    }
-
     try {
-      await addRide({
-        variables: { input },
-        refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
-      });
-      router.back();
-    } catch (error) {
-      // Only a deterministic rejection (validation, bad input) surfaces as an
-      // error. Transient failures (offline, timeout, 5xx, rate limit) queue,
-      // because a retry with identical bytes can succeed later.
-      if (classifyOutboxError(error).kind === 'retryable') {
-        await queueAndClose();
-      } else {
-        Alert.alert('Error', 'Failed to add ride. Please try again.');
+      const outcome = await submitRideResilient(input, () =>
+        addRide({
+          variables: { input },
+          refetchQueries: ['RidesPage', 'RecentRides', 'UnassignedRideCount'],
+        }),
+      );
+      if (outcome === 'queued') {
+        Alert.alert(
+          'Ride saved on this phone',
+          "No connection right now. Your ride will upload automatically once you're back in signal.",
+        );
       }
+      router.back();
+    } catch (_error) {
+      // Only a deterministic rejection (validation, bad input) reaches here;
+      // transient failures were queued by submitRideResilient.
+      Alert.alert('Error', 'Failed to add ride. Please try again.');
     }
   };
 

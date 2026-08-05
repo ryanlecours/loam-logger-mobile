@@ -23,6 +23,32 @@ const MIGRATIONS: string[] = [
     last_error TEXT,
     created_at INTEGER NOT NULL
   );`,
+  // GPS ride recording. The session row carries the running totals; points
+  // append in batches during the ride. Everything here must survive a crash
+  // or force-quit mid-ride, which is the reason this lives in SQLite rather
+  // than component state. Points keep raw GPS values (accuracy included) so
+  // later phases can re-run smoothing server-side; t is seconds since
+  // session start, matching the NormalizedStreams shape the API stores.
+  `CREATE TABLE IF NOT EXISTS recording_session (
+    id TEXT PRIMARY KEY NOT NULL,
+    status TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    active_ms INTEGER NOT NULL DEFAULT 0,
+    distance_m REAL NOT NULL DEFAULT 0,
+    elevation_gain_m REAL NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS recording_point (
+    session_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    t INTEGER NOT NULL,
+    lat REAL NOT NULL,
+    lng REAL NOT NULL,
+    altitude REAL,
+    accuracy REAL,
+    speed REAL,
+    PRIMARY KEY (session_id, seq)
+  );`,
 ];
 
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {

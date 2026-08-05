@@ -48,6 +48,25 @@ export default function RideLayout() {
           presentation: 'modal',
         }}
       />
+      {/* No modal presentation and no back gesture affordance: leaving a
+          live recording must be an explicit choice (Finish or Discard),
+          not a swipe. */}
+      <Stack.Screen
+        name="record"
+        options={{
+          title: 'Record Ride',
+          headerBackVisible: false,
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="save-recording"
+        options={{
+          title: 'Save Ride',
+          headerBackVisible: false,
+          gestureEnabled: false,
+        }}
+      />
     </Stack>
   );
 }
