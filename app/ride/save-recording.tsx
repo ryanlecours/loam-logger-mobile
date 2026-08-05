@@ -53,12 +53,19 @@ export default function SaveRecordingScreen() {
   const [bikeId, setBikeId] = useState(bikes[0]?.id || '');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
+  // Covers the whole async span of handleSave, unlike the mutation's
+  // `loading` which misses the offline enqueue path. While saving, Discard
+  // (button and hardware back) is inert so it cannot race the save's
+  // clear() and navigation.
+  const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
+    if (saving) return;
     if (!bikeId && bikes.length > 0) {
       Alert.alert('Validation Error', 'Please select a bike');
       return;
     }
+    setSaving(true);
     const unownedBike = bikeId === UNOWNED_BIKE_VALUE;
 
     const input: AddRideInput = {
@@ -97,10 +104,15 @@ export default function SaveRecordingScreen() {
       // Deterministic rejection only; transient failures were queued. The
       // recording is NOT cleared, so the rider can fix and retry.
       Alert.alert('Error', 'Failed to save ride. Please try again.');
+      setSaving(false);
     }
+    // Deliberately no finally: on success the screen is dismissing, and
+    // re-enabling the buttons during the exit transition would reopen the
+    // race this flag exists to close.
   };
 
   const handleDiscard = useCallback(() => {
+    if (saving) return;
     Alert.alert('Discard this ride?', 'The recording will be deleted.', [
       { text: 'Keep', style: 'cancel' },
       {
@@ -111,7 +123,7 @@ export default function SaveRecordingScreen() {
         },
       },
     ]);
-  }, [router]);
+  }, [router, saving]);
 
   // Android hardware back would otherwise pop this screen and strand the
   // finished-but-unsaved recording (the header back and swipe gesture are
@@ -192,18 +204,22 @@ export default function SaveRecordingScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        style={[styles.submitButton, (saving || loading) && styles.submitButtonDisabled]}
         onPress={() => void handleSave()}
-        disabled={loading}
+        disabled={saving || loading}
       >
-        {loading ? (
+        {saving || loading ? (
           <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.submitButtonText}>Save Ride</Text>
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
+      <TouchableOpacity
+        style={[styles.cancelButton, saving && styles.cancelButtonDisabled]}
+        onPress={handleDiscard}
+        disabled={saving}
+      >
         <Text style={styles.cancelButtonText}>Discard</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -280,6 +296,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     padding: 16,
     alignItems: 'center',
+  },
+  cancelButtonDisabled: {
+    opacity: 0.4,
   },
   cancelButtonText: {
     color: colors.textSecondary,
