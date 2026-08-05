@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { colors, radius } from '../../constants/theme';
 import { UPSELL_COPY, type UpsellFeature } from '../../constants/upsellCopy';
+import { isDismissalCovered, mergeDismissalTokens } from '../../utils/upsellDismissal';
 
 interface UpgradePromptProps {
   message: string;
@@ -90,16 +91,9 @@ export function UpsellCard({
   useEffect(() => {
     if (!persist) return;
     let cancelled = false;
-    const tokens = rearmKey === undefined ? [] : rearmKey.split(',').filter(Boolean);
     SecureStore.getItemAsync(copy.dismissKey)
       .then((v) => {
-        if (cancelled) return;
-        if (v === null) {
-          setVisible(true);
-          return;
-        }
-        const covered = new Set(v.split(','));
-        setVisible(!tokens.every((t) => covered.has(t)));
+        if (!cancelled) setVisible(!isDismissalCovered(v, rearmKey));
       })
       .catch(() => {
         if (!cancelled) setVisible(true);
@@ -115,14 +109,8 @@ export function UpsellCard({
     setVisible(false);
     onDismiss?.();
     if (!persist) return;
-    const tokens = rearmKey === undefined ? [] : rearmKey.split(',').filter(Boolean);
     SecureStore.getItemAsync(copy.dismissKey)
-      .then((v) => {
-        const covered = new Set(v ? v.split(',') : []);
-        covered.add('1');
-        tokens.forEach((t) => covered.add(t));
-        return SecureStore.setItemAsync(copy.dismissKey, Array.from(covered).join(','));
-      })
+      .then((v) => SecureStore.setItemAsync(copy.dismissKey, mergeDismissalTokens(v, rearmKey)))
       .catch(() => {
         // Storage unavailable — dismissed for this session only.
       });
