@@ -25,9 +25,14 @@ interface BulletProps {
 
 const BULLETS: BulletProps[] = [
   {
+    // Copy matches the ACTION_NEEDED default for new accounts: routine syncs
+    // are quiet, actionable ones ping. Promising "a heads-up when new rides
+    // sync" here and then not sending one would make the very first push
+    // experience a broken promise.
     icon: 'cloud-download-outline',
-    title: 'Auto-imported rides',
-    description: 'Get a heads-up when new rides sync from Strava, Garmin, WHOOP, or Suunto.',
+    title: 'Only what matters',
+    description:
+      'Rides that need your attention ping you. Routine syncs stay quiet, and you can turn on every ride in Settings.',
   },
   {
     icon: 'construct-outline',

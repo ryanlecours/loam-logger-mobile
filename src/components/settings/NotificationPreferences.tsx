@@ -1,26 +1,70 @@
-import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Switch, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useUserTier } from '../../hooks/useUserTier';
 import { openNotificationSettings } from '../../lib/notifications';
+import { RideSyncNotificationMode } from '../../graphql/generated';
 import { colors } from '../../constants/theme';
+
+/**
+ * Ride-sync push modes, in escalating-noise order so the control reads as a
+ * volume knob. "Only when needed" = a ride needing a bike assigned, plus the
+ * account's first-ever synced ride.
+ */
+const RIDE_SYNC_MODES: { value: RideSyncNotificationMode; label: string }[] = [
+  { value: RideSyncNotificationMode.Off, label: 'Off' },
+  { value: RideSyncNotificationMode.ActionNeeded, label: 'Only when needed' },
+  { value: RideSyncNotificationMode.All, label: 'All rides' },
+];
+
+const MODE_DESCRIPTIONS: Record<RideSyncNotificationMode, string> = {
+  [RideSyncNotificationMode.Off]: 'No ride sync notifications',
+  [RideSyncNotificationMode.ActionNeeded]:
+    'Only rides that need a bike assigned',
+  [RideSyncNotificationMode.All]: 'Every ride that syncs from your devices',
+};
 
 export function NotificationPreferences() {
   const router = useRouter();
+  const { isFree } = useUserTier();
   const {
     permissionStatus,
-    notifyOnRideUpload,
+    rideSyncNotificationMode,
+    weeklyDigestEnabled,
     requestPermissions,
-    setNotifyOnRideUpload,
+    setRideSyncNotificationMode,
+    setWeeklyDigestEnabled,
   } = useNotifications();
 
   const isPushEnabled = permissionStatus === 'granted';
 
   const handlePushToggle = async (value: boolean) => {
-    if (value) {
+    if (!value) return; // Can't programmatically disable - user must go to system settings
+    try {
       await requestPermissions();
+    } catch {
+      // Permission was granted but the token upload failed (offline, server
+      // hiccup). The launch path retries silently; the switch just shouldn't
+      // produce an unhandled rejection.
+      Alert.alert('Could not enable notifications', 'Please try again.');
     }
-    // Can't programmatically disable - user must go to system settings
+  };
+
+  const handleModeChange = async (mode: RideSyncNotificationMode) => {
+    try {
+      await setRideSyncNotificationMode(mode);
+    } catch {
+      Alert.alert('Error', 'Failed to update notification preferences.');
+    }
+  };
+
+  const handleDigestToggle = async (enabled: boolean) => {
+    try {
+      await setWeeklyDigestEnabled(enabled);
+    } catch {
+      Alert.alert('Error', 'Failed to update notification preferences.');
+    }
   };
 
   return (
@@ -48,22 +92,61 @@ export function NotificationPreferences() {
 
       {isPushEnabled && (
         <>
-          {/* Ride sync alerts */}
+          {/* Ride sync alerts: a volume knob, not a switch */}
           <View style={styles.divider} />
-          <View style={styles.row}>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Ride Sync Alerts</Text>
-              <Text style={styles.rowDescription}>
-                Notify when rides sync from Strava/Garmin
-              </Text>
+          <View style={styles.fieldBlock}>
+            <Text style={styles.rowLabel}>Ride Sync Alerts</Text>
+            <View style={styles.segmentedControl}>
+              {RIDE_SYNC_MODES.map((m) => (
+                <TouchableOpacity
+                  key={m.value}
+                  style={[
+                    styles.segment,
+                    rideSyncNotificationMode === m.value && styles.segmentActive,
+                  ]}
+                  onPress={() => handleModeChange(m.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: rideSyncNotificationMode === m.value }}
+                  accessibilityLabel={`Ride sync alerts: ${m.label}`}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      rideSyncNotificationMode === m.value && styles.segmentTextActive,
+                    ]}
+                  >
+                    {m.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <Switch
-              value={notifyOnRideUpload}
-              onValueChange={setNotifyOnRideUpload}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor="#fff"
-            />
+            <Text style={styles.rowDescription}>
+              {MODE_DESCRIPTIONS[rideSyncNotificationMode]}
+            </Text>
           </View>
+
+          {/* Weekly digest: a prediction surface, so Pro only. Hidden (not
+              upsold) for free users: Settings is a control panel, and a
+              toggle that stores but never sends would be a lie. */}
+          {!isFree && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.row}>
+                <View style={styles.rowContent}>
+                  <Text style={styles.rowLabel}>Weekend Bike Check</Text>
+                  <Text style={styles.rowDescription}>
+                    One Friday-morning summary of every bike, before the weekend
+                  </Text>
+                </View>
+                <Switch
+                  value={weeklyDigestEnabled}
+                  onValueChange={handleDigestToggle}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </>
+          )}
 
           {/* Service reminders - navigate to per-bike screen */}
           <View style={styles.divider} />
@@ -124,6 +207,38 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.cardBorder,
+  },
+  fieldBlock: {
+    paddingVertical: 12,
+    gap: 8,
+  },
+  // Mirrors the segmented control on the per-bike service-notifications
+  // screen so the two notification surfaces read as one system.
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    overflow: 'hidden',
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  segmentTextActive: {
+    color: colors.onPrimary,
   },
   systemSettingsLink: {
     fontSize: 13,

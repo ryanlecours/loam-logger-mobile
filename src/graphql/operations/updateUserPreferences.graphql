@@ -5,5 +5,7 @@ mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
     predictionMode
     distanceUnit
     notifyOnRideUpload
+    rideSyncNotificationMode
+    weeklyDigestEnabled
   }
 }

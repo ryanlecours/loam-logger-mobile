@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from 'react';
 import { useApolloClient } from '@apollo/client';
-import type { UserRole } from '../graphql/generated';
+import { UpdateUserPreferencesDocument, type UserRole } from '../graphql/generated';
 import {
   getAccessToken,
   hasValidAccessToken,
@@ -146,6 +146,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hoursDisplayPreference: viewer.hoursDisplayPreference,
         predictionMode: viewer.predictionMode,
         distanceUnit: viewer.distanceUnit,
+        // Notification prefs. notifyOnRideUpload was silently dropped from
+        // this mapping before, which made the old Settings toggle read the
+        // `?? true` fallback forever regardless of the stored value.
+        notifyOnRideUpload: viewer.notifyOnRideUpload,
+        rideSyncNotificationMode: viewer.rideSyncNotificationMode,
+        weeklyDigestEnabled: viewer.weeklyDigestEnabled,
         createdAt: viewer.createdAt,
       };
       setUser(mappedUser);
@@ -166,6 +172,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle ME query errors - if the query fails, log out the user
   // This handles cases like invalid/expired tokens that can't be refreshed
   const logout = useCallback(async () => {
+    // Unregister this device's push token BEFORE dropping auth (the mutation
+    // needs it). Without this, the server keeps pushing this account's rides
+    // and service alerts to a device its owner walked away from; on a shared
+    // or handed-down device the next signed-in user reads the previous one's
+    // notifications. Best-effort with a hard cap: logout is also invoked on
+    // already-dead sessions (ME-query failure), where this mutation can only
+    // fail, and it must never hold the user hostage offline.
+    await Promise.race([
+      client
+        .mutate({
+          mutation: UpdateUserPreferencesDocument,
+          variables: { input: { expoPushToken: null } },
+        })
+        .catch(() => {}),
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]);
+
     await logoutAuth();
     await client.clearStore(); // Clear Apollo cache
     setUser(null);
@@ -173,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLocked(false);
     if (__DEV__) {
       // eslint-disable-next-line no-console
-      console.log('[useAuth] Logged out, cleared tokens and Apollo cache');
+      console.log('[useAuth] Logged out, cleared push token, tokens and Apollo cache');
     }
   }, [client]);
 

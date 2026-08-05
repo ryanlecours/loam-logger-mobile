@@ -21,6 +21,20 @@ export function configureNotificationHandler(): void {
 }
 
 /**
+ * The device's IANA timezone (e.g. "America/Denver"), or null when the JS
+ * runtime can't report one. Uploaded alongside the push token so the weekly
+ * digest can fire at 8am the rider's time; the server skips users without a
+ * stored timezone rather than guessing.
+ */
+export function getDeviceTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Request notification permissions and return the Expo push token.
  * Returns null if permissions are denied or if not on a physical device.
  */
@@ -130,6 +144,13 @@ export function navigateFromNotificationData(
       ? `/bike/${d.bikeId}?componentId=${encodeURIComponent(componentId)}`
       : `/bike/${d.bikeId}`;
     router.push(path as never);
+    return true;
+  }
+  if (d.screen === 'dashboard') {
+    // Weekly digest lands on the dashboard: it summarizes every bike, and
+    // the dashboard is the surface built to answer "which bikes need
+    // attention" in full.
+    router.push('/(tabs)' as never);
     return true;
   }
   return false;

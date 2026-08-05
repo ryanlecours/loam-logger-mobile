@@ -11,6 +11,45 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.1.5 - 2026-08-05
+
+### App Store "What's New"
+
+New
+- Choose how ride sync alerts behave: every ride, only rides that need your
+  attention, or off
+- Weekend Bike Check (Pro): one Friday-morning summary of every bike, so you
+  know what needs a wrench before you plan the weekend
+- Several rides syncing at once now send one notification instead of a pile
+
+Improvements
+- Assigning rides to a bike now warns you right away if that pushed a part
+  past its service window, instead of waiting for your next ride
+- Signing out now stops notifications for that account on this device
+- The notifications switch in Settings updates as soon as you grant
+  permission in system settings
+
+### Internal
+- `feat(notifications)`: ride-sync pushes gain a three-mode preference
+  (`rideSyncNotificationMode`: all / action-needed / off) rendered as a
+  segmented control in Settings. Existing users keep their current behavior
+  via migration; new accounts default to action-needed. Old app versions'
+  boolean toggle still works through a server-side two-way mapping.
+- `feat(notifications)`: Weekend Bike Check digest toggle (Pro-only, hidden
+  for free users rather than upsold: a toggle that stores but never sends
+  would be a lie). Device timezone now rides along with every push-token
+  upload so the digest can land at 8am local.
+- `fix(notifications)`: logout unregisters the device's push token
+  (best-effort, 3s cap) so a shared device stops receiving the previous
+  account's pushes.
+- `fix(settings)`: permission status re-checks on app foreground via an
+  AppState listener, fixing the stale "off" switch after granting permission
+  in system settings.
+- `feat(notifications)`: `screen: 'dashboard'` deep-link routing for the
+  digest push. Onboarding pitch copy updated to match the action-needed
+  default.
+- Requires the API changes in loam-logger's feat/notification-system branch.
+
 ## 1.1.4 - 2026-08-04
 
 ### App Store "What's New"
