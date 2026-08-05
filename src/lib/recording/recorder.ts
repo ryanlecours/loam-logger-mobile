@@ -5,6 +5,7 @@ import {
   type GeoSample,
   accumulate,
   emptyAccumulator,
+  isUsableFix,
 } from './geo';
 
 // The ride recorder: a singleton state machine over a crash-safe SQLite
@@ -139,6 +140,13 @@ class RideRecorder {
     // records nothing; the pause simply does not exist in the point series.
     if (this.status !== 'recording') return;
 
+    // Exactly (0, 0) is a "no fix yet" sentinel on some GPS stacks, not a
+    // place. Dropped entirely: as a first fix it would report the ride as
+    // starting in the Gulf of Guinea, and mid-ride it would add a
+    // several-thousand-km distance segment. The API rejects it too, as a
+    // backstop.
+    if (update.latitude === 0 && update.longitude === 0) return;
+
     const sample: GeoSample = {
       latitude: update.latitude,
       longitude: update.longitude,
@@ -147,7 +155,10 @@ class RideRecorder {
       t: Math.max(0, Math.round((update.timestamp - this.startedAt) / 1000)),
     };
 
-    if (!this.firstFix) {
+    // The ride's start coordinate feeds server-side weather (and later lift
+    // detection), so it holds to the same accuracy bar as the distance math
+    // rather than trusting whatever cold-start fix arrives first.
+    if (!this.firstFix && isUsableFix(sample)) {
       this.firstFix = { lat: update.latitude, lng: update.longitude };
     }
 

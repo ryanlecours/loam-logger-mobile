@@ -141,6 +141,36 @@ describe('rideRecorder', () => {
     expect(db.points.length).toBe(2);
   });
 
+  it('drops the (0,0) no-fix sentinel entirely', async () => {
+    const gps = makeFakeSource();
+    await rideRecorder.start(gps.source);
+
+    gps.emit({ latitude: 0, longitude: 0 }); // pre-acquisition sentinel
+    gps.emit({});
+    gps.emit({ longitude: -122.3221, timestamp: Date.now() + 1000 });
+
+    const summary = await rideRecorder.stop();
+    // The sentinel is not the start, not a point, and not a distance segment.
+    expect(summary.startLat).toBe(47.6062);
+    expect(rideRecorder.getSnapshot().pointCount).toBe(2);
+    expect(summary.distanceMeters).toBeLessThan(1000);
+    expect(summary.distanceMeters).toBeGreaterThan(740);
+  });
+
+  it('waits for an accuracy-accepted fix before setting the start coordinate', async () => {
+    const gps = makeFakeSource();
+    await rideRecorder.start(gps.source);
+
+    gps.emit({ latitude: 47.7, longitude: -122.4, accuracy: 80 }); // cold-start junk
+    gps.emit({});
+
+    const summary = await rideRecorder.stop();
+    expect(summary.startLat).toBe(47.6062);
+    expect(summary.startLng).toBe(-122.3321);
+    // The junk fix is still stored raw for future server-side reprocessing.
+    expect(rideRecorder.getSnapshot().pointCount).toBe(2);
+  });
+
   it('clear deletes the session and returns to idle', async () => {
     const gps = makeFakeSource();
     await rideRecorder.start(gps.source);
