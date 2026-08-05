@@ -132,12 +132,11 @@ export function NotificationPreferences() {
               the feature undiscoverable. */}
           <View style={styles.divider} />
           {isFree ? (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => router.push('/settings-detail/pricing' as never)}
-              accessibilityRole="button"
-              accessibilityLabel="Weekend Bike Check, included with Pro, see plans"
-            >
+            // Plain View, not a touchable: the ProChip is the single tap
+            // target (it routes to the paywall and carries its own a11y
+            // label), so wrapping the row would nest two touchables that do
+            // the same thing.
+            <View style={styles.row}>
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>Weekend Bike Check</Text>
                 <Text style={styles.rowDescription}>
@@ -145,7 +144,7 @@ export function NotificationPreferences() {
                 </Text>
               </View>
               <ProChip />
-            </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.row}>
               <View style={styles.rowContent}>
