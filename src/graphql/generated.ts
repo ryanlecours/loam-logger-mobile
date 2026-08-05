@@ -650,6 +650,22 @@ export type Mutation = {
   snoozeComponent: Component;
   swapComponents: SwapComponentsResult;
   triggerProviderSync: TriggerSyncResult;
+  /**
+   * Clears expoPushToken, but ONLY if it currently equals the given token:
+   * a compare-and-clear, not a blind null. expoPushToken is a single column
+   * per user, not per device, so the same account signed into two devices
+   * only ever has room for one device's token, and whichever device
+   * registers last silently wins the slot. Clearing unconditionally on
+   * logout (as updateUserPreferences with expoPushToken: null does) would
+   * let a logout on the device that already lost that race null out a
+   * different, currently-active device's token. Matching first means a
+   * stale device's logout can only ever remove its own (long since
+   * overwritten) token, never a foreign one.
+   * Returns true only if a row was actually cleared; false is not an error,
+   * it means this token was not the one on file (already cleared, or a
+   * different device holds the slot), so nothing needed to happen.
+   */
+  unregisterPushToken: Scalars['Boolean']['output'];
   updateAnalyticsOptOut: User;
   updateBike: Bike;
   updateBikeAcquisition: UpdateBikeAcquisitionResult;
@@ -846,6 +862,11 @@ export type MutationSwapComponentsArgs = {
 
 export type MutationTriggerProviderSyncArgs = {
   provider: SyncProvider;
+};
+
+
+export type MutationUnregisterPushTokenArgs = {
+  token: Scalars['String']['input'];
 };
 
 
@@ -1100,6 +1121,12 @@ export type Ride = {
   weather?: Maybe<RideWeather>;
   whoopWorkoutId?: Maybe<Scalars['String']['output']>;
 };
+
+export enum RideSyncNotificationMode {
+  ActionNeeded = 'ACTION_NEEDED',
+  All = 'ALL',
+  Off = 'OFF'
+}
 
 export type RideTrack = {
   __typename?: 'RideTrack';
@@ -1523,6 +1550,9 @@ export type UpdateUserPreferencesInput = {
   hoursDisplayPreference?: InputMaybe<Scalars['String']['input']>;
   notifyOnRideUpload?: InputMaybe<Scalars['Boolean']['input']>;
   predictionMode?: InputMaybe<Scalars['String']['input']>;
+  rideSyncNotificationMode?: InputMaybe<RideSyncNotificationMode>;
+  timezone?: InputMaybe<Scalars['String']['input']>;
+  weeklyDigestEnabled?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type User = {
@@ -1552,6 +1582,7 @@ export type User = {
   predictionMode?: Maybe<Scalars['String']['output']>;
   /** @deprecated Referral program removed; always null */
   referralCode?: Maybe<Scalars['String']['output']>;
+  rideSyncNotificationMode: RideSyncNotificationMode;
   rides: Array<Ride>;
   ridesMissingWeather: Scalars['Int']['output'];
   role: UserRole;
@@ -1561,6 +1592,7 @@ export type User = {
   tierLimits: TierLimits;
   trailStewardshipNoticeSeenAt?: Maybe<Scalars['String']['output']>;
   weatherBreakdown: WeatherBreakdown;
+  weeklyDigestEnabled: Scalars['Boolean']['output'];
 };
 
 
@@ -1881,7 +1913,7 @@ export type BikeAdvisorSummaryQuery = { __typename?: 'Query', bike?: { __typenam
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RideQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1957,6 +1989,13 @@ export type UnassignedRideCountQueryVariables = Exact<{ [key: string]: never; }>
 
 export type UnassignedRideCountQuery = { __typename?: 'Query', unassignedRideCount: number };
 
+export type UnregisterPushTokenMutationVariables = Exact<{
+  token: Scalars['String']['input'];
+}>;
+
+
+export type UnregisterPushTokenMutation = { __typename?: 'Mutation', unregisterPushToken: boolean };
+
 export type UpdateRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
   input: UpdateRideInput;
@@ -1970,7 +2009,7 @@ export type UpdateUserPreferencesMutationVariables = Exact<{
 }>;
 
 
-export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean } };
+export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean } };
 
 export type WeatherBreakdownQueryVariables = Exact<{
   filter?: InputMaybe<RidesFilterInput>;
@@ -3646,7 +3685,8 @@ export const MeDocument = gql`
     hoursDisplayPreference
     predictionMode
     distanceUnit
-    notifyOnRideUpload
+    rideSyncNotificationMode
+    weeklyDigestEnabled
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource
@@ -4219,6 +4259,37 @@ export type UnassignedRideCountQueryHookResult = ReturnType<typeof useUnassigned
 export type UnassignedRideCountLazyQueryHookResult = ReturnType<typeof useUnassignedRideCountLazyQuery>;
 export type UnassignedRideCountSuspenseQueryHookResult = ReturnType<typeof useUnassignedRideCountSuspenseQuery>;
 export type UnassignedRideCountQueryResult = Apollo.QueryResult<UnassignedRideCountQuery, UnassignedRideCountQueryVariables>;
+export const UnregisterPushTokenDocument = gql`
+    mutation UnregisterPushToken($token: String!) {
+  unregisterPushToken(token: $token)
+}
+    `;
+export type UnregisterPushTokenMutationFn = Apollo.MutationFunction<UnregisterPushTokenMutation, UnregisterPushTokenMutationVariables>;
+
+/**
+ * __useUnregisterPushTokenMutation__
+ *
+ * To run a mutation, you first call `useUnregisterPushTokenMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUnregisterPushTokenMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [unregisterPushTokenMutation, { data, loading, error }] = useUnregisterPushTokenMutation({
+ *   variables: {
+ *      token: // value for 'token'
+ *   },
+ * });
+ */
+export function useUnregisterPushTokenMutation(baseOptions?: Apollo.MutationHookOptions<UnregisterPushTokenMutation, UnregisterPushTokenMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UnregisterPushTokenMutation, UnregisterPushTokenMutationVariables>(UnregisterPushTokenDocument, options);
+      }
+export type UnregisterPushTokenMutationHookResult = ReturnType<typeof useUnregisterPushTokenMutation>;
+export type UnregisterPushTokenMutationResult = Apollo.MutationResult<UnregisterPushTokenMutation>;
+export type UnregisterPushTokenMutationOptions = Apollo.BaseMutationOptions<UnregisterPushTokenMutation, UnregisterPushTokenMutationVariables>;
 export const UpdateRideDocument = gql`
     mutation UpdateRide($id: ID!, $input: UpdateRideInput!) {
   updateRide(id: $id, input: $input) {
@@ -4269,7 +4340,8 @@ export const UpdateUserPreferencesDocument = gql`
     hoursDisplayPreference
     predictionMode
     distanceUnit
-    notifyOnRideUpload
+    rideSyncNotificationMode
+    weeklyDigestEnabled
   }
 }
     `;

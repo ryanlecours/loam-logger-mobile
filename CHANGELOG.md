@@ -11,7 +11,7 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
-## 1.1.4 - 2026-08-04
+## 1.1.4 - 2026-08-05
 
 ### App Store "What's New"
 
@@ -22,6 +22,18 @@ New
   through to just those rides. Until a ride has a bike, its hours are not
   counted toward any part's wear
 - Rode a demo, a loaner or a rental? Mark it "Not my bike" and it stops asking
+- Choose how ride sync alerts behave: every ride, only rides that need your
+  attention, or off
+- Weekend Bike Check (Pro): one Friday-morning summary of every bike, so you
+  know what needs a wrench before you plan the weekend
+- Several rides syncing at once now send one notification instead of a pile
+
+Improvements
+- Assigning rides to a bike now warns you right away if that pushed a part
+  past its service window, instead of waiting for your next ride
+- Signing out now stops notifications for that account on this device
+- The notifications switch in Settings updates as soon as you grant
+  permission in system settings
 
 ### Internal
 - `feat(rides)`: the ride-detail bike picker now shows for any unassigned ride.
@@ -51,9 +63,33 @@ New
   with no bikes is exactly the one whose rides sit unassigned; the detail
   picker adapts its copy rather than asking which bike they rode when there
   are none.
-- Requires the API changes in loam-logger#289. Sage interactive voice
-  throughout, never the component-health ramp: an unassigned or unowned ride is
-  a missing input, not a worn part.
+- `feat(notifications)`: ride-sync pushes gain a three-mode preference
+  (`rideSyncNotificationMode`: all / action-needed / off) rendered as a
+  segmented control in Settings. Existing users keep their current behavior
+  via migration; new accounts default to action-needed. Older app versions'
+  boolean toggle still works through a server-side two-way mapping.
+- `feat(notifications)`: Weekend Bike Check digest toggle (Pro-only, hidden
+  for free users rather than upsold: a toggle that stores but never sends
+  would be a lie). Device timezone now rides along with every push-token
+  upload so the digest can land at 8am local.
+- `fix(notifications)`: logout unregisters the device's push token
+  (best-effort, 3s cap, never prompts for permission) so a shared device
+  stops receiving the previous account's pushes. Scoped rather than a blind
+  clear: expoPushToken is one column per user, not per device, so the same
+  account signed into two devices shares a single slot and whichever
+  registers last silently wins it. Logout now sends this device's own
+  token to a compare-and-clear mutation that only clears the column if it
+  still matches, so logging out on one device can never kill push on a
+  different, currently-active device signed into the same account.
+- `fix(settings)`: permission status re-checks on app foreground via an
+  AppState listener, fixing the stale "off" switch after granting permission
+  in system settings.
+- `feat(notifications)`: `screen: 'dashboard'` deep-link routing for the
+  digest push. Onboarding pitch copy updated to match the action-needed
+  default.
+- Requires the API changes in loam-logger#289, #291 and #293. Sage
+  interactive voice throughout, never the component-health ramp: an
+  unassigned or unowned ride is a missing input, not a worn part.
 
 ## 1.1.2 - 2026-07-30
 

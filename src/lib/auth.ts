@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import * as Sentry from '@sentry/react-native';
-import type { UserRole } from '../graphql/generated';
+import type { RideSyncNotificationMode, UserRole } from '../graphql/generated';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -25,7 +25,8 @@ export interface User {
   hoursDisplayPreference?: string | null;
   predictionMode?: string | null;
   distanceUnit?: string | null;
-  notifyOnRideUpload?: boolean;
+  rideSyncNotificationMode?: RideSyncNotificationMode;
+  weeklyDigestEnabled?: boolean;
   createdAt: string;
 }
 

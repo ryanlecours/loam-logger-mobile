@@ -21,6 +21,46 @@ export function configureNotificationHandler(): void {
 }
 
 /**
+ * The device's IANA timezone (e.g. "America/Denver"), or null when the JS
+ * runtime can't report one. Uploaded alongside the push token so the weekly
+ * digest can fire at 8am the rider's time; the server skips users without a
+ * stored timezone rather than guessing.
+ */
+export function getDeviceTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Android notification channel + Expo token fetch, shared by the prompting
+ * and non-prompting entry points below. Assumes permission is already
+ * granted; callers are responsible for that check.
+ */
+async function fetchExpoPushToken(): Promise<string | null> {
+  // Android needs a notification channel
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Default',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  }
+
+  // Get the Expo push token
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  if (!projectId) {
+    console.error('[notifications] Missing EAS project ID');
+    return null;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+  return tokenData.data;
+}
+
+/**
  * Request notification permissions and return the Expo push token.
  * Returns null if permissions are denied or if not on a physical device.
  */
@@ -45,24 +85,22 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     return null;
   }
 
-  // Android needs a notification channel
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Default',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-  }
+  return fetchExpoPushToken();
+}
 
-  // Get the Expo push token
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  if (!projectId) {
-    console.error('[notifications] Missing EAS project ID');
-    return null;
-  }
-
-  const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-  return tokenData.data;
+/**
+ * Read this device's current Expo push token WITHOUT ever prompting for
+ * permission. For logout: `registerForPushNotificationsAsync` re-requests
+ * permission whenever it isn't already granted, and calling that at logout
+ * would pop an OS permission dialog as a side effect of tapping "Log out"
+ * for a user who had denied or never decided. Returns null (nothing to
+ * unregister) rather than prompting when permission isn't already granted.
+ */
+export async function getCurrentPushTokenIfGranted(): Promise<string | null> {
+  if (!Device.isDevice) return null;
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return null;
+  return fetchExpoPushToken();
 }
 
 /**
@@ -130,6 +168,13 @@ export function navigateFromNotificationData(
       ? `/bike/${d.bikeId}?componentId=${encodeURIComponent(componentId)}`
       : `/bike/${d.bikeId}`;
     router.push(path as never);
+    return true;
+  }
+  if (d.screen === 'dashboard') {
+    // Weekly digest lands on the dashboard: it summarizes every bike, and
+    // the dashboard is the surface built to answer "which bikes need
+    // attention" in full.
+    router.push('/(tabs)' as never);
     return true;
   }
   return false;

@@ -14,7 +14,8 @@ query Me {
     hoursDisplayPreference
     predictionMode
     distanceUnit
-    notifyOnRideUpload
+    rideSyncNotificationMode
+    weeklyDigestEnabled
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource
