@@ -10,8 +10,8 @@
  *   scarcity language, no "unlock" spam.
  * - One inline upsell card per screen, max. Every other gated spot gets a
  *   quiet Pro chip. Dismissed cards stay dismissed (persisted per surface),
- *   with one exception: a material state change (a part crossing its service
- *   interval) may re-arm a dismissed card once via UpsellCard's rearmKey.
+ *   with one exception: each part that crosses its service interval re-arms
+ *   a dismissed card once, keyed per part via UpsellCard's rearmKey.
  * - Never upsell inside error paths, except the bike-limit message.
  */
 export const UPSELL_COPY = {

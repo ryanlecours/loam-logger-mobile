@@ -59,12 +59,14 @@ export function ProChip() {
 /**
  * Dismissible feature upsell card driven by the shared copy map.
  * Dismissal is persisted per feature in SecureStore and respected until the
- * user's situation materially changes: pass `rearmKey` when a state change
- * (e.g. a part going past due) justifies showing a dismissed card one more
- * time. The dismissal stores the key it was dismissed under, so each distinct
- * key re-arms the card at most once. Pass `persist={false}` for cards
- * revealed by an explicit user action: they should show every time the
- * action is taken, so dismissal is session-only.
+ * user's situation materially changes: pass `rearmKey` as a comma-separated
+ * token set (e.g. the ids of parts past their service interval). A dismissal
+ * stores the set of tokens it covered (legacy dismissals stored the literal
+ * '1', which participates as an ordinary token), so each NEW token re-arms
+ * the card exactly once, while shrinking or repeating token sets stay
+ * dismissed. Pass `persist={false}` for cards revealed by an explicit user
+ * action: they should show every time the action is taken, so dismissal is
+ * session-only.
  */
 export function UpsellCard({
   feature,
@@ -81,7 +83,6 @@ export function UpsellCard({
 }) {
   const router = useRouter();
   const copy = UPSELL_COPY[feature];
-  const currentKey = rearmKey ?? '1';
   // Start hidden until the persisted dismissal state loads, so a dismissed
   // card never flashes in.
   const [visible, setVisible] = useState(!persist);
@@ -89,11 +90,16 @@ export function UpsellCard({
   useEffect(() => {
     if (!persist) return;
     let cancelled = false;
+    const tokens = rearmKey === undefined ? [] : rearmKey.split(',').filter(Boolean);
     SecureStore.getItemAsync(copy.dismissKey)
       .then((v) => {
-        // Legacy dismissals stored '1'; a rearmKey supersedes them.
-        const dismissed = v !== null && (v === currentKey || rearmKey === undefined);
-        if (!cancelled && !dismissed) setVisible(true);
+        if (cancelled) return;
+        if (v === null) {
+          setVisible(true);
+          return;
+        }
+        const covered = new Set(v.split(','));
+        setVisible(!tokens.every((t) => covered.has(t)));
       })
       .catch(() => {
         if (!cancelled) setVisible(true);
@@ -101,7 +107,7 @@ export function UpsellCard({
     return () => {
       cancelled = true;
     };
-  }, [copy.dismissKey, currentKey, rearmKey, persist]);
+  }, [copy.dismissKey, rearmKey, persist]);
 
   if (!visible) return null;
 
@@ -109,9 +115,17 @@ export function UpsellCard({
     setVisible(false);
     onDismiss?.();
     if (!persist) return;
-    SecureStore.setItemAsync(copy.dismissKey, currentKey).catch(() => {
-      // Storage unavailable — dismissed for this session only.
-    });
+    const tokens = rearmKey === undefined ? [] : rearmKey.split(',').filter(Boolean);
+    SecureStore.getItemAsync(copy.dismissKey)
+      .then((v) => {
+        const covered = new Set(v ? v.split(',') : []);
+        covered.add('1');
+        tokens.forEach((t) => covered.add(t));
+        return SecureStore.setItemAsync(copy.dismissKey, Array.from(covered).join(','));
+      })
+      .catch(() => {
+        // Storage unavailable — dismissed for this session only.
+      });
   };
 
   return (

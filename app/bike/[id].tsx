@@ -97,18 +97,23 @@ export default function BikeDetailScreen() {
   }, [predictions?.components]);
 
   // Free tier: prediction status is nulled at the serving boundary, but the
-  // raw counters survive, so "past interval" is computable here. When a part
-  // crosses its interval, re-arm the (possibly dismissed) predictions upsell
-  // once and ground its copy in the user's own data.
-  const pastIntervalCount = useMemo(() => {
-    if (!isFree) return 0;
-    return (predictions?.components || []).filter(
-      (p) =>
-        p.serviceIntervalHours != null &&
-        p.hoursSinceService != null &&
-        p.hoursSinceService >= p.serviceIntervalHours
-    ).length;
+  // raw counters survive, so "past interval" is computable here. Each part
+  // that crosses its interval re-arms the (possibly dismissed) predictions
+  // upsell once, keyed by component id, with copy grounded in the user's
+  // own data.
+  const pastIntervalIds = useMemo(() => {
+    if (!isFree) return [];
+    return (predictions?.components || [])
+      .filter(
+        (p) =>
+          p.serviceIntervalHours != null &&
+          p.hoursSinceService != null &&
+          p.hoursSinceService >= p.serviceIntervalHours
+      )
+      .map((p) => p.componentId)
+      .sort();
   }, [isFree, predictions?.components]);
+  const pastIntervalCount = pastIntervalIds.length;
 
   const componentGroups = useMemo(() => {
     const bikeComponents = bike?.components || [];
@@ -529,7 +534,7 @@ export default function BikeDetailScreen() {
         <View style={styles.upsellContainer}>
           <UpsellCard
             feature="predictions"
-            rearmKey={pastIntervalCount > 0 ? 'past-interval' : undefined}
+            rearmKey={pastIntervalCount > 0 ? pastIntervalIds.join(',') : undefined}
             body={
               pastIntervalCount > 0
                 ? `${
