@@ -30,6 +30,8 @@ import { ErrorState } from '../../src/components/common/ErrorState';
 import { Skeleton, SkeletonGroup } from '../../src/components/common/Skeleton';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
+import { usePendingRides } from '../../src/hooks/usePendingRides';
+import { PendingRideCard } from '../../src/components/rides';
 import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
 import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
@@ -154,6 +156,9 @@ export default function DashboardScreen() {
   const { data: unassignedData, refetch: refetchUnassigned } = useUnassignedRideCountQuery({
     fetchPolicy: 'cache-and-network',
   });
+
+  // Rides logged offline, waiting in the outbox to upload.
+  const { pendingRides } = usePendingRides();
 
   useEffect(() => {
     if (calibrationData?.calibrationState?.showOverlay) {
@@ -381,6 +386,13 @@ export default function DashboardScreen() {
           count={unassignedData?.unassignedRideCount ?? 0}
           onPress={() => router.push('/(tabs)/rides?unassigned=1' as Href)}
         />
+
+        {/* Rides logged without signal, still on this phone only. Above the
+            recent list so the ride the rider just logged at the trailhead is
+            the first thing they see, not silently absent. */}
+        {pendingRides.map((pendingRide) => (
+          <PendingRideCard key={pendingRide.id} pendingRide={pendingRide} />
+        ))}
 
         <RecentRidesList
           rides={recentRidesData?.rides ?? []}

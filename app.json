@@ -152,7 +152,8 @@
           }
         }
       ],
-      "./plugins/withoutMapLocationPermission"
+      "./plugins/withoutMapLocationPermission",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

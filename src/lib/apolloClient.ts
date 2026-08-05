@@ -9,6 +9,8 @@ import {
 } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import { CachePersistor } from 'apollo3-cache-persist';
+import Storage from 'expo-sqlite/kv-store';
 import { getAccessToken, refreshAccessToken } from './auth';
 
 // Dedupe concurrent refresh attempts. When multiple queries land at once and
@@ -76,30 +78,64 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
   });
 });
 
+const cache = new InMemoryCache({
+  canonizeResults: false,
+  // Neither BikePredictionSummary nor ComponentPrediction has an `id`
+  // field (they have bikeId / componentId). Without an explicit keyFields
+  // policy, Apollo treats them as embedded objects and REPLACES the whole
+  // object on any partial write — so when a second query for the same bike
+  // fetches only some fields of predictions (e.g. BikeAdvisorSummary,
+  // which asks only for `bikeId, advisorSummary`), the cache-write drops
+  // every other field (overallStatus, components, dueNowCount, etc.) and
+  // the bike-detail screen's health badge and component list go blank a
+  // moment after paint. Explicit keyFields makes them their own normalized
+  // entities so Apollo field-merges partial writes automatically. Add the
+  // same policy for any future prediction-related type without an `id`.
+  typePolicies: {
+    BikePredictionSummary: {
+      keyFields: ['bikeId'],
+    },
+    ComponentPrediction: {
+      keyFields: ['componentId'],
+    },
+  },
+});
+
+// Persist the normalized cache to disk (expo-sqlite/kv-store) so the rides
+// list, dashboard, and bike screens render their last-synced data instantly,
+// including with no connectivity at a trailhead. The existing per-call-site
+// cache-and-network policies then revalidate in the background when a
+// connection exists. Restore is awaited in app/_layout.tsx before anything
+// renders, so no query ever races an empty-but-about-to-fill cache.
+export const cachePersistor = new CachePersistor({
+  cache,
+  storage: Storage,
+  key: 'loam-apollo-cache',
+  // Persistence silently pauses beyond this size instead of crashing writes.
+  // 4 MB comfortably holds ride pages and predictions; ride GPS tracks are
+  // the one heavy payload, and they re-fetch on demand.
+  maxSize: 4 * 1024 * 1024,
+});
+
+export async function restoreApolloCache(): Promise<void> {
+  try {
+    await cachePersistor.restore();
+  } catch (error) {
+    // A corrupt persisted blob must never brick startup. Drop it, start cold.
+    console.warn('[apollo] cache restore failed, starting cold', error);
+    await cachePersistor.purge().catch(() => {});
+  }
+}
+
+// Logout hygiene: clearStore() empties memory, but the disk copy would
+// resurrect the previous rider's data on next launch. Both must go together.
+export async function purgePersistedCache(): Promise<void> {
+  await cachePersistor.purge().catch(() => {});
+}
+
 export const client = new ApolloClient({
   link: ApolloLink.from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache({
-    canonizeResults: false,
-    // Neither BikePredictionSummary nor ComponentPrediction has an `id`
-    // field (they have bikeId / componentId). Without an explicit keyFields
-    // policy, Apollo treats them as embedded objects and REPLACES the whole
-    // object on any partial write — so when a second query for the same bike
-    // fetches only some fields of predictions (e.g. BikeAdvisorSummary,
-    // which asks only for `bikeId, advisorSummary`), the cache-write drops
-    // every other field (overallStatus, components, dueNowCount, etc.) and
-    // the bike-detail screen's health badge and component list go blank a
-    // moment after paint. Explicit keyFields makes them their own normalized
-    // entities so Apollo field-merges partial writes automatically. Add the
-    // same policy for any future prediction-related type without an `id`.
-    typePolicies: {
-      BikePredictionSummary: {
-        keyFields: ['bikeId'],
-      },
-      ComponentPrediction: {
-        keyFields: ['componentId'],
-      },
-    },
-  }),
+  cache,
   // No global watchQuery `cache-and-network` default. A previous version of
   // this file set one, but it silently upgraded EVERY useQuery in the app
   // (dashboard, gear, settings, etc.) to fire a background network request
