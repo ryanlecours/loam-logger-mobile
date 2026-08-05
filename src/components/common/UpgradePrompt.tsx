@@ -58,20 +58,42 @@ export function ProChip() {
 
 /**
  * Dismissible feature upsell card driven by the shared copy map.
- * Dismissal is persisted per feature in SecureStore and respected forever.
+ * Dismissal is persisted per feature in SecureStore and respected until the
+ * user's situation materially changes: pass `rearmKey` when a state change
+ * (e.g. a part going past due) justifies showing a dismissed card one more
+ * time. The dismissal stores the key it was dismissed under, so each distinct
+ * key re-arms the card at most once. Pass `persist={false}` for cards
+ * revealed by an explicit user action: they should show every time the
+ * action is taken, so dismissal is session-only.
  */
-export function UpsellCard({ feature }: { feature: UpsellFeature }) {
+export function UpsellCard({
+  feature,
+  rearmKey,
+  body,
+  persist = true,
+  onDismiss,
+}: {
+  feature: UpsellFeature;
+  rearmKey?: string;
+  body?: string;
+  persist?: boolean;
+  onDismiss?: () => void;
+}) {
   const router = useRouter();
   const copy = UPSELL_COPY[feature];
+  const currentKey = rearmKey ?? '1';
   // Start hidden until the persisted dismissal state loads, so a dismissed
   // card never flashes in.
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(!persist);
 
   useEffect(() => {
+    if (!persist) return;
     let cancelled = false;
     SecureStore.getItemAsync(copy.dismissKey)
       .then((v) => {
-        if (!cancelled && v !== '1') setVisible(true);
+        // Legacy dismissals stored '1'; a rearmKey supersedes them.
+        const dismissed = v !== null && (v === currentKey || rearmKey === undefined);
+        if (!cancelled && !dismissed) setVisible(true);
       })
       .catch(() => {
         if (!cancelled) setVisible(true);
@@ -79,13 +101,15 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
     return () => {
       cancelled = true;
     };
-  }, [copy.dismissKey]);
+  }, [copy.dismissKey, currentKey, rearmKey, persist]);
 
   if (!visible) return null;
 
   const dismiss = () => {
     setVisible(false);
-    SecureStore.setItemAsync(copy.dismissKey, '1').catch(() => {
+    onDismiss?.();
+    if (!persist) return;
+    SecureStore.setItemAsync(copy.dismissKey, currentKey).catch(() => {
       // Storage unavailable — dismissed for this session only.
     });
   };
@@ -104,7 +128,7 @@ export function UpsellCard({ feature }: { feature: UpsellFeature }) {
         <Ionicons name="close" size={14} color={colors.textMuted} />
       </TouchableOpacity>
       <Text style={styles.cardTitle}>{copy.title}</Text>
-      <Text style={styles.cardBody}>{copy.body}</Text>
+      <Text style={styles.cardBody}>{body ?? copy.body}</Text>
       <TouchableOpacity
         style={styles.cardButton}
         onPress={() => router.push('/settings-detail/pricing' as Href)}

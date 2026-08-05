@@ -108,13 +108,15 @@ export function GarminWeatherRepairSection() {
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <>
+              {/* No padlock for the free state: gating stays neutral, and the
+                  label already says where the feature lives. */}
               <Ionicons
-                name={isPro ? 'cloud-download-outline' : 'lock-closed-outline'}
+                name="cloud-download-outline"
                 size={16}
                 color={isPro ? colors.primary : colors.textMuted}
               />
               <Text style={[styles.buttonText, { color: isPro ? colors.primary : colors.textMuted }]}>
-                {!isPro ? 'Pro feature' : inProgress ? 'Importing…' : 'Re-import'}
+                {!isPro ? 'Included with Pro' : inProgress ? 'Importing…' : 'Re-import'}
               </Text>
             </>
           )}

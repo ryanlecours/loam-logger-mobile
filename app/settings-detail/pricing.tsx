@@ -60,7 +60,7 @@ export default function PricingScreen() {
           <Text style={styles.proSubtitle}>
             {isFoundingRider
               ? 'Lifetime access — thank you for your early support!'
-              : 'Unlimited bikes, all components, and advanced predictions'}
+              : 'Unlimited bikes, advanced predictions, and weather on every ride'}
           </Text>
 
           {!isFoundingRider && (

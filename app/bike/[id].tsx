@@ -96,6 +96,20 @@ export default function BikeDetailScreen() {
     return new Map(components.map((p) => [p.componentId, p]));
   }, [predictions?.components]);
 
+  // Free tier: prediction status is nulled at the serving boundary, but the
+  // raw counters survive, so "past interval" is computable here. When a part
+  // crosses its interval, re-arm the (possibly dismissed) predictions upsell
+  // once and ground its copy in the user's own data.
+  const pastIntervalCount = useMemo(() => {
+    if (!isFree) return 0;
+    return (predictions?.components || []).filter(
+      (p) =>
+        p.serviceIntervalHours != null &&
+        p.hoursSinceService != null &&
+        p.hoursSinceService >= p.serviceIntervalHours
+    ).length;
+  }, [isFree, predictions?.components]);
+
   const componentGroups = useMemo(() => {
     const bikeComponents = bike?.components || [];
     const groups = new Map<string, ComponentFieldsFragment[]>();
@@ -513,7 +527,19 @@ export default function BikeDetailScreen() {
           the screen's single inline CTA. */}
       {isFree && (
         <View style={styles.upsellContainer}>
-          <UpsellCard feature="predictions" />
+          <UpsellCard
+            feature="predictions"
+            rearmKey={pastIntervalCount > 0 ? 'past-interval' : undefined}
+            body={
+              pastIntervalCount > 0
+                ? `${
+                    pastIntervalCount === 1
+                      ? 'One part is past its service interval.'
+                      : `${pastIntervalCount} parts are past their service intervals.`
+                  } Pro flags parts while they're still due soon, so the fix happens in the garage, not on the trail.`
+                : undefined
+            }
+          />
         </View>
       )}
 

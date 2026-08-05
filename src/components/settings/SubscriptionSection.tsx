@@ -64,8 +64,8 @@ export function SubscriptionSection() {
   const tierSubtitle = isFoundingRider
     ? 'Lifetime access — thank you for your early support!'
     : isPro
-      ? 'Unlimited bikes and all components'
-      : 'Upgrade for unlimited bikes and components';
+      ? 'Unlimited bikes and advanced predictions'
+      : 'Upgrade for unlimited bikes and service predictions';
 
   return (
     <View style={styles.section}>
