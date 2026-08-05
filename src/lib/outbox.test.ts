@@ -162,6 +162,22 @@ describe('classifyOutboxError', () => {
     expect(verdict.kind).toBe('terminal');
   });
 
+  it('retries an HTTP-layer 429, which never carries the RATE_LIMITED code', () => {
+    const verdict = classifyOutboxError({
+      message: 'Too many requests',
+      networkError: { statusCode: 429 },
+    });
+    expect(verdict.kind).toBe('retryable');
+  });
+
+  it('retries a 408 request timeout', () => {
+    const verdict = classifyOutboxError({
+      message: 'Request timeout',
+      networkError: { statusCode: 408 },
+    });
+    expect(verdict.kind).toBe('retryable');
+  });
+
   it('converts RATE_LIMITED retryAfter seconds into a wait in ms', () => {
     const verdict = classifyOutboxError({
       message: 'Rate limit exceeded',

@@ -110,7 +110,14 @@ export function classifyOutboxError(error: unknown): ErrorVerdict {
     // No status code = transport never completed = offline or timeout.
     if (status === undefined) return { kind: 'retryable', message };
     if (status >= 500) return { kind: 'retryable', message };
-    // 4xx transport errors (proxy rejections etc.) will not fix themselves.
+    // Rate limiting can arrive at the HTTP layer too: the API's REST routes
+    // send raw 429s (sendTooManyRequests), and the proxy in front of the API
+    // can throttle before the GraphQL layer ever runs, so it never carries
+    // the RATE_LIMITED extensions code. 408 is the transport giving up, not
+    // the request being wrong. Both clear on their own; normal backoff.
+    if (status === 429 || status === 408) return { kind: 'retryable', message };
+    // Remaining 4xx transport errors (proxy rejections etc.) will not fix
+    // themselves.
     return { kind: 'terminal', message };
   }
 
