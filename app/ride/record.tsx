@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { useKeepAwake } from 'expo-keep-awake';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useRideRecorder } from '../../src/hooks/useRideRecorder';
 import { rideRecorder } from '../../src/lib/recording/recorder';
 import { gpsLocationSource } from '../../src/lib/recording/locationSource';
@@ -34,7 +34,21 @@ export default function RecordRideScreen() {
   const { distanceUnit } = useDistanceUnit();
   const [permission, requestPermission] = Location.useForegroundPermissions();
 
-  useKeepAwake();
+  // Keep-awake only while a session is live (recording or paused), not from
+  // mount: a rider sitting on the pre-start screen deciding whether to ride
+  // should get normal screen timeout, not idle battery draw. Paused holds
+  // the lock on purpose; a mid-ride break should not end with a locked
+  // phone and a backgrounded foreground-only recorder.
+  const sessionLive =
+    snapshot.status === 'recording' || snapshot.status === 'paused';
+  useEffect(() => {
+    if (!sessionLive) return;
+    const tag = 'ride-recording';
+    void activateKeepAwakeAsync(tag);
+    return () => {
+      void deactivateKeepAwake(tag);
+    };
+  }, [sessionLive]);
 
   const handleStart = useCallback(async () => {
     const current = permission?.granted
