@@ -25,7 +25,6 @@ export interface User {
   hoursDisplayPreference?: string | null;
   predictionMode?: string | null;
   distanceUnit?: string | null;
-  notifyOnRideUpload?: boolean;
   rideSyncNotificationMode?: RideSyncNotificationMode;
   weeklyDigestEnabled?: boolean;
   createdAt: string;

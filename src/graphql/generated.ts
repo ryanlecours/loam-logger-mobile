@@ -1892,7 +1892,7 @@ export type BikeAdvisorSummaryQuery = { __typename?: 'Query', bike?: { __typenam
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RideQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1981,7 +1981,7 @@ export type UpdateUserPreferencesMutationVariables = Exact<{
 }>;
 
 
-export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, notifyOnRideUpload: boolean, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean } };
+export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean } };
 
 export type WeatherBreakdownQueryVariables = Exact<{
   filter?: InputMaybe<RidesFilterInput>;
@@ -3657,7 +3657,6 @@ export const MeDocument = gql`
     hoursDisplayPreference
     predictionMode
     distanceUnit
-    notifyOnRideUpload
     rideSyncNotificationMode
     weeklyDigestEnabled
     pairedComponentMigrationSeenAt
@@ -4282,7 +4281,6 @@ export const UpdateUserPreferencesDocument = gql`
     hoursDisplayPreference
     predictionMode
     distanceUnit
-    notifyOnRideUpload
     rideSyncNotificationMode
     weeklyDigestEnabled
   }

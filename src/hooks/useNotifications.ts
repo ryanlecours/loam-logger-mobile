@@ -32,7 +32,6 @@ export function useNotifications() {
     return () => subscription.remove();
   }, []);
 
-  const notifyOnRideUpload = user?.notifyOnRideUpload ?? true;
   // Server default for new accounts is ACTION_NEEDED; mirror it here so the
   // UI doesn't flash a different selection while the user row loads.
   const rideSyncNotificationMode =
@@ -99,7 +98,6 @@ export function useNotifications() {
 
   return {
     permissionStatus,
-    notifyOnRideUpload,
     rideSyncNotificationMode,
     weeklyDigestEnabled,
     requestPermissions,

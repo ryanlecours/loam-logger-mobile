@@ -146,10 +146,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hoursDisplayPreference: viewer.hoursDisplayPreference,
         predictionMode: viewer.predictionMode,
         distanceUnit: viewer.distanceUnit,
-        // Notification prefs. notifyOnRideUpload was silently dropped from
-        // this mapping before, which made the old Settings toggle read the
-        // `?? true` fallback forever regardless of the stored value.
-        notifyOnRideUpload: viewer.notifyOnRideUpload,
+        // Notification prefs. notifyOnRideUpload is intentionally not
+        // mapped here: nothing in the app reads it any more (Settings uses
+        // rideSyncNotificationMode, its replacement), so it's dropped from
+        // this query and this type rather than carried as a dead field.
         rideSyncNotificationMode: viewer.rideSyncNotificationMode,
         weeklyDigestEnabled: viewer.weeklyDigestEnabled,
         createdAt: viewer.createdAt,
