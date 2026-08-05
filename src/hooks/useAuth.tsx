@@ -6,7 +6,8 @@ import React, {
   useCallback,
 } from 'react';
 import { useApolloClient } from '@apollo/client';
-import { UpdateUserPreferencesDocument, type UserRole } from '../graphql/generated';
+import { UnregisterPushTokenDocument, type UserRole } from '../graphql/generated';
+import { getCurrentPushTokenIfGranted } from '../lib/notifications';
 import {
   getAccessToken,
   hasValidAccessToken,
@@ -173,21 +174,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // This handles cases like invalid/expired tokens that can't be refreshed
   const logout = useCallback(async () => {
     // Unregister this device's push token BEFORE dropping auth (the mutation
-    // needs it). Without this, the server keeps pushing this account's rides
-    // and service alerts to a device its owner walked away from; on a shared
-    // or handed-down device the next signed-in user reads the previous one's
-    // notifications. Best-effort with a hard cap: logout is also invoked on
-    // already-dead sessions (ME-query failure), where this mutation can only
-    // fail, and it must never hold the user hostage offline.
-    await Promise.race([
-      client
-        .mutate({
-          mutation: UpdateUserPreferencesDocument,
-          variables: { input: { expoPushToken: null } },
-        })
-        .catch(() => {}),
-      new Promise((resolve) => setTimeout(resolve, 3000)),
-    ]);
+    // needs an authenticated request). Without this, the server keeps
+    // pushing this account's rides and service alerts to a device its owner
+    // walked away from; on a shared or handed-down device the next
+    // signed-in user reads the previous one's notifications.
+    //
+    // Uses unregisterPushToken(token), NOT updateUserPreferences(expoPushToken:
+    // null): expoPushToken is one column per USER, not per device, so the
+    // same account signed into two devices shares a single slot and
+    // whichever registers last silently wins it. A blind null would let a
+    // logout on the device that already lost that race kill push on a
+    // different, currently-active device. Passing our own token makes the
+    // server-side clear conditional on it still being the one on file.
+    //
+    // getCurrentPushTokenIfGranted never prompts, so logout can't pop an OS
+    // permission dialog for a user who denied notifications. Best-effort
+    // with a hard cap either way: logout is also invoked on already-dead
+    // sessions (ME-query failure), where this mutation can only fail, and
+    // it must never hold the user hostage offline.
+    const token = await getCurrentPushTokenIfGranted().catch(() => null);
+    if (token) {
+      await Promise.race([
+        client
+          .mutate({
+            mutation: UnregisterPushTokenDocument,
+            variables: { token },
+          })
+          .catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
+    }
 
     await logoutAuth();
     await client.clearStore(); // Clear Apollo cache

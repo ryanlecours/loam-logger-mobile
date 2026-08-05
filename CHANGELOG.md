@@ -40,15 +40,22 @@ Improvements
   would be a lie). Device timezone now rides along with every push-token
   upload so the digest can land at 8am local.
 - `fix(notifications)`: logout unregisters the device's push token
-  (best-effort, 3s cap) so a shared device stops receiving the previous
-  account's pushes.
+  (best-effort, 3s cap, never prompts for permission) so a shared device
+  stops receiving the previous account's pushes. Scoped rather than a blind
+  clear: expoPushToken is one column per user, not per device, so the same
+  account signed into two devices shares a single slot and whichever
+  registers last silently wins it. Logout now sends this device's own
+  token to a new compare-and-clear mutation that only clears the column if
+  it still matches, so logging out on one device can never kill push on a
+  different, currently-active device signed into the same account.
 - `fix(settings)`: permission status re-checks on app foreground via an
   AppState listener, fixing the stale "off" switch after granting permission
   in system settings.
 - `feat(notifications)`: `screen: 'dashboard'` deep-link routing for the
   digest push. Onboarding pitch copy updated to match the action-needed
   default.
-- Requires the API changes in loam-logger's feat/notification-system branch.
+- Requires the API changes in loam-logger's feat/notification-system and
+  fix/scoped-push-token-clear branches.
 
 ## 1.1.4 - 2026-08-04
 
