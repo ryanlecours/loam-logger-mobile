@@ -89,10 +89,6 @@
           ],
           "autoVerify": true
         }
-      ],
-      "blockedPermissions": [
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {
@@ -152,7 +148,12 @@
           }
         }
       ],
-      "./plugins/withoutMapLocationPermission",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Loam Logger uses your location to record your ride and draw your route while a recording is active."
+        }
+      ],
       "expo-sqlite"
     ],
     "experiments": {

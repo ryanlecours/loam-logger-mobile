@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,6 +105,16 @@ export default function RidesScreen() {
 
   const handleAddRide = () => {
     router.push('/ride/add' as Href);
+  };
+
+  // The FAB offers both paths; the empty-state buttons keep linking straight
+  // to manual entry since their copy already says "manually".
+  const handleFabPress = () => {
+    Alert.alert('Add a ride', undefined, [
+      { text: 'Record with GPS', onPress: () => router.push('/ride/record' as Href) },
+      { text: 'Enter manually', onPress: handleAddRide },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const renderItem = useCallback(
@@ -288,7 +299,7 @@ export default function RidesScreen() {
       />
 
       {rides.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={handleAddRide}>
+        <TouchableOpacity style={styles.fab} onPress={handleFabPress}>
           <Ionicons name="add" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
