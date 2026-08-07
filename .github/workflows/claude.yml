@@ -48,3 +48,10 @@ jobs:
           # or https://code.claude.com/docs/en/cli-reference for available options
           # claude_args: '--allowed-tools Bash(gh pr:*)'
 
+      # The action hides the SDK's own output, so when a run dies with
+      # is_error:true the underlying message (auth, model access, SDK crash)
+      # never reaches the log. Surface it from the execution output file.
+      - name: Dump Claude execution output on failure
+        if: failure()
+        run: cat /home/runner/work/_temp/claude-execution-output.json || echo "no execution output file found"
+
