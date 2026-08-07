@@ -301,7 +301,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
+      // One-shot: the timer and the connectivity listener both route here,
+      // and the effect only re-runs (disarming them) after the refetch
+      // settles. Without the guard, connectivity returning just before the
+      // timer fires would refetch twice for one failure and double-count
+      // the attempt.
+      let fired = false;
       const retry = () => {
+        if (fired) return;
+        fired = true;
+        clearTimeout(timer);
+        unsubscribe();
         meFailure.current.attempts += 1;
         refetchViewer().catch(() => {
           // Failure updates viewerError, which re-runs this effect and
