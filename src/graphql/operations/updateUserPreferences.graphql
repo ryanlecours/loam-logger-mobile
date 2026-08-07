@@ -6,5 +6,6 @@ mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
     distanceUnit
     rideSyncNotificationMode
     weeklyDigestEnabled
+    aiFeaturesEnabled
   }
 }

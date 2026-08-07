@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Switch } from 'react-native';
 import { useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -133,6 +133,17 @@ export default function SettingsScreen() {
       Alert.alert('Error', 'Failed to update prediction mode.');
     }
   }, [isPro, updatePreferences, refetchMe, router]);
+
+  const aiFeaturesEnabled = meData?.me?.aiFeaturesEnabled ?? false;
+
+  const handleAiFeaturesToggle = useCallback(async (enabled: boolean) => {
+    try {
+      await updatePreferences({ variables: { input: { aiFeaturesEnabled: enabled } } });
+      await refetchMe();
+    } catch {
+      Alert.alert('Error', 'Failed to update AI preference.');
+    }
+  }, [updatePreferences, refetchMe]);
 
   const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
   const [dataSourceLoading, setDataSourceLoading] = useState(false);
@@ -396,6 +407,30 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* AI is opt-in, off by default at every tier (owner decision,
+            recorded in PRODUCT.md): the summary only renders for riders who
+            turned it on here or at upgrade. Free users see the row with a
+            Pro chip instead of a switch, same idiom as the weekly digest. */}
+        <View style={styles.prefRow}>
+          <View style={styles.prefRowContent}>
+            <Text style={styles.prefLabel}>AI Maintenance Summary</Text>
+            <Text style={styles.prefDescription}>
+              A short machine-generated read of what your bike needs, on the
+              dashboard and bike pages. Off unless you turn it on.
+            </Text>
+          </View>
+          {isPro ? (
+            <Switch
+              value={aiFeaturesEnabled}
+              onValueChange={handleAiFeaturesToggle}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          ) : (
+            <ProChip />
+          )}
+        </View>
       </View>
 
       <View style={{ marginHorizontal: 16 }}>
@@ -593,6 +628,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  prefRowContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  prefDescription: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
   },
   segmentLocked: {
     opacity: 0.5,
