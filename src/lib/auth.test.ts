@@ -76,6 +76,16 @@ describe('refreshAccessToken', () => {
     expect(mockStore.has(REFRESH_TOKEN_KEY)).toBe(false);
   });
 
+  it('clears the session when the server forbids the refresh token (403)', async () => {
+    mockFetchResponse(403, { error: 'Forbidden' });
+
+    const result = await refreshAccessToken();
+
+    expect(result).toEqual({ outcome: 'invalid' });
+    expect(mockStore.has(ACCESS_TOKEN_KEY)).toBe(false);
+    expect(mockStore.has(REFRESH_TOKEN_KEY)).toBe(false);
+  });
+
   // The regression this file exists for: a rider 50 minutes into a recording
   // hits a token refresh while the API is mid-deploy (5xx) or the trail has
   // no signal (fetch throws). Neither is a verdict on the session, and

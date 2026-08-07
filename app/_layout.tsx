@@ -186,6 +186,13 @@ function RootLayoutNav() {
   // Biometric-unlock opt-in: user has a stored session token but hasn't
   // passed Face ID / Touch ID yet this launch. Show the unlock screen
   // instead of letting the router navigate into the app.
+  //
+  // Deliberately NOT guarded by the live-recording check the auth gate
+  // above has: `locked` is only ever set during the one-time checkAuth()
+  // on mount, before any recording can exist, so the two states cannot
+  // overlap today. If a re-lock trigger is ever added (e.g. lock on
+  // backgrounding), this branch will replace the recording UI mid-ride
+  // and needs the same recorderStatus exemption as the auth gate.
   if (locked) {
     return <LockScreen />;
   }

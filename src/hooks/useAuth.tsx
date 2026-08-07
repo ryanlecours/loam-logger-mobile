@@ -4,8 +4,10 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from 'react';
 import { useApolloClient } from '@apollo/client';
+import * as Sentry from '@sentry/react-native';
 import { UnregisterPushTokenDocument, type UserRole } from '../graphql/generated';
 import { getCurrentPushTokenIfGranted } from '../lib/notifications';
 import {
@@ -23,8 +25,15 @@ import {
   type AuthenticateResult,
 } from '../lib/biometric';
 import { purgePersistedCache } from '../lib/apolloClient';
-import { clearOutbox } from '../lib/outbox';
+import { clearOutbox, computeBackoffMs } from '../lib/outbox';
+import { onConnectivityChange } from '../lib/connectivity';
 import { useViewer } from './useViewer';
+
+// Report a sustained ME outage to Sentry once this many transient failures
+// have accumulated over at least this much wall-clock time. One report per
+// outage episode; the counters reset when a viewer arrives.
+const ME_OUTAGE_REPORT_AFTER_ATTEMPTS = 5;
+const ME_OUTAGE_REPORT_AFTER_MS = 2 * 60_000;
 
 interface AuthContextType {
   user: User | null;
@@ -229,6 +238,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [client]);
 
+  // Consecutive transient ME failures. Refs, not state: they feed retry
+  // pacing and telemetry, and must survive effect re-runs without causing
+  // renders. `attempts` counts refetches actually fired (incremented inside
+  // the retry callback, so unrelated effect re-runs cannot inflate it).
+  const meFailure = useRef({ attempts: 0, startedAt: 0, reported: false });
+
+  // A populated viewer ends the outage episode.
+  useEffect(() => {
+    if (viewer) {
+      meFailure.current = { attempts: 0, startedAt: 0, reported: false };
+    }
+  }, [viewer]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -249,15 +271,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Network error or server 5xx: transient, and out of cell range is
       // this app's normal operating condition. Logging out here (as an
       // earlier version did) killed sessions mid-ride. Stay signed in and
-      // poll until connectivity returns; the OfflineBanner covers the UX.
+      // retry with the outbox's backoff curve (30s, 1m, 2m ... capped at
+      // 5m here) so a sustained outage is not hammered from every open
+      // app, plus an immediate retry the moment connectivity returns so
+      // backoff never delays recovery. The OfflineBanner covers the UX.
+      const failure = meFailure.current;
+      if (failure.attempts === 0) failure.startedAt = Date.now();
       console.warn('[useAuth] ME query failed transiently, will retry:', viewerError.message);
-      const timer = setTimeout(() => {
+      Sentry.addBreadcrumb({
+        category: 'auth',
+        type: 'error',
+        level: 'warning',
+        message: 'ME query transient failure',
+        data: { attempts: failure.attempts, error: viewerError.message },
+      });
+      // Surface a sustained outage as its own Sentry event, once per
+      // episode. This whole retry path exists because a production auth
+      // failure went unnoticed; silent-forever retries would repeat that.
+      const failingForMs = Date.now() - failure.startedAt;
+      if (
+        !failure.reported &&
+        failure.attempts >= ME_OUTAGE_REPORT_AFTER_ATTEMPTS &&
+        failingForMs >= ME_OUTAGE_REPORT_AFTER_MS
+      ) {
+        failure.reported = true;
+        Sentry.captureMessage('Mobile ME query failing persistently', {
+          level: 'warning',
+          extra: { attempts: failure.attempts, failingForMs, error: viewerError.message },
+        });
+      }
+
+      const retry = () => {
+        meFailure.current.attempts += 1;
         refetchViewer().catch(() => {
           // Failure updates viewerError, which re-runs this effect and
           // arms the next retry.
         });
-      }, 10_000);
-      return () => clearTimeout(timer);
+      };
+      const delay = Math.min(computeBackoffMs(failure.attempts), 5 * 60_000);
+      const timer = setTimeout(retry, delay);
+      const unsubscribe = onConnectivityChange((online) => {
+        if (online) retry();
+      });
+      return () => {
+        clearTimeout(timer);
+        unsubscribe();
+      };
     }
 
     // Resolved cleanly but no user: the server answered and couldn't
