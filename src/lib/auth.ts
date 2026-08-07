@@ -367,5 +367,22 @@ export async function deleteAccount(): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
+  // Revoke the server-side session so the refresh token chain dies with
+  // this device, not just on it. Best-effort with a hard cap: a rider
+  // logging out at a trailhead with no signal must still log out locally,
+  // and the endpoint is idempotent so a lost response costs nothing.
+  const refreshToken = await getRefreshToken();
+  if (refreshToken) {
+    const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+    const abort = new AbortController();
+    const capTimer = setTimeout(() => abort.abort(), 3000);
+    await fetch(`${apiUrl}/auth/mobile/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+      signal: abort.signal,
+    }).catch(() => {});
+    clearTimeout(capTimer);
+  }
   await clearTokens();
 }

@@ -19,6 +19,7 @@ jest.mock('@sentry/react-native', () => ({
 }));
 
 import {
+  logout,
   refreshAccessToken,
   setTokenRefreshCallback,
 } from './auth';
@@ -108,5 +109,47 @@ describe('refreshAccessToken', () => {
     expect(result).toEqual({ outcome: 'unavailable' });
     expect(mockStore.get(ACCESS_TOKEN_KEY)).toBe('stale-access');
     expect(mockStore.get(REFRESH_TOKEN_KEY)).toBe('refresh-1');
+  });
+});
+
+describe('logout', () => {
+  beforeEach(() => {
+    mockStore.clear();
+    mockStore.set(ACCESS_TOKEN_KEY, 'access-1');
+    mockStore.set(REFRESH_TOKEN_KEY, 'refresh-1');
+  });
+
+  it('revokes the server-side session, then clears local tokens', async () => {
+    mockFetchResponse(200, { ok: true });
+
+    await logout();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/mobile/logout'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: 'refresh-1' }),
+      }),
+    );
+    expect(mockStore.has(ACCESS_TOKEN_KEY)).toBe(false);
+    expect(mockStore.has(REFRESH_TOKEN_KEY)).toBe(false);
+  });
+
+  it('still clears local tokens when the revocation call cannot reach the server', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+
+    await logout();
+
+    expect(mockStore.has(ACCESS_TOKEN_KEY)).toBe(false);
+    expect(mockStore.has(REFRESH_TOKEN_KEY)).toBe(false);
+  });
+
+  it('skips the network call entirely when no refresh token is stored', async () => {
+    mockStore.clear();
+    global.fetch = jest.fn();
+
+    await logout();
+
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
