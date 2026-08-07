@@ -41,6 +41,14 @@ export interface RecorderSnapshot {
   distanceM: number;
   elevationGainM: number;
   pointCount: number;
+  /** Latest accuracy-accepted fix; what the live map's position dot shows. */
+  lastFix: { latitude: number; longitude: number } | null;
+  /**
+   * Length of getTrack()'s array. The array itself is mutated in place for
+   * cheapness, so consumers key their memoization on this counter instead of
+   * array identity.
+   */
+  trackLength: number;
 }
 
 export interface RecordingSummary {
@@ -77,6 +85,11 @@ class RideRecorder {
   private buffer: BufferedPoint[] = [];
   private firstFix: { lat: number; lng: number } | null = null;
   private stopWatching: StopWatching | null = null;
+  // Accuracy-accepted fixes only, so the drawn line agrees with the distance
+  // math (a rejected fix that never added meters must not bend the line).
+  // Mutated in place; snapshot.trackLength is the change signal.
+  private track: [number, number][] = [];
+  private lastFix: { latitude: number; longitude: number } | null = null;
 
   private listeners = new Set<() => void>();
   private snapshot: RecorderSnapshot = {
@@ -84,6 +97,8 @@ class RideRecorder {
     distanceM: 0,
     elevationGainM: 0,
     pointCount: 0,
+    lastFix: null,
+    trackLength: 0,
   };
 
   subscribe = (listener: () => void): (() => void) => {
@@ -92,6 +107,14 @@ class RideRecorder {
   };
 
   getSnapshot = (): RecorderSnapshot => this.snapshot;
+
+  /**
+   * The live polyline. Returned by reference and mutated in place as fixes
+   * arrive; treat as read-only and re-read when snapshot.trackLength moves.
+   */
+  getTrack(): readonly [number, number][] {
+    return this.track;
+  }
 
   /** Live elapsed active time; read on a UI interval, not via the snapshot. */
   getElapsedMs(): number {
@@ -106,6 +129,8 @@ class RideRecorder {
       distanceM: this.acc.distanceM,
       elevationGainM: this.acc.elevationGainM,
       pointCount: this.seq,
+      lastFix: this.lastFix,
+      trackLength: this.track.length,
     };
     this.listeners.forEach((l) => l());
   }
@@ -120,6 +145,8 @@ class RideRecorder {
     this.seq = 0;
     this.buffer = [];
     this.firstFix = null;
+    this.track = [];
+    this.lastFix = null;
     this.status = 'recording';
 
     const db = await getDb();
@@ -155,11 +182,19 @@ class RideRecorder {
       t: Math.max(0, Math.round((update.timestamp - this.startedAt) / 1000)),
     };
 
+    const usable = isUsableFix(sample);
+
     // The ride's start coordinate feeds server-side weather (and later lift
     // detection), so it holds to the same accuracy bar as the distance math
     // rather than trusting whatever cold-start fix arrives first.
-    if (!this.firstFix && isUsableFix(sample)) {
+    if (!this.firstFix && usable) {
       this.firstFix = { lat: update.latitude, lng: update.longitude };
+    }
+
+    // Live map data: accepted fixes only, same bar as everything above.
+    if (usable) {
+      this.track.push([update.latitude, update.longitude]);
+      this.lastFix = { latitude: update.latitude, longitude: update.longitude };
     }
 
     this.acc = accumulate(this.acc, sample);
@@ -267,6 +302,8 @@ class RideRecorder {
     this.seq = 0;
     this.buffer = [];
     this.firstFix = null;
+    this.track = [];
+    this.lastFix = null;
     this.publish();
   }
 }

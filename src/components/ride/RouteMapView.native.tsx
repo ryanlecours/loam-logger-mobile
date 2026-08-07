@@ -16,10 +16,11 @@ import MapView, { Polyline, type Region } from 'react-native-maps';
  * Android is not shipping yet. iOS needs no key: it uses Apple Maps by
  * default, and MapKit draws its own legal attribution.
  *
- * We never set `showsUserLocation`. Doing so would require a location
- * permission string and an App Store privacy declaration for something this
- * feature does not need: we draw a track the server already stored, and never
- * read the device's position.
+ * We never set `showsUserLocation`. This view draws a track the server
+ * already stored; the device's position is irrelevant to it. (The app DOES
+ * read live position elsewhere since GPS recording landed; the live map is
+ * LiveTrackMap.native.tsx, which draws its own dot from the recorder's
+ * filtered fixes rather than the OS location layer.)
  */
 
 /** Matches web's `boundsOptions={{ padding: [20, 20] }}` in spirit: leave a
