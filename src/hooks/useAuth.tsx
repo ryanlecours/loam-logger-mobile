@@ -84,13 +84,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Only pre-refresh when the token is actually stale (or close to it,
       // so we don't send a request that expires mid-flight).
       //
-      // If refresh fails (refresh token expired/revoked), refreshAccessToken
-      // already cleared SecureStore — drop straight to the login screen
-      // without showing the biometric prompt. Sending the user through
-      // Face ID just to dump them at login is bad UX.
+      // If refresh is rejected (refresh token expired/revoked),
+      // refreshAccessToken already cleared SecureStore — drop straight to
+      // the login screen without showing the biometric prompt. Sending the
+      // user through Face ID just to dump them at login is bad UX.
+      //
+      // 'unavailable' is different: no signal at a trailhead or the API is
+      // mid-deploy. The session is probably fine, so proceed as
+      // authenticated; the ME query's transient-error retry (below) picks
+      // things up when connectivity returns. Bouncing to login here would
+      // strand a rider who cannot reach the login endpoint either.
       if (!(await hasValidAccessToken())) {
-        const refreshed = await refreshAccessToken();
-        if (!refreshed) return;
+        const refresh = await refreshAccessToken();
+        if (refresh.outcome === 'invalid') return;
       }
 
       // Session is valid. If the user opted into biometric unlock AND the
@@ -227,22 +233,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated) return;
 
     if (viewerError && !viewerLoading) {
-      console.error('[useAuth] ME query error:', viewerError.message);
-      // Token is likely invalid - clear auth state
-      logout();
-      return;
+      // Only an auth-shaped rejection means the session is dead. The error
+      // link has already tried a token refresh by the time UNAUTHENTICATED
+      // reaches here, so seeing it means the refresh token itself was
+      // rejected: log out.
+      const authRejected = viewerError.graphQLErrors?.some(
+        (err) => err.extensions?.code === 'UNAUTHENTICATED',
+      );
+      if (authRejected) {
+        console.error('[useAuth] ME query unauthenticated:', viewerError.message);
+        logout();
+        return;
+      }
+
+      // Network error or server 5xx: transient, and out of cell range is
+      // this app's normal operating condition. Logging out here (as an
+      // earlier version did) killed sessions mid-ride. Stay signed in and
+      // poll until connectivity returns; the OfflineBanner covers the UX.
+      console.warn('[useAuth] ME query failed transiently, will retry:', viewerError.message);
+      const timer = setTimeout(() => {
+        refetchViewer().catch(() => {
+          // Failure updates viewerError, which re-runs this effect and
+          // arms the next retry.
+        });
+      }, 10_000);
+      return () => clearTimeout(timer);
     }
 
-    // Resolved but no user: token was accepted network-wise but the server
-    // couldn't identify a user (deleted account or token version mismatch).
-    // Treat the same as an auth failure so the user lands on login instead
-    // of getting stuck on a loading screen or flashed through gates with
-    // default-false flags.
-    if (viewerResolved && !viewer && !viewerLoading) {
+    // Resolved cleanly but no user: the server answered and couldn't
+    // identify one (deleted account). Treat as an auth failure so the user
+    // lands on login instead of getting stuck on a loading screen or
+    // flashed through gates with default-false flags. The !viewerError
+    // guard matters: a transient failure also leaves viewer null, and it
+    // must take the retry path above, not this one.
+    if (viewerResolved && !viewer && !viewerLoading && !viewerError) {
       console.warn('[useAuth] ME query resolved with no user — logging out');
       logout();
     }
-  }, [viewerError, viewerLoading, viewerResolved, viewer, isAuthenticated, logout]);
+  }, [viewerError, viewerLoading, viewerResolved, viewer, isAuthenticated, logout, refetchViewer]);
 
   // Register token refresh callback to refetch user when token is refreshed
   const refetchUser = useCallback(async () => {
@@ -280,8 +308,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // render leaks `hasAcceptedCurrentTerms = false` to the gate and produces
   // a ~1–2s Terms screen flash before the logout-effect cleans up. Keeping
   // `loading = true` until viewer is populated lets the LoadingScreen stay
-  // mounted; error/null cases are unblocked by the logout-effect flipping
-  // `isAuthenticated` back to false (which short-circuits this expression).
+  // mounted. Auth-rejected/null cases are unblocked by the logout-effect
+  // flipping `isAuthenticated` back to false (which short-circuits this
+  // expression); a transient ME failure before the first viewer arrives
+  // keeps the LoadingScreen up while the retry loop polls for connectivity.
   const loading = initializing || (isAuthenticated && (!viewerResolved || !viewer));
 
   // Derive gating flags from viewer first (available immediately when query resolves),

@@ -138,9 +138,23 @@ export async function clearTokens(): Promise<void> {
   await SecureStore.deleteItemAsync(USER_KEY);
 }
 
-export async function refreshAccessToken(): Promise<string | null> {
+/**
+ * The three ways a refresh attempt can end. The distinction between
+ * 'invalid' and 'unavailable' is the whole point: only 'invalid' means the
+ * session is dead. Collapsing them (as an earlier version did by clearing
+ * SecureStore on ANY failure) meant a dropped connection on a trail or a
+ * transient 5xx during a Railway deploy logged the rider out mid-ride.
+ */
+export type RefreshResult =
+  | { outcome: 'refreshed'; accessToken: string }
+  /** Server definitively rejected the refresh token; SecureStore is cleared. */
+  | { outcome: 'invalid' }
+  /** Offline or server error; the session may well still be good. Tokens kept. */
+  | { outcome: 'unavailable' };
+
+export async function refreshAccessToken(): Promise<RefreshResult> {
   const refreshToken = await getRefreshToken();
-  if (!refreshToken) return null;
+  if (!refreshToken) return { outcome: 'invalid' };
 
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -153,31 +167,39 @@ export async function refreshAccessToken(): Promise<string | null> {
       body: JSON.stringify({ refreshToken }),
     });
 
-    if (!response.ok) {
+    // /auth/mobile/refresh sends 401 for exactly the terminal cases: token
+    // invalid/expired, user deleted, or revoked by a sessionTokenVersion
+    // bump. Anything else non-ok (500 from a mid-deploy API, 429 from the
+    // proxy, a captive-portal 4xx) is the server having a moment, not a
+    // verdict on the session.
+    if (response.status === 401 || response.status === 403) {
       await clearTokens();
-      return null;
+      return { outcome: 'invalid' };
+    }
+    if (!response.ok) {
+      recordAuthFailure('refresh', 'UNAVAILABLE', response.headers.get('x-request-id') ?? undefined, response.status);
+      return { outcome: 'unavailable' };
     }
 
     const data = await response.json();
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, data.accessToken);
-    // The current server is stateless (HMAC-signed refresh tokens, no
-    // invalidation list) and only returns `{ accessToken }` here, so this
-    // branch is a no-op today. It's a forward-compat hook: if the server
-    // ever adopts refresh-token rotation (rotate on every use to shrink
-    // the replay window), the client will pick up the new refresh token
-    // automatically without needing a coordinated mobile release. Without
-    // this, the next refresh would send a dead token and the user would
-    // be silently logged out.
+    // The server rotates the refresh token on every successful refresh, so
+    // the session window slides forward each time: an app used at least
+    // once per refresh-TTL never logs its rider out. Storing the rotated
+    // token is what makes that work; the conditional keeps compatibility
+    // with an older server that returns only `{ accessToken }`.
     if (data.refreshToken) {
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, data.refreshToken);
     }
     // Notify listener that token was refreshed (so useAuth can refetch ME)
     onTokenRefreshed?.();
-    return data.accessToken;
+    return { outcome: 'refreshed', accessToken: data.accessToken };
   } catch (error) {
-    console.error('Token refresh failed:', error);
-    await clearTokens();
-    return null;
+    // fetch threw: no connectivity, DNS failure, timeout. Riding out of
+    // cell range is the normal condition for this app, not an edge case.
+    console.warn('Token refresh unavailable:', error);
+    recordAuthFailure('refresh', 'NETWORK_ERROR');
+    return { outcome: 'unavailable' };
   }
 }
 
