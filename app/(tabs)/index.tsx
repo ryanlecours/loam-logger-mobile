@@ -9,6 +9,7 @@ import {
   BikeFieldsFragment,
   ComponentPrediction,
   useCalibrationStateQuery,
+  useMeQuery,
   useRidesPageQuery,
   useUnassignedRideCountQuery,
 } from '../../src/graphql/generated';
@@ -102,6 +103,11 @@ function BrandHeader() {
 export default function DashboardScreen() {
   const router = useRouter();
   const { isPro } = useUserTier();
+  // AI is opt-in (off by default): the server nulls advisorSummary for
+  // non-opted riders, but skipping the render here also skips the per-bike
+  // query and its skeleton.
+  const { data: meData } = useMeQuery({ fetchPolicy: 'cache-first' });
+  const aiFeaturesEnabled = meData?.me?.aiFeaturesEnabled ?? false;
   const {
     needsAttention,
     healthy,
@@ -319,7 +325,7 @@ export default function DashboardScreen() {
                 // for. Rendering it inside the group is what tells the rider
                 // which bike it is about.
                 footer={
-                  index === 0 && isPro ? (
+                  index === 0 && isPro && aiFeaturesEnabled ? (
                     <MaintenanceSummary bikeId={bike.id} variant="inset" />
                   ) : null
                 }

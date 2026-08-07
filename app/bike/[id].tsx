@@ -4,7 +4,7 @@ import { useLocalSearchParams, Stack, useRouter, Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { NetworkStatus } from '@apollo/client';
 import { TouchableOpacity } from 'react-native';
-import { useBikeQuery, useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
+import { useBikeQuery, useGearQuery, useDeleteBikeMutation, useRetireBikeMutation, useReactivateBikeMutation, useMeQuery, BikeStatus, ComponentFieldsFragment } from '../../src/graphql/generated';
 import { ComponentHealthBadge } from '../../src/components/gear/ComponentHealthBadge';
 import { ComponentRow } from '../../src/components/gear/ComponentRow';
 import { GarminDerivedNote } from '../../src/components/attribution/GarminAttribution';
@@ -43,6 +43,11 @@ export default function BikeDetailScreen() {
   }>();
   const router = useRouter();
   const { isFree } = useUserTier();
+  // AI is opt-in (off by default): the server nulls advisorSummary for
+  // non-opted riders, but skipping the render here also skips the query
+  // and its skeleton.
+  const { data: meData } = useMeQuery({ fetchPolicy: 'cache-first' });
+  const aiFeaturesEnabled = meData?.me?.aiFeaturesEnabled ?? false;
   const [showLogService, setShowLogService] = useState(false);
   const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
@@ -377,8 +382,9 @@ export default function BikeDetailScreen() {
         </View>
       </View>
 
-      {/* Maintenance Summary (Pro-only, hidden when advisor returns null) */}
-      {!isFree && (predictions?.components?.length ?? 0) > 0 && (
+      {/* Maintenance Summary (Pro-only, AI opt-in, hidden when advisor
+          returns null) */}
+      {!isFree && aiFeaturesEnabled && (predictions?.components?.length ?? 0) > 0 && (
         <MaintenanceSummary bikeId={bike.id} />
       )}
 

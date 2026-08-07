@@ -16,6 +16,7 @@ query Me {
     distanceUnit
     rideSyncNotificationMode
     weeklyDigestEnabled
+    aiFeaturesEnabled
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource

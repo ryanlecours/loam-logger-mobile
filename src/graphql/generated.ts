@@ -1548,6 +1548,7 @@ export type UpdateServicePreferencesInput = {
 };
 
 export type UpdateUserPreferencesInput = {
+  aiFeaturesEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   distanceUnit?: InputMaybe<Scalars['String']['input']>;
   expoPushToken?: InputMaybe<Scalars['String']['input']>;
   hoursDisplayPreference?: InputMaybe<Scalars['String']['input']>;
@@ -1563,6 +1564,7 @@ export type User = {
   accounts: Array<ConnectedAccount>;
   activeDataSource?: Maybe<Scalars['String']['output']>;
   age?: Maybe<Scalars['Int']['output']>;
+  aiFeaturesEnabled: Scalars['Boolean']['output'];
   analyticsOptOut: Scalars['Boolean']['output'];
   avatarUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
@@ -1916,7 +1918,7 @@ export type BikeAdvisorSummaryQuery = { __typename?: 'Query', bike?: { __typenam
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RideQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2012,7 +2014,7 @@ export type UpdateUserPreferencesMutationVariables = Exact<{
 }>;
 
 
-export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean } };
+export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean } };
 
 export type WeatherBreakdownQueryVariables = Exact<{
   filter?: InputMaybe<RidesFilterInput>;
@@ -3690,6 +3692,7 @@ export const MeDocument = gql`
     distanceUnit
     rideSyncNotificationMode
     weeklyDigestEnabled
+    aiFeaturesEnabled
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource
@@ -4345,6 +4348,7 @@ export const UpdateUserPreferencesDocument = gql`
     distanceUnit
     rideSyncNotificationMode
     weeklyDigestEnabled
+    aiFeaturesEnabled
   }
 }
     `;
