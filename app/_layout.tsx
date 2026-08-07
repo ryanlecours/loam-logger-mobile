@@ -5,7 +5,8 @@ import * as Sentry from '@sentry/react-native';
 import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 import { client, restoreApolloCache } from '../src/lib/apolloClient';
 import { initOfflineSync } from '../src/lib/offlineSync';
-import { useEffect, useState } from 'react';
+import { rideRecorder } from '../src/lib/recording/recorder';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { colors } from '../src/constants/theme';
 import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
 import { useNotifications } from '../src/hooks/useNotifications';
@@ -56,6 +57,16 @@ function RootLayoutNav() {
   const segments = useSegments() as string[];
   const router = useRouter();
 
+  // Status only, not the full snapshot: the snapshot object is republished
+  // on every GPS point, which would re-render this layout once a second for
+  // the whole ride. useSyncExternalStore compares the returned value, so
+  // subscribing to the status string alone re-renders only on transitions.
+  const recorderStatus = useSyncExternalStore(
+    rideRecorder.subscribe,
+    () => rideRecorder.getSnapshot().status,
+    () => rideRecorder.getSnapshot().status,
+  );
+
   useEffect(() => {
     if (loading) return;
 
@@ -66,6 +77,19 @@ function RootLayoutNav() {
 
     // 1. AuthGate: Not authenticated -> login
     if (!isAuthenticated) {
+      // ...unless a recording is in progress on the recording screens.
+      // Recording is local-only work (GPS sampling into SQLite); auth plays
+      // no part in it, and replacing the route here would unmount the
+      // recording UI and strand the session. Let the rider finish: the save
+      // path queues the ride to the durable outbox on UNAUTHENTICATED, and
+      // it uploads after the next sign-in. Once they leave these screens
+      // (save or discard both navigate away), this gate fires normally.
+      const recorderLive = recorderStatus !== 'idle';
+      const onRecordingScreens =
+        firstSegment === 'ride' &&
+        (secondSegment === 'record' || secondSegment === 'save-recording');
+      if (recorderLive && onRecordingScreens) return;
+
       if (!inAuthGroup) {
         router.replace('/(auth)/login');
       }
@@ -118,7 +142,7 @@ function RootLayoutNav() {
     if (inOnboardingGroup || onIndex) {
       router.replace('/(tabs)');
     }
-  }, [loading, isAuthenticated, locked, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
+  }, [loading, isAuthenticated, locked, hasAcceptedCurrentTerms, onboardingCompleted, segments, router, recorderStatus]);
 
   // Register push token and set up notification tap handler when fully authenticated
   const { registerTokenIfGranted } = useNotifications();
@@ -162,6 +186,13 @@ function RootLayoutNav() {
   // Biometric-unlock opt-in: user has a stored session token but hasn't
   // passed Face ID / Touch ID yet this launch. Show the unlock screen
   // instead of letting the router navigate into the app.
+  //
+  // Deliberately NOT guarded by the live-recording check the auth gate
+  // above has: `locked` is only ever set during the one-time checkAuth()
+  // on mount, before any recording can exist, so the two states cannot
+  // overlap today. If a re-lock trigger is ever added (e.g. lock on
+  // backgrounding), this branch will replace the recording UI mid-ride
+  // and needs the same recorderStatus exemption as the auth gate.
   if (locked) {
     return <LockScreen />;
   }

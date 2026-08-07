@@ -11,13 +11,13 @@ import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { CachePersistor } from 'apollo3-cache-persist';
 import Storage from 'expo-sqlite/kv-store';
-import { getAccessToken, refreshAccessToken } from './auth';
+import { getAccessToken, refreshAccessToken, type RefreshResult } from './auth';
 
 // Dedupe concurrent refresh attempts. When multiple queries land at once and
 // all 401, we want one /refresh round-trip — not N parallel refreshes that
 // race against each other.
-let inFlightRefresh: Promise<string | null> | null = null;
-function dedupedRefresh(): Promise<string | null> {
+let inFlightRefresh: Promise<RefreshResult> | null = null;
+function dedupedRefresh(): Promise<RefreshResult> {
   if (!inFlightRefresh) {
     inFlightRefresh = refreshAccessToken().finally(() => {
       inFlightRefresh = null;
@@ -56,20 +56,31 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
   );
   if (!hasUnauth) return;
 
-  return fromPromise(dedupedRefresh()).flatMap((newToken) => {
-    if (!newToken) {
-      // Refresh failed; refreshAccessToken already cleared SecureStore.
+  return fromPromise(dedupedRefresh()).flatMap((result) => {
+    if (result.outcome === 'invalid') {
+      // Session is definitively dead; SecureStore is already cleared.
       // Surface the original UNAUTHENTICATED so useAuth's logout-on-error
       // effect routes the user back to login. Synthesizing the result here
       // avoids a doomed retry that would loop straight back into this link.
       return Observable.of<FetchResult>({ errors: graphQLErrors });
     }
 
+    if (result.outcome === 'unavailable') {
+      // Refresh could not be completed (offline, API down) but the session
+      // is NOT known-dead. Emit a plain network error rather than passing
+      // the UNAUTHENTICATED through: downstream consumers treat a network
+      // error as transient (outbox retries with backoff, useAuth stays
+      // logged in), whereas UNAUTHENTICATED reads as "log the user out."
+      return new Observable<FetchResult>((observer) => {
+        observer.error(new Error('Token refresh unavailable; will retry'));
+      });
+    }
+
     operation.setContext(
       ({ headers = {} }: { headers?: Record<string, unknown> }) => ({
         headers: {
           ...headers,
-          authorization: `Bearer ${newToken}`,
+          authorization: `Bearer ${result.accessToken}`,
         },
       }),
     );
