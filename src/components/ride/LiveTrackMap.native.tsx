@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, Polyline, type LatLng } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { colors, radius } from '../../constants/theme';
+import { buildChunks, type LatLngPoint } from './liveTrackChunks';
 
 /**
  * Live map for an in-progress recording: the route so far plus a position
@@ -37,15 +38,6 @@ interface LiveTrackMapProps {
   lastFix: { latitude: number; longitude: number } | null;
 }
 
-/**
- * The polyline re-renders every second for hours, so it is drawn as fixed
- * chunks: completed chunks keep their identity forever and never re-cross
- * the bridge; only the in-progress tail (at most CHUNK_SIZE points) changes
- * per fix. A 3-hour ride at 1 Hz is ~10k points, which as a single Polyline
- * would re-serialize wholesale every second.
- */
-const CHUNK_SIZE = 200;
-
 /** Initial viewport span; roughly a neighborhood at trail scale. */
 const INITIAL_DELTA = 0.005;
 
@@ -58,27 +50,15 @@ export default function LiveTrackMap({ track, trackLength, lastFix }: LiveTrackM
   const mapRef = useRef<MapView | null>(null);
   const [following, setFollowing] = useState(true);
 
-  // Completed chunks are cached by index and never rebuilt. The cache resets
-  // when the track restarts (a new recording is shorter than the old one).
-  const chunkCache = useRef<LatLng[][]>([]);
-  const { completedChunks, tail } = useMemo(() => {
-    const completeCount = Math.floor(trackLength / CHUNK_SIZE);
-    if (chunkCache.current.length > completeCount) {
-      chunkCache.current = [];
-    }
-    for (let i = chunkCache.current.length; i < completeCount; i++) {
-      chunkCache.current[i] = track
-        .slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE + 1) // +1 overlaps chunks so no gap
-        .map(([latitude, longitude]) => ({ latitude, longitude }));
-    }
-    return {
-      completedChunks: chunkCache.current.slice(0, completeCount),
-      tail: track
-        .slice(completeCount * CHUNK_SIZE, trackLength)
-        .map(([latitude, longitude]) => ({ latitude, longitude })),
-    };
+  // Chunking lives in liveTrackChunks.ts (pure, unit-tested, including the
+  // boundary-overlap behavior). The cache is ours; completed chunks keep
+  // their identity across renders so they never re-cross the bridge.
+  const chunkCache = useRef<LatLngPoint[][]>([]);
+  const { completedChunks, tail } = useMemo(
+    () => buildChunks(track, trackLength, chunkCache.current),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- track is mutated in place; trackLength is its change signal
-  }, [trackLength]);
+    [trackLength],
+  );
 
   useEffect(() => {
     if (!following || !lastFix) return;
