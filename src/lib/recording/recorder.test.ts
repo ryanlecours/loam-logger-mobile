@@ -171,6 +171,39 @@ describe('rideRecorder', () => {
     expect(rideRecorder.getSnapshot().pointCount).toBe(2);
   });
 
+  it('exposes the live track and last fix from accepted fixes only', async () => {
+    const gps = makeFakeSource();
+    await rideRecorder.start(gps.source);
+
+    gps.emit({});
+    gps.emit({ latitude: 47.7, longitude: -122.4, accuracy: 80 }); // rejected: bad accuracy
+    gps.emit({ longitude: -122.3221, timestamp: Date.now() + 1000 });
+
+    const snapshot = rideRecorder.getSnapshot();
+    // The rejected fix is stored raw (pointCount 3) but must not bend the
+    // drawn line or move the dot.
+    expect(snapshot.pointCount).toBe(3);
+    expect(snapshot.trackLength).toBe(2);
+    expect(rideRecorder.getTrack()).toEqual([
+      [47.6062, -122.3321],
+      [47.6062, -122.3221],
+    ]);
+    expect(snapshot.lastFix).toEqual({ latitude: 47.6062, longitude: -122.3221 });
+  });
+
+  it('clear resets the track and last fix', async () => {
+    const gps = makeFakeSource();
+    await rideRecorder.start(gps.source);
+    gps.emit({});
+    await rideRecorder.stop();
+
+    await rideRecorder.clear();
+
+    expect(rideRecorder.getTrack()).toHaveLength(0);
+    expect(rideRecorder.getSnapshot().lastFix).toBeNull();
+    expect(rideRecorder.getSnapshot().trackLength).toBe(0);
+  });
+
   it('clear deletes the session and returns to idle', async () => {
     const gps = makeFakeSource();
     await rideRecorder.start(gps.source);

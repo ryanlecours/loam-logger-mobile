@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useRideRecorder } from '../../src/hooks/useRideRecorder';
 import { rideRecorder } from '../../src/lib/recording/recorder';
+import LiveTrackMap from '../../src/components/ride/LiveTrackMap';
 import { gpsLocationSource } from '../../src/lib/recording/locationSource';
 import { formatDuration, formatElevation } from '../../src/utils/greetingMessages';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
@@ -131,8 +132,10 @@ export default function RecordRideScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.statsBlock}>
-        <Text style={styles.elapsed}>{formatDuration(Math.floor(elapsedMs / 1000))}</Text>
+      <View style={[styles.statsBlock, !idle && styles.statsBlockCompact]}>
+        <Text style={[styles.elapsed, !idle && styles.elapsedCompact]}>
+          {formatDuration(Math.floor(elapsedMs / 1000))}
+        </Text>
         <Text style={styles.elapsedLabel}>elapsed</Text>
 
         <View style={styles.statRow}>
@@ -157,6 +160,20 @@ export default function RecordRideScreen() {
           <Text style={styles.acquiring}>Acquiring GPS signal...</Text>
         )}
       </View>
+
+      {/* Mounted only once a session exists: the pre-start screen should not
+          spin up tile fetching and map rendering for a rider still deciding.
+          The track array is mutated in place by the recorder; trackLength in
+          the snapshot is the change signal LiveTrackMap keys on. */}
+      {!idle && (
+        <View style={styles.mapWrap}>
+          <LiveTrackMap
+            track={rideRecorder.getTrack()}
+            trackLength={snapshot.trackLength}
+            lastFix={snapshot.lastFix}
+          />
+        </View>
+      )}
 
       <View style={styles.controls}>
         {idle && (
@@ -202,11 +219,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 48,
   },
+  // Once the map is on screen the stats give up their centerpiece spacing.
+  statsBlockCompact: {
+    marginTop: 8,
+  },
+  mapWrap: {
+    flex: 1,
+    marginVertical: 16,
+  },
   elapsed: {
     fontSize: 56,
     fontWeight: '700',
     color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
+  },
+  elapsedCompact: {
+    fontSize: 40,
   },
   elapsedLabel: {
     fontSize: 14,
