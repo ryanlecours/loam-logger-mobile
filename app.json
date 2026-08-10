@@ -151,7 +151,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Loam Logger uses your location to record your ride and draw your route while a recording is active."
+          "locationWhenInUsePermission": "Loam Logger uses your location to record your ride and draw your route while a recording is active.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       "expo-sqlite"

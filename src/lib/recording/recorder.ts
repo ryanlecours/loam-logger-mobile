@@ -9,14 +9,16 @@ import {
 } from './geo';
 
 // The ride recorder: a singleton state machine over a crash-safe SQLite
-// buffer. UI subscribes via useRideRecorder; the GPS feed comes in through
-// an injected LocationSource so the machine itself never imports
-// expo-location and stays unit-testable.
+// buffer. UI subscribes via useRideRecorder; GPS fixes arrive through the
+// public ingest() method, fed by the background location task (production)
+// or directly (tests). The injected LocationController only starts and stops
+// the platform's update stream; it never touches recorder state.
 //
 // Durability model: every point batch and totals update lands in SQLite
-// within a few seconds of being sampled. A crash mid-ride loses at most the
-// unflushed tail of the buffer; the session row and points survive for the
-// phase-2 recovery flow. Phase 1 clears them on save or discard.
+// within a few seconds of being sampled. A crash, force-quit, or OS jettison
+// mid-ride loses at most the unflushed tail of the buffer; restoreIfNeeded()
+// rebuilds the whole session from those rows on next launch, so a ride is
+// never silently lost. Save and discard clear the rows.
 
 export type RecorderStatus = 'idle' | 'recording' | 'paused' | 'finished';
 
@@ -30,10 +32,10 @@ export interface LocationUpdate {
   timestamp: number;
 }
 
-export type StopWatching = () => void;
-
-export interface LocationSource {
-  watch(onUpdate: (update: LocationUpdate) => void): Promise<StopWatching>;
+/** Starts/stops the platform location stream. Fixes arrive via ingest(). */
+export interface LocationController {
+  start(): Promise<void>;
+  stop(): Promise<void>;
 }
 
 export interface RecorderSnapshot {
@@ -70,6 +72,23 @@ interface BufferedPoint {
   speed: number | null;
 }
 
+interface SessionRow {
+  id: string;
+  status: string;
+  started_at: number;
+  active_ms: number;
+}
+
+interface PointRow {
+  seq: number;
+  t: number;
+  lat: number;
+  lng: number;
+  altitude: number | null;
+  accuracy: number | null;
+  speed: number | null;
+}
+
 const FLUSH_EVERY_POINTS = 5;
 
 class RideRecorder {
@@ -84,7 +103,7 @@ class RideRecorder {
   private seq = 0;
   private buffer: BufferedPoint[] = [];
   private firstFix: { lat: number; lng: number } | null = null;
-  private stopWatching: StopWatching | null = null;
+  private controller: LocationController | null = null;
   // Accuracy-accepted fixes only, so the drawn line agrees with the distance
   // math (a rejected fix that never added meters must not bend the line).
   // Mutated in place; snapshot.trackLength is the change signal.
@@ -135,7 +154,7 @@ class RideRecorder {
     this.listeners.forEach((l) => l());
   }
 
-  async start(source: LocationSource): Promise<void> {
+  async start(controller: LocationController): Promise<void> {
     if (this.status !== 'idle') return;
     this.sessionId = Crypto.randomUUID();
     this.startedAt = Date.now();
@@ -148,6 +167,7 @@ class RideRecorder {
     this.track = [];
     this.lastFix = null;
     this.status = 'recording';
+    this.controller = controller;
 
     const db = await getDb();
     await db.runAsync(
@@ -158,11 +178,80 @@ class RideRecorder {
       this.startedAt,
     );
 
-    this.stopWatching = await source.watch((update) => this.onUpdate(update));
+    await controller.start();
     this.publish();
   }
 
-  private onUpdate(update: LocationUpdate): void {
+  /**
+   * Rebuild an interrupted session from its SQLite rows. Called on every
+   * launch (and by the background task before ingesting, in case the task
+   * fires before the UI mounts). Returns true when a session was restored.
+   *
+   * The restored session comes back PAUSED regardless of how it died: the
+   * recorder cannot know whether the rider kept riding while the app was
+   * dead, so it does not guess. The record screen then offers Resume /
+   * Finish / Discard, and elapsed time excludes the dead window (active_ms
+   * was banked at the last flush).
+   */
+  async restoreIfNeeded(): Promise<boolean> {
+    if (this.status !== 'idle') return false;
+    const db = await getDb();
+    const session = await db.getFirstAsync<SessionRow>(
+      `SELECT id, status, started_at, active_ms FROM recording_session
+       WHERE status IN ('recording', 'paused') ORDER BY started_at DESC LIMIT 1`,
+    );
+    if (!session) return false;
+
+    const points = await db.getAllAsync<PointRow>(
+      'SELECT seq, t, lat, lng, altitude, accuracy, speed FROM recording_point WHERE session_id = ? ORDER BY seq ASC',
+      session.id,
+    );
+
+    this.sessionId = session.id;
+    this.startedAt = session.started_at;
+    this.activeMsBanked = session.active_ms;
+    this.spanStartedAt = null;
+    this.acc = emptyAccumulator();
+    this.buffer = [];
+    this.firstFix = null;
+    this.track = [];
+    this.lastFix = null;
+
+    // Replay the stored points through the same math that built the live
+    // totals, so a restored session shows exactly what a never-interrupted
+    // one would (minus the unflushed tail the crash took).
+    for (const p of points) {
+      const sample: GeoSample = {
+        latitude: p.lat,
+        longitude: p.lng,
+        altitude: p.altitude,
+        accuracy: p.accuracy,
+        t: p.t,
+      };
+      const usable = isUsableFix(sample);
+      if (!this.firstFix && usable) {
+        this.firstFix = { lat: p.lat, lng: p.lng };
+      }
+      if (usable) {
+        this.track.push([p.lat, p.lng]);
+        this.lastFix = { latitude: p.lat, longitude: p.lng };
+      }
+      this.acc = accumulate(this.acc, sample);
+    }
+    this.seq = points.length > 0 ? points[points.length - 1].seq + 1 : 0;
+    this.status = 'paused';
+
+    await db.runAsync(
+      `UPDATE recording_session SET status = 'paused', updated_at = ? WHERE id = ?`,
+      Date.now(),
+      session.id,
+    );
+    this.publish();
+    return true;
+  }
+
+  /** GPS fixes enter here: from the background task, or directly in tests. */
+  ingest(update: LocationUpdate): void {
     // Paused keeps the GPS warm (a resumed rider gets an instant fix) but
     // records nothing; the pause simply does not exist in the point series.
     if (this.status !== 'recording') return;
@@ -254,8 +343,20 @@ class RideRecorder {
     this.publish();
   }
 
-  resume(): void {
+  /**
+   * Resume from pause, including a restored session. `controller` restarts
+   * the platform stream when the pause came from a restore (the original
+   * stream died with the old process); a live in-process resume passes
+   * nothing and keeps the already-running stream.
+   */
+  async resume(controller?: LocationController): Promise<void> {
     if (this.status !== 'paused') return;
+    // Only start a stream when none is attached: a restored session lost its
+    // stream with the old process; a live in-process pause kept its own.
+    if (!this.controller && controller) {
+      this.controller = controller;
+      await controller.start();
+    }
     this.spanStartedAt = Date.now();
     this.status = 'recording';
     this.publish();
@@ -267,8 +368,8 @@ class RideRecorder {
       this.spanStartedAt = null;
     }
     this.status = 'finished';
-    this.stopWatching?.();
-    this.stopWatching = null;
+    await this.controller?.stop().catch(() => {});
+    this.controller = null;
     await this.flush();
     this.publish();
     return this.getSummary();
@@ -287,8 +388,8 @@ class RideRecorder {
 
   /** Drop the session and its points; used after save and on discard. */
   async clear(): Promise<void> {
-    this.stopWatching?.();
-    this.stopWatching = null;
+    await this.controller?.stop().catch(() => {});
+    this.controller = null;
     if (this.sessionId) {
       const db = await getDb();
       await db.runAsync('DELETE FROM recording_point WHERE session_id = ?', this.sessionId);

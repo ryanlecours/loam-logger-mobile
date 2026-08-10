@@ -6,7 +6,11 @@ import { AuthProvider, useAuth } from '../src/hooks/useAuth';
 import { client, restoreApolloCache } from '../src/lib/apolloClient';
 import { initOfflineSync } from '../src/lib/offlineSync';
 import { rideRecorder } from '../src/lib/recording/recorder';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+// Side-effect import: registers the ride-recording TaskManager task at
+// module scope. Must run on every JS launch before the task can deliver a
+// batch, including a launch that happens in the background.
+import '../src/lib/recording/locationTask';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { colors } from '../src/constants/theme';
 import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
 import { useNotifications } from '../src/hooks/useNotifications';
@@ -144,6 +148,35 @@ function RootLayoutNav() {
     }
   }, [loading, isAuthenticated, locked, hasAcceptedCurrentTerms, onboardingCompleted, segments, router, recorderStatus]);
 
+  // A live recorder session with no recording UI on screen means the app
+  // relaunched (or navigated away) mid-ride: restoreIfNeeded() rebuilt the
+  // session on boot, but the rider is looking at the dashboard with no sign
+  // their ride survived. Put the record screen back in front of them once
+  // the gates clear. The ref makes the push once-per-liveness so this never
+  // fights navigation, and the segments check keeps the normal start flow
+  // (already on the record screen) from pushing a duplicate.
+  const resurfacedRef = useRef(false);
+  useEffect(() => {
+    const live = recorderStatus === 'recording' || recorderStatus === 'paused';
+    if (!live) {
+      resurfacedRef.current = false;
+      return;
+    }
+    if (loading || !isAuthenticated || locked || !hasAcceptedCurrentTerms || !onboardingCompleted) {
+      return;
+    }
+    const onRecordingScreens =
+      segments[0] === 'ride' && (segments[1] === 'record' || segments[1] === 'save-recording');
+    if (onRecordingScreens) {
+      resurfacedRef.current = true;
+      return;
+    }
+    if (!resurfacedRef.current) {
+      resurfacedRef.current = true;
+      router.push('/ride/record');
+    }
+  }, [recorderStatus, loading, isAuthenticated, locked, hasAcceptedCurrentTerms, onboardingCompleted, segments, router]);
+
   // Register push token and set up notification tap handler when fully authenticated
   const { registerTokenIfGranted } = useNotifications();
 
@@ -274,6 +307,11 @@ function RootLayout() {
       // previous launch. After the restore: a drain refetches queries, and
       // those results should land in the restored cache, not a cold one.
       initOfflineSync();
+      // A recording the previous process did not close out (crash, OS
+      // jettison, force-quit mid-ride) is rebuilt from its SQLite rows,
+      // paused. RootLayoutNav re-surfaces the record screen once the auth
+      // gates clear so the rider decides: resume, finish, or discard.
+      void rideRecorder.restoreIfNeeded();
     });
   }, []);
 

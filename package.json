@@ -43,6 +43,7 @@
     "expo-sharing": "~14.0.8",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
+    "expo-task-manager": "~14.0.9",
     "expo-web-browser": "~15.0.11",
     "graphql": "^16.12.0",
     "react": "19.1.0",
