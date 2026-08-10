@@ -15,18 +15,18 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useRideRecorder } from '../../src/hooks/useRideRecorder';
 import { rideRecorder } from '../../src/lib/recording/recorder';
 import LiveTrackMap from '../../src/components/ride/LiveTrackMap';
-import { gpsLocationSource } from '../../src/lib/recording/locationSource';
+import { rideLocationController } from '../../src/lib/recording/locationTask';
 import { formatDuration, formatElevation } from '../../src/utils/greetingMessages';
 import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { colors, radius } from '../../src/constants/theme';
 
 /**
- * Live GPS recording. Phase 1 is foreground-only: the screen holds a
- * keep-awake lock so the JS runtime keeps sampling while the phone rides in
- * a pocket mount or on a handlebar. Backgrounded recording (screen locked,
- * app switched) is phase 2's TaskManager work; until then the recorder
- * simply stops receiving points while backgrounded and resumes when the app
- * returns, which undercounts rather than corrupts.
+ * Live GPS recording. Sampling runs through the background location task
+ * (src/lib/recording/locationTask.ts), so a locked screen, an app switch, or
+ * even an OS jettison of the process does not lose the ride: points land in
+ * SQLite as they arrive, and an interrupted session is rebuilt paused by
+ * rideRecorder.restoreIfNeeded() on next launch (app/_layout.tsx re-surfaces
+ * this screen when that happens).
  */
 export default function RecordRideScreen() {
   const router = useRouter();
@@ -37,9 +37,9 @@ export default function RecordRideScreen() {
 
   // Keep-awake only while a session is live (recording or paused), not from
   // mount: a rider sitting on the pre-start screen deciding whether to ride
-  // should get normal screen timeout, not idle battery draw. Paused holds
-  // the lock on purpose; a mid-ride break should not end with a locked
-  // phone and a backgrounded foreground-only recorder.
+  // should get normal screen timeout. With background sampling the lock is
+  // no longer load-bearing for data; it stays because a handlebar-mounted
+  // phone showing live stats going dark mid-ride reads as a crash.
   const sessionLive =
     snapshot.status === 'recording' || snapshot.status === 'paused';
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function RecordRideScreen() {
       ? permission
       : await requestPermission();
     if (!current?.granted) return;
-    await rideRecorder.start(gpsLocationSource);
+    await rideRecorder.start(rideLocationController);
   }, [permission, requestPermission]);
 
   const handleFinish = useCallback(async () => {
@@ -189,7 +189,13 @@ export default function RecordRideScreen() {
           </TouchableOpacity>
         )}
         {paused && (
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => rideRecorder.resume()}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            // The controller matters for a RESTORED pause (the old process's
+            // stream died with it); a live pause keeps its own stream and
+            // resume() ignores the argument.
+            onPress={() => void rideRecorder.resume(rideLocationController)}
+          >
             <Ionicons name="play" size={20} color={colors.textPrimary} />
             <Text style={styles.secondaryButtonText}>Resume</Text>
           </TouchableOpacity>
