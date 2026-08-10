@@ -327,6 +327,26 @@ describe('rideRecorder', () => {
       expect(seqs).toEqual([0, 1, 2, 3]);
     });
 
+    it('concurrent callers share one in-flight restore', async () => {
+      // The real-world shape: a background relaunch delivers a location
+      // batch (task handler calls restoreIfNeeded) while the root layout's
+      // mount effect calls it too, before either's DB reads resolve. Both
+      // must resolve from ONE restore rather than racing two.
+      seedInterruptedSession();
+      const readSpy = jest.spyOn(db, 'getFirstAsync');
+
+      const [first, second] = await Promise.all([
+        rideRecorder.restoreIfNeeded(),
+        rideRecorder.restoreIfNeeded(),
+      ]);
+
+      expect(first).toBe(true);
+      expect(second).toBe(true);
+      expect(readSpy).toHaveBeenCalledTimes(1);
+      expect(rideRecorder.getSnapshot().status).toBe('paused');
+      expect(rideRecorder.getSnapshot().trackLength).toBe(3);
+    });
+
     it('returns false when there is nothing to restore', async () => {
       await expect(rideRecorder.restoreIfNeeded()).resolves.toBe(false);
       expect(rideRecorder.getSnapshot().status).toBe('idle');

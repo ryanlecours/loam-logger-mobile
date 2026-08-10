@@ -182,10 +182,19 @@ class RideRecorder {
     this.publish();
   }
 
+  private restoring: Promise<boolean> | null = null;
+
   /**
    * Rebuild an interrupted session from its SQLite rows. Called on every
    * launch (and by the background task before ingesting, in case the task
    * fires before the UI mounts). Returns true when a session was restored.
+   *
+   * Those two call sites can race on the same launch (a background relaunch
+   * delivers a location batch while the layout effect is still mounting), so
+   * concurrent callers share one in-flight promise, mirroring the deduped
+   * token refresh in apolloClient.ts. Without this, both callers pass the
+   * idle check before either's DB reads resolve, and the slower one stomps
+   * whatever happened in between, including a Resume the rider just tapped.
    *
    * The restored session comes back PAUSED regardless of how it died: the
    * recorder cannot know whether the rider kept riding while the app was
@@ -195,6 +204,14 @@ class RideRecorder {
    */
   async restoreIfNeeded(): Promise<boolean> {
     if (this.status !== 'idle') return false;
+    if (this.restoring) return this.restoring;
+    this.restoring = this.doRestore().finally(() => {
+      this.restoring = null;
+    });
+    return this.restoring;
+  }
+
+  private async doRestore(): Promise<boolean> {
     const db = await getDb();
     const session = await db.getFirstAsync<SessionRow>(
       `SELECT id, status, started_at, active_ms FROM recording_session
