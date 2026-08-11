@@ -169,7 +169,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>Loam Logger</Text>
-        <Text style={styles.subtitle}>Track your mountain bike rides</Text>
+        <Text style={styles.subtitle}>Drop in knowing your bike's dialed</Text>
 
         <View style={styles.form}>
           {/* Apple Sign-In (iOS only; renders null on Android / unsupported) */}
