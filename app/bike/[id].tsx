@@ -28,9 +28,10 @@ const COMPONENT_GROUP_MAP: Record<string, string> = {
   HANDLEBAR: 'Cockpit', STEM: 'Cockpit', DROPPER: 'Cockpit',
   SADDLE: 'Cockpit', SEATPOST: 'Cockpit',
   HEADSET: 'Bearings', BOTTOM_BRACKET: 'Bearings', PIVOT_BEARINGS: 'Bearings',
+  MOTOR: 'E-bike', BATTERY: 'E-bike',
 };
 
-const GROUP_ORDER = ['Suspension', 'Drivetrain', 'Brakes', 'Wheels & Tires', 'Cockpit', 'Bearings', 'Other'];
+const GROUP_ORDER = ['Suspension', 'Drivetrain', 'Brakes', 'Wheels & Tires', 'Cockpit', 'Bearings', 'E-bike', 'Other'];
 
 const STATUS_ORDER: Record<string, number> = {
   OVERDUE: 0, DUE_NOW: 1, DUE_SOON: 2, ALL_GOOD: 3, UNKNOWN: 4,

@@ -161,6 +161,8 @@ const COMPONENT_LABELS: Record<string, string> = {
   SADDLE: 'Saddle',
   SEATPOST: 'Seatpost',
   CRANK: 'Crank',
+  MOTOR: 'Motor',
+  BATTERY: 'Battery',
   OTHER: 'Other',
 };
 
