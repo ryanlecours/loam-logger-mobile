@@ -68,6 +68,12 @@ export default function SaveRecordingScreen() {
     setSaving(true);
     const unownedBike = bikeId === UNOWNED_BIKE_VALUE;
 
+    // Read back off SQLite rather than memory, so the track covers the whole
+    // ride including anything that was restored after a crash. Best-effort:
+    // the ride is what the rider came here to save, and a track that cannot be
+    // assembled is a worse map, not a lost ride.
+    const track = await rideRecorder.getTrackPayload().catch(() => null);
+
     const input: AddRideInput = {
       startTime: new Date(summary.startedAt).toISOString(),
       durationSeconds: summary.durationSeconds,
@@ -82,6 +88,11 @@ export default function SaveRecordingScreen() {
       // server-side, same as a provider-synced ride.
       startLat: summary.startLat,
       startLng: summary.startLng,
+      // Per-point route. Puts an in-app recording on the ride-track map and
+      // through lift detection, the same as a provider-synced ride, and keeps
+      // its elevation total re-derivable instead of frozen at whatever this
+      // build of the app computed.
+      ...(track ? { track } : {}),
       clientMutationId: Crypto.randomUUID(),
     };
 

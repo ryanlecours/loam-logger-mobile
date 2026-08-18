@@ -17,6 +17,7 @@ function toUpdate(location: Location.LocationObject): LocationUpdate {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
     altitude: location.coords.altitude,
+    altitudeAccuracy: location.coords.altitudeAccuracy ?? null,
     accuracy: location.coords.accuracy,
     speed: location.coords.speed,
     timestamp: location.timestamp,
@@ -48,8 +49,14 @@ const UPDATE_OPTIONS: Location.LocationTaskOptions = {
   accuracy: Location.Accuracy.BestForNavigation,
   timeInterval: 1000,
   distanceInterval: 3,
-  // Fitness tells iOS this is a workout track, which tunes its throttling;
-  // never auto-pause, since standing at an overlook is still mid-ride.
+  // Fitness tells iOS this is a workout track, which tunes its throttling.
+  //
+  // Auto-pause stays OFF at the platform level and is done in the recorder
+  // instead (see ./motion). CoreLocation's version stops delivering updates
+  // altogether and is unreliable about ever resuming, which costs a rider the
+  // back half of a ride; ours keeps the stream running, flags the stopped
+  // samples, and holds the clock, so the track stays complete and the ride
+  // reports moving time the way a provider-synced one does.
   activityType: Location.ActivityType.Fitness,
   pausesUpdatesAutomatically: false,
   // The iOS blue pill while backgrounded: honest, and Strava-normal.

@@ -49,6 +49,16 @@ const MIGRATIONS: string[] = [
     speed REAL,
     PRIMARY KEY (session_id, seq)
   );`,
+  // Barometric elevation, vertical-accuracy gating, and auto-pause.
+  // `altitude` stays the raw GPS value (the server re-derives from it);
+  // `fused_altitude` is what the deadband actually accumulated, stored so a
+  // restored session replays the same totals instead of re-fusing against a
+  // barometer datum that died with the old process. `moving` is 0 while
+  // auto-paused, and rides along to the API as NormalizedStreams.moving.
+  `ALTER TABLE recording_point ADD COLUMN altitude_accuracy REAL;
+   ALTER TABLE recording_point ADD COLUMN fused_altitude REAL;
+   ALTER TABLE recording_point ADD COLUMN alt_source TEXT;
+   ALTER TABLE recording_point ADD COLUMN moving INTEGER NOT NULL DEFAULT 1;`,
 ];
 
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {

@@ -20,8 +20,12 @@ interface FakePoint {
   lat: number;
   lng: number;
   altitude: number | null;
+  altitude_accuracy: number | null;
+  fused_altitude: number | null;
+  alt_source: string | null;
   accuracy: number | null;
   speed: number | null;
+  moving: number;
 }
 
 /** Minimal fake over the two recording tables, including the restore reads. */
@@ -38,10 +42,17 @@ function makeFakeDb() {
         return;
       }
       if (sql.includes('INSERT OR IGNORE INTO recording_point')) {
-        const [session_id, seq, t, lat, lng, altitude, accuracy, speed] = params as [
-          string, number, number, number, number, number | null, number | null, number | null,
+        const [
+          session_id, seq, t, lat, lng, altitude, altitude_accuracy, fused_altitude,
+          alt_source, accuracy, speed, moving,
+        ] = params as [
+          string, number, number, number, number, number | null, number | null,
+          number | null, string | null, number | null, number | null, number,
         ];
-        points.push({ session_id, seq, t, lat, lng, altitude, accuracy, speed });
+        points.push({
+          session_id, seq, t, lat, lng, altitude, altitude_accuracy, fused_altitude,
+          alt_source, accuracy, speed, moving,
+        });
         return;
       }
       if (sql.includes("SET status = 'paused'")) {
@@ -88,9 +99,7 @@ function makeFakeDb() {
         return points
           .filter((p) => p.session_id === sessionId)
           .sort((a, b) => a.seq - b.seq)
-          .map(({ seq, t, lat, lng, altitude, accuracy, speed }) => ({
-            seq, t, lat, lng, altitude, accuracy, speed,
-          }));
+          .map(({ session_id: _ignored, ...row }) => row);
       }
       throw new Error(`FakeDb: unhandled getAllAsync SQL: ${sql}`);
     },
@@ -116,6 +125,7 @@ function emit(update: Partial<LocationUpdate>) {
     latitude: 47.6062,
     longitude: -122.3321,
     altitude: null,
+    altitudeAccuracy: null,
     accuracy: 5,
     speed: 3,
     timestamp: Date.now(),
@@ -144,9 +154,13 @@ describe('rideRecorder', () => {
     expect(rideRecorder.getSnapshot().status).toBe('recording');
     expect(controller.startCalls).toBe(1);
 
-    emit({});
-    jest.advanceTimersByTime(60_000);
-    emit({ longitude: -122.3221, timestamp: Date.now() });
+    // A fix every 5 s, moving east. The cadence matters now that the recorder
+    // auto-pauses: fixes a whole minute apart would trip the stale-signal
+    // rule, which is correct behaviour and not what this test is about.
+    for (let i = 0; i <= 12; i++) {
+      emit({ longitude: -122.3321 + i * 0.001, timestamp: Date.now() });
+      if (i < 12) jest.advanceTimersByTime(5_000);
+    }
 
     rideRecorder.pause();
     jest.advanceTimersByTime(300_000); // 5 min coffee stop
@@ -274,7 +288,7 @@ describe('rideRecorder', () => {
       };
       const pts: [number, number, number | null][] = [
         [47.6062, -122.3321, 100],
-        [47.6062, -122.3221, 104], // ~750 m east, 4 m up
+        [47.6062, -122.3221, 105], // ~750 m east, 5 m up
         [47.6062, -122.3121, 103],
       ];
       pts.forEach(([lat, lng, altitude], i) => {
@@ -285,8 +299,14 @@ describe('rideRecorder', () => {
           lat,
           lng,
           altitude,
+          altitude_accuracy: 5,
+          // Restore replays the stored FUSED value rather than re-fusing: the
+          // barometer datum died with the old process.
+          fused_altitude: altitude,
+          alt_source: 'gps',
           accuracy: 5,
           speed: 3,
+          moving: 1,
         });
       });
     }
@@ -301,7 +321,7 @@ describe('rideRecorder', () => {
       expect(snapshot.status).toBe('paused');
       // Replayed through the same math as live ingestion: ~1.5 km east.
       expect(snapshot.distanceM).toBeGreaterThan(1400);
-      expect(snapshot.elevationGainM).toBe(4);
+      expect(snapshot.elevationGainM).toBe(5);
       expect(snapshot.trackLength).toBe(3);
       expect(rideRecorder.getElapsedMs()).toBe(540_000);
       expect(rideRecorder.getSummary().startLat).toBe(47.6062);
@@ -357,6 +377,182 @@ describe('rideRecorder', () => {
       emit({});
       await expect(rideRecorder.restoreIfNeeded()).resolves.toBe(false);
       expect(rideRecorder.getSnapshot().status).toBe('recording');
+    });
+  });
+
+  // Auto-pause. Ride duration accrues against installed components to drive
+  // service predictions, so wall-clock time ages a drivetrain that was
+  // standing at the trailhead. These cover the transitions; the speed
+  // thresholds themselves are tested in ./motion.test.
+  describe('auto-pause', () => {
+    /** A fix every 2 s, `metersPerFix` further east each time. */
+    function ride(fixes: number, metersPerFix: number, startLng = -122.3321) {
+      // 0.00001 degrees of longitude at 47.6 N is ~0.75 m.
+      const degPerMeter = 1 / (111320 * Math.cos((47.6062 * Math.PI) / 180));
+      for (let i = 0; i < fixes; i++) {
+        emit({ longitude: startLng + i * metersPerFix * degPerMeter, timestamp: Date.now() });
+        jest.advanceTimersByTime(2_000);
+      }
+      return startLng + (fixes - 1) * metersPerFix * degPerMeter;
+    }
+
+    it('holds the clock and both totals once the rider stops moving', async () => {
+      await rideRecorder.start(makeController());
+      const parked = ride(10, 10); // 5 m/s: riding
+      expect(rideRecorder.getSnapshot().autoPaused).toBe(false);
+      const movingDistance = rideRecorder.getSnapshot().distanceM;
+      const movingElapsed = rideRecorder.getElapsedMs();
+
+      // Standing still, with the metre or two of jitter a real fix carries.
+      for (let i = 0; i < 12; i++) {
+        emit({ longitude: parked + (i % 2 === 0 ? 1e-5 : -1e-5), timestamp: Date.now() });
+        jest.advanceTimersByTime(2_000);
+      }
+
+      const snapshot = rideRecorder.getSnapshot();
+      expect(snapshot.autoPaused).toBe(true);
+      expect(snapshot.distanceM).toBe(movingDistance);
+      // The clock is refunded the window it took to reach the verdict, so it
+      // reads BEHIND where it stood when the rider actually stopped.
+      expect(rideRecorder.getElapsedMs()).toBeLessThanOrEqual(movingElapsed);
+    });
+
+    it('picks itself back up when the rider rides on', async () => {
+      await rideRecorder.start(makeController());
+      const parked = ride(10, 10);
+      for (let i = 0; i < 12; i++) {
+        emit({ longitude: parked + (i % 2 === 0 ? 1e-5 : -1e-5), timestamp: Date.now() });
+        jest.advanceTimersByTime(2_000);
+      }
+      expect(rideRecorder.getSnapshot().autoPaused).toBe(true);
+
+      ride(10, 10, parked);
+      const snapshot = rideRecorder.getSnapshot();
+      expect(snapshot.autoPaused).toBe(false);
+      expect(snapshot.status).toBe('recording');
+      expect(snapshot.distanceM).toBeGreaterThan(0);
+    });
+
+    it('stops the clock when the fixes dry up entirely', async () => {
+      await rideRecorder.start(makeController());
+      ride(6, 10);
+      const elapsed = rideRecorder.getElapsedMs();
+
+      // Phone in a pocket in a parking garage for ten minutes. Distance
+      // stopped accruing the moment the fixes did, so time has to as well or
+      // the two totals describe different rides.
+      jest.advanceTimersByTime(600_000);
+      expect(rideRecorder.getElapsedMs()).toBeLessThan(elapsed + 30_000);
+    });
+
+    it('a rider who stops does not lose their manual pause to auto-resume', async () => {
+      await rideRecorder.start(makeController());
+      ride(6, 10);
+      rideRecorder.pause();
+      ride(10, 10, -122.3);
+      // Fixes kept arriving and clearly show movement; the rider's own pause
+      // outranks the recorder's opinion, and only they can lift it.
+      expect(rideRecorder.getSnapshot().status).toBe('paused');
+      expect(rideRecorder.getSnapshot().autoPaused).toBe(false);
+    });
+  });
+
+  describe('barometer', () => {
+    it('prefers the barometer, and books a climb the GPS noise alone would hide', async () => {
+      type Reading = { relativeAltitudeM: number; at: number; epoch: number };
+      // Held on an object rather than in a local: the recorder assigns it from
+      // inside start(), which control-flow analysis cannot see.
+      const sensor: { push: ((reading: Reading) => void) | null; stopCalls: number } = {
+        push: null,
+        stopCalls: 0,
+      };
+      const barometer = {
+        async start(onReading: (r: Reading) => void) {
+          sensor.push = onReading;
+        },
+        stop() {
+          sensor.stopCalls++;
+        },
+      };
+      await rideRecorder.start(makeController(), barometer);
+      expect(sensor.push).not.toBeNull();
+
+      // GPS altitude pinned flat and noisy; the barometer climbs 20 m. The
+      // deadband on a barometric reading is 1 m, so the climb is visible.
+      for (let i = 0; i < 20; i++) {
+        sensor.push?.({ relativeAltitudeM: i, at: Date.now(), epoch: 1 });
+        emit({
+          longitude: -122.3321 + i * 0.0001,
+          altitude: 100 + (i % 2 === 0 ? 2 : -2),
+          altitudeAccuracy: 5,
+          timestamp: Date.now(),
+        });
+        jest.advanceTimersByTime(1_000);
+      }
+
+      expect(rideRecorder.getSnapshot().elevationGainM).toBeGreaterThan(15);
+      await rideRecorder.stop();
+      expect(sensor.stopCalls).toBe(1);
+    });
+
+    it('records without one: an unavailable barometer is not an error', async () => {
+      const barometer = { async start() {}, stop() {} };
+      await rideRecorder.start(makeController(), barometer);
+      emit({});
+      expect(rideRecorder.getSnapshot().status).toBe('recording');
+    });
+  });
+
+  describe('getTrackPayload', () => {
+    it('returns index-aligned arrays over the accepted fixes', async () => {
+      await rideRecorder.start(makeController());
+      for (let i = 0; i < 8; i++) {
+        emit({
+          longitude: -122.3321 + i * 0.0005,
+          altitude: 100 + i,
+          altitudeAccuracy: 5,
+          timestamp: Date.now(),
+        });
+        jest.advanceTimersByTime(2_000);
+      }
+      await rideRecorder.stop();
+
+      const track = await rideRecorder.getTrackPayload();
+      expect(track).not.toBeNull();
+      const n = track!.time.length;
+      expect(track!.latlng).toHaveLength(n);
+      expect(track!.altitude).toHaveLength(n);
+      expect(track!.moving).toHaveLength(n);
+      expect(track!.latlng[0]).toHaveLength(2);
+      // Six decimals is ~0.1 m, well inside GPS error.
+      expect(track!.latlng[0][0]).toBe(47.6062);
+    });
+
+    it('leaves out fixes the totals never counted', async () => {
+      await rideRecorder.start(makeController());
+      for (let i = 0; i < 8; i++) {
+        emit({
+          longitude: -122.3321 + i * 0.0005,
+          altitude: 100 + i,
+          altitudeAccuracy: 5,
+          timestamp: Date.now(),
+        });
+        jest.advanceTimersByTime(2_000);
+      }
+      // Cold-start junk: rejected for distance, so it must not reach the map
+      // or lift detection either.
+      emit({ latitude: 47.9, longitude: -122.9, accuracy: 200, timestamp: Date.now() });
+      await rideRecorder.stop();
+
+      const track = await rideRecorder.getTrackPayload();
+      expect(track!.latlng.some(([lat]) => lat === 47.9)).toBe(false);
+    });
+
+    it('returns null when there is nothing worth uploading', async () => {
+      await rideRecorder.start(makeController());
+      emit({ altitude: null, timestamp: Date.now() });
+      await rideRecorder.stop();
+      expect(await rideRecorder.getTrackPayload()).toBeNull();
     });
   });
 });
