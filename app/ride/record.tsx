@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useRideRecorder } from '../../src/hooks/useRideRecorder';
 import { rideRecorder } from '../../src/lib/recording/recorder';
+import { rideBarometerController } from '../../src/lib/recording/barometer';
 import LiveTrackMap from '../../src/components/ride/LiveTrackMap';
 import { rideLocationController } from '../../src/lib/recording/locationTask';
 import { formatDuration, formatElevation } from '../../src/utils/greetingMessages';
@@ -56,7 +57,7 @@ export default function RecordRideScreen() {
       ? permission
       : await requestPermission();
     if (!current?.granted) return;
-    await rideRecorder.start(rideLocationController);
+    await rideRecorder.start(rideLocationController, rideBarometerController);
   }, [permission, requestPermission]);
 
   const handleFinish = useCallback(async () => {
@@ -156,6 +157,14 @@ export default function RecordRideScreen() {
             <Text style={styles.pausedBadgeText}>Paused</Text>
           </View>
         )}
+        {/* Auto-pause reads as a distinct, softer state than the rider's own
+            pause: the recording is still live and will pick itself back up,
+            so the badge explains rather than alarms. */}
+        {snapshot.autoPaused && (
+          <View style={styles.autoPausedBadge}>
+            <Text style={styles.autoPausedBadgeText}>Auto-paused, stopped moving</Text>
+          </View>
+        )}
         {recording && snapshot.pointCount === 0 && (
           <Text style={styles.acquiring}>Acquiring GPS signal...</Text>
         )}
@@ -194,7 +203,9 @@ export default function RecordRideScreen() {
             // The controller matters for a RESTORED pause (the old process's
             // stream died with it); a live pause keeps its own stream and
             // resume() ignores the argument.
-            onPress={() => void rideRecorder.resume(rideLocationController)}
+            onPress={() =>
+              void rideRecorder.resume(rideLocationController, rideBarometerController)
+            }
           >
             <Ionicons name="play" size={20} color={colors.textPrimary} />
             <Text style={styles.secondaryButtonText}>Resume</Text>
@@ -278,6 +289,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  // Quieter than the manual pause badge on purpose. Sage is the app's "you
+  // did this" voice; auto-pause is the recorder reporting, not the rider
+  // acting, so it sits in neutral surface tones and stays out of the way.
+  autoPausedBadge: {
+    marginTop: 32,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  autoPausedBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   acquiring: {
     marginTop: 32,
