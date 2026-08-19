@@ -11,6 +11,108 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.2.0 - 2026-08-19
+
+> **Not yet released.** `expo.version` is still 1.1.4 and no EAS build has run
+> for this work. Bump the version to match before submitting.
+
+### App Store "What's New"
+
+New
+- Record a ride right in the app. Start it at the trailhead, lock your phone,
+  and it keeps tracking: distance, climbing and time, with a live map of where
+  you have been
+- Your route is saved with the ride, so you can look back at where you actually
+  went
+- Recording pauses itself when you stop moving and picks back up when you ride
+  on, so a long stop at the top does not count as ride time
+- Climbing is measured with your phone's barometer, the same kind of sensor a
+  bike computer uses, instead of GPS altitude alone
+- E-bikes now track motor and battery hours alongside the rest of your parts
+- Choose whether Loam can use AI to write your maintenance summaries, in
+  Settings
+
+Improvements
+- Rides you log without signal are saved on your phone and upload themselves
+  once you are back in range
+- A dropped connection mid-ride no longer signs you out
+- Signing out now ends the session on our side too, not just on your phone
+- A fresh look for the app icon, splash and sign-in screen
+
+### Internal
+
+Recording (PRs #69, #70, #72, #73, #77)
+- `feat(recording)`: in-app GPS recording, built in phases. Phase 1 was a
+  foreground `watchPositionAsync` loop; phase 2 moved to a background location
+  task with a crash-safe SQLite buffer, so a lock, an app switch or an OS
+  jettison no longer loses a ride. `restoreIfNeeded()` rebuilds an interrupted
+  session on next launch, deliberately PAUSED, because the recorder cannot know
+  whether the rider kept riding while the process was dead.
+- `fix(recording)`: concurrent `restoreIfNeeded` callers now share one in-flight
+  promise. The background task and the layout effect can race on the same
+  launch, and the slower one was stomping whatever happened in between,
+  including a Resume the rider had just tapped.
+- `feat(recording)`: live map on the record screen, route line plus position
+  dot, fed from accuracy-accepted fixes only so the drawn line agrees with the
+  distance total. A chunk-boundary bug that left a permanent gap in the line is
+  fixed.
+- `feat(recording)`: elevation now comes from the barometer, fused with GPS
+  through a complementary filter. The previous accumulator summed raw GPS
+  altitude and let its anchor follow every downward sample with no threshold,
+  so each noise trough became a lower launchpad and every wobble cycle booked
+  its amplitude as climb. On a real 8.4 mi ride that reported 4,002 ft against
+  a Fenix 8's 1,532 ft. The deadband is now symmetric and the band travels with
+  the reading, so a barometer dropout falls back to smoothed GPS and a wider
+  band rather than re-inflating. Verified against a synthetic ride with a known
+  gain: within 5% on the barometer, within 10% on GPS alone.
+- `feat(recording)`: auto-pause, ours rather than CoreLocation's.
+  `pausesUpdatesAutomatically` stops delivering updates and is unreliable about
+  resuming, which can cost a rider the back half of a ride. Motion is judged
+  from net displacement over a trailing window (net, not summed path length,
+  which is the quantity jitter inflates), with two thresholds to stop flapping.
+  This changes what duration means for in-app rides: moving time, matching what
+  a provider-synced ride reports, so component hours stop accruing while the
+  bike is stationary.
+- `feat(recording)`: the per-point track is uploaded with the ride and stored
+  server-side as a `RideStream`, which puts in-app recordings on the ride-track
+  map and through lift detection like any synced ride, and makes their
+  elevation re-derivable rather than frozen at whatever the phone computed.
+  Requires the matching API change to be deployed first.
+- `fix(recording)`: several correctness fixes gathered along the way: the (0,0)
+  no-fix sentinel is dropped entirely, the start coordinate waits for an
+  accuracy-accepted fix, Discard is inert during an in-flight save, Android
+  hardware back is intercepted on the record and save screens, keep-awake is
+  held only while a session is live, and Android location permissions the
+  recorder needs are unblocked.
+
+Offline and auth (PRs #67, #71)
+- `feat(offline)`: a durable AddRide outbox and a persisted Apollo cache, both
+  on SQLite, so a ride logged out of signal survives a cold start and uploads
+  itself later. HTTP-layer 429 and 408 now retry instead of parking the row as
+  failed, and a modulo pagination gate that the dedup fix broke is removed.
+- `fix(web)`: Metro now bundles `expo-sqlite`'s wasm for the web export, which
+  is a bundling smoke test rather than a shipped surface.
+- `fix(auth)`: transient auth failures no longer log a rider out mid-ride. The
+  ME retry backs off, reports, covers 403, and is one-shot so the timer and the
+  connectivity listener cannot double-fire.
+- `feat(auth)`: logout revokes the server-side session rather than only
+  clearing local tokens.
+- `feat(settings)`: an AI maintenance summary opt-in toggle, default off.
+
+Growth and brand (PRs #66, #74)
+- `feat(growth)`: Pro value surfaced at gated touchpoints with unified gating
+  visuals. The predictions upsell re-arms per part rather than once globally,
+  the PDF upsell uses session-only dismissal, and the re-arm math is extracted
+  and unit-tested.
+- `fix(gear)`: `ReplaceComponentSheet` resets its form state when left via
+  Upgrade, instead of carrying it into the next open.
+- `copy`: new sign-in line, obsidian splash and icon backgrounds.
+
+E-bike (PR #75)
+- `feat(gear)`: MOTOR and BATTERY render in their own E-bike group on bike
+  detail rather than falling through to Other. Both are hours-only on the API
+  side, so they show hours and no health status, and no service interval.
+
 ## 1.1.4 - 2026-08-05
 
 ### App Store "What's New"
