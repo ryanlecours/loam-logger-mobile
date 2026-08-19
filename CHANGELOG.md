@@ -13,9 +13,6 @@ dev-facing changes that don't belong in store copy.
 
 ## 1.2.0 - 2026-08-19
 
-> **Not yet released.** `expo.version` is still 1.1.4 and no EAS build has run
-> for this work. Bump the version to match before submitting.
-
 ### App Store "What's New"
 
 New
