@@ -19,12 +19,16 @@ import { useAddBikeMutation, useGearLightQuery, useUnmappedStravaGearsLazyQuery,
 import { SpokesBike, SpokesImage } from '../../src/hooks/useOnboarding';
 import { StravaGearMappingSheet } from '../../src/components/gear/StravaGearMappingSheet';
 import { colors, radius } from '../../src/constants/theme';
+import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
 import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 import { isTierError, getTierErrorMessage } from '../../src/utils/tierErrors';
 import type { ApolloError } from '@apollo/client';
+
+/** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
+const DONE_ACCESSORY = 'add-bike-done';
 
 type Step = 'search' | 'details' | 'wearStart';
 
@@ -267,7 +271,7 @@ export default function AddBikeScreen() {
           }}
         />
 
-        <ScrollView style={styles.flex}>
+        <ScrollView style={styles.flex} keyboardShouldPersistTaps="handled">
           <WearStartStep
             selected={acquisitionCondition}
             onSelect={setAcquisitionCondition}
@@ -362,6 +366,7 @@ export default function AddBikeScreen() {
             <View style={styles.searchInputContainer}>
               <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
               <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
                 style={styles.searchInput}
                 placeholder="Search bikes (e.g., Santa Cruz Bronson)"
                 placeholderTextColor={colors.textMuted}
@@ -458,12 +463,18 @@ export default function AddBikeScreen() {
         </>
       ) : (
         /* Manual Entry Form */
-        <ScrollView style={styles.flex} contentContainerStyle={styles.manualFormContainer}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.manualFormContainer}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
           <Text style={styles.manualFormTitle}>Enter Bike Details</Text>
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Manufacturer *</Text>
             <TextInput
+              inputAccessoryViewID={DONE_ACCESSORY}
               style={styles.fieldInput}
               value={manualForm.manufacturer}
               onChangeText={(text) => setManualForm((f) => ({ ...f, manufacturer: text }))}
@@ -476,6 +487,7 @@ export default function AddBikeScreen() {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Model *</Text>
             <TextInput
+              inputAccessoryViewID={DONE_ACCESSORY}
               style={styles.fieldInput}
               value={manualForm.model}
               onChangeText={(text) => setManualForm((f) => ({ ...f, model: text }))}
@@ -488,6 +500,7 @@ export default function AddBikeScreen() {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Year *</Text>
             <TextInput
+              inputAccessoryViewID={DONE_ACCESSORY}
               style={styles.fieldInput}
               value={manualForm.year}
               onChangeText={(text) => setManualForm((f) => ({ ...f, year: text }))}
@@ -502,6 +515,7 @@ export default function AddBikeScreen() {
             <View style={[styles.field, styles.fieldHalf]}>
               <Text style={styles.fieldLabel}>Fork Travel (mm)</Text>
               <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
                 style={styles.fieldInput}
                 value={manualForm.travelForkMm}
                 onChangeText={(text) => setManualForm((f) => ({ ...f, travelForkMm: text }))}
@@ -513,6 +527,7 @@ export default function AddBikeScreen() {
             <View style={[styles.field, styles.fieldHalf]}>
               <Text style={styles.fieldLabel}>Rear Travel (mm)</Text>
               <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
                 style={styles.fieldInput}
                 value={manualForm.travelShockMm}
                 onChangeText={(text) => setManualForm((f) => ({ ...f, travelShockMm: text }))}
@@ -542,6 +557,8 @@ export default function AddBikeScreen() {
           </TouchableOpacity>
         </ScrollView>
       )}
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
     </KeyboardAvoidingView>
 
     {createdBikeId && (

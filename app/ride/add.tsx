@@ -21,6 +21,10 @@ import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions
 import { PickerSelect } from '../../src/components/common/PickerSelect';
 import { UNOWNED_BIKE_VALUE } from '../../src/constants/rideBike';
 import { colors, radius } from '../../src/constants/theme';
+import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+
+/** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
+const DONE_ACCESSORY = 'add-ride-done';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -166,189 +170,209 @@ export default function AddRideScreen() {
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Date & Time */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Date & Time</Text>
-        <View style={styles.dateTimeRow}>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
-            <Text style={styles.dateButtonText}>{formattedDate}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.timeButton}
-            onPress={() => setShowTimePicker(true)}
-          >
-            <Ionicons name="time-outline" size={18} color={colors.textMuted} />
-            <Text style={styles.dateButtonText}>{formattedTime}</Text>
-          </TouchableOpacity>
-        </View>
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleDateChange}
-            maximumDate={new Date()}
-          />
-        )}
-        {showTimePicker && (
-          <DateTimePicker
-            value={date}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleTimeChange}
-          />
-        )}
-      </View>
-
-      {/* Duration */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Duration</Text>
-        <View style={styles.durationRow}>
-          <View style={styles.durationInput}>
-            <TextInput
-              style={styles.input}
-              value={hours}
-              onChangeText={setHours}
-              placeholder="0"
-              keyboardType="number-pad"
-              maxLength={2}
-            />
-            <Text style={styles.durationLabel}>hours</Text>
-          </View>
-          <View style={styles.durationInput}>
-            <TextInput
-              style={styles.input}
-              value={minutes}
-              onChangeText={setMinutes}
-              placeholder="0"
-              keyboardType="number-pad"
-              maxLength={2}
-            />
-            <Text style={styles.durationLabel}>minutes</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Distance & Elevation */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Distance & Elevation</Text>
-        <View style={styles.row}>
-          <View style={styles.halfInput}>
-            <TextInput
-              style={styles.input}
-              value={distance}
-              onChangeText={setDistance}
-              placeholder="0.0"
-              keyboardType="decimal-pad"
-            />
-            <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'km' : 'mi'}</Text>
-          </View>
-          <View style={styles.halfInput}>
-            <TextInput
-              style={styles.input}
-              value={elevation}
-              onChangeText={setElevation}
-              placeholder="0"
-              keyboardType="number-pad"
-            />
-            <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Ride Type */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ride Type</Text>
-        <PickerSelect
-          selectedValue={rideType}
-          onValueChange={setRideType}
-          options={RIDE_TYPES}
-        />
-      </View>
-
-      {/* Bike. Rendered even with no bikes on the account: "Not my bike" is a
-          valid answer for a rider logging a demo or rental. */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Bike</Text>
-        <PickerSelect
-          selectedValue={bikeId}
-          onValueChange={setBikeId}
-          options={[
-            ...bikes.map((bike) => ({
-              label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
-              value: bike.id,
-            })),
-            { label: 'Not my bike (demo or loaner)', value: UNOWNED_BIKE_VALUE },
-          ]}
-          placeholder="Select a bike"
-        />
-      </View>
-
-      {/* Optional: Average HR */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Average Heart Rate (optional)</Text>
-        <View style={styles.inputWithSuffix}>
-          <TextInput
-            style={styles.input}
-            value={averageHr}
-            onChangeText={setAverageHr}
-            placeholder="0"
-            keyboardType="number-pad"
-            maxLength={3}
-          />
-          <Text style={styles.inputSuffix}>bpm</Text>
-        </View>
-      </View>
-
-      {/* Optional: Location */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location (optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={location}
-          onChangeText={setLocation}
-          placeholder="e.g., Tiger Mountain"
-        />
-      </View>
-
-      {/* Optional: Notes */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notes (optional)</Text>
-        <TextInput
-          style={[styles.input, styles.notesInput]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Add any notes about this ride..."
-          multiline
-          numberOfLines={4}
-          maxLength={2000}
-          textAlignVertical="top"
-        />
-        <Text style={styles.charCount}>{notes.length}/2000</Text>
-      </View>
-
-      {/* Submit Button */}
-      <TouchableOpacity
-        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        // The keyboard covers the lower half of this form. On iOS this pads the
+        // scroll insets and brings the focused field into view; Android's
+        // adjustResize already shrinks the window, so it is a no-op there.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        {loading ? (
-          <ActivityIndicator color={colors.onPrimary} />
-        ) : (
-          <Text style={styles.submitButtonText}>Add Ride</Text>
-        )}
-      </TouchableOpacity>
+        {/* Date & Time */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Date & Time</Text>
+          <View style={styles.dateTimeRow}>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.dateButtonText}>{formattedDate}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.dateButtonText}>{formattedTime}</Text>
+            </TouchableOpacity>
+          </View>
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleDateChange}
+              maximumDate={new Date()}
+            />
+          )}
+          {showTimePicker && (
+            <DateTimePicker
+              value={date}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handleTimeChange}
+            />
+          )}
+        </View>
 
-      <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-        <Text style={styles.cancelButtonText}>Cancel</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Duration */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Duration</Text>
+          <View style={styles.durationRow}>
+            <View style={styles.durationInput}>
+              <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
+                style={styles.input}
+                value={hours}
+                onChangeText={setHours}
+                placeholder="0"
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+              <Text style={styles.durationLabel}>hours</Text>
+            </View>
+            <View style={styles.durationInput}>
+              <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
+                style={styles.input}
+                value={minutes}
+                onChangeText={setMinutes}
+                placeholder="0"
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+              <Text style={styles.durationLabel}>minutes</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Distance & Elevation */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Distance & Elevation</Text>
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
+                style={styles.input}
+                value={distance}
+                onChangeText={setDistance}
+                placeholder="0.0"
+                keyboardType="decimal-pad"
+              />
+              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'km' : 'mi'}</Text>
+            </View>
+            <View style={styles.halfInput}>
+              <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
+                style={styles.input}
+                value={elevation}
+                onChangeText={setElevation}
+                placeholder="0"
+                keyboardType="number-pad"
+              />
+              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Ride Type */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ride Type</Text>
+          <PickerSelect
+            selectedValue={rideType}
+            onValueChange={setRideType}
+            options={RIDE_TYPES}
+          />
+        </View>
+
+        {/* Bike. Rendered even with no bikes on the account: "Not my bike" is a
+            valid answer for a rider logging a demo or rental. */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bike</Text>
+          <PickerSelect
+            selectedValue={bikeId}
+            onValueChange={setBikeId}
+            options={[
+              ...bikes.map((bike) => ({
+                label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
+                value: bike.id,
+              })),
+              { label: 'Not my bike (demo or loaner)', value: UNOWNED_BIKE_VALUE },
+            ]}
+            placeholder="Select a bike"
+          />
+        </View>
+
+        {/* Optional: Average HR */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Average Heart Rate (optional)</Text>
+          <View style={styles.inputWithSuffix}>
+            <TextInput
+              inputAccessoryViewID={DONE_ACCESSORY}
+              style={styles.input}
+              value={averageHr}
+              onChangeText={setAverageHr}
+              placeholder="0"
+              keyboardType="number-pad"
+              maxLength={3}
+            />
+            <Text style={styles.inputSuffix}>bpm</Text>
+          </View>
+        </View>
+
+        {/* Optional: Location */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Location (optional)</Text>
+          <TextInput
+            inputAccessoryViewID={DONE_ACCESSORY}
+            style={styles.input}
+            value={location}
+            onChangeText={setLocation}
+            placeholder="e.g., Tiger Mountain"
+          />
+        </View>
+
+        {/* Optional: Notes */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notes (optional)</Text>
+          <TextInput
+            inputAccessoryViewID={DONE_ACCESSORY}
+            style={[styles.input, styles.notesInput]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add any notes about this ride..."
+            multiline
+            numberOfLines={4}
+            maxLength={2000}
+            textAlignVertical="top"
+          />
+          <Text style={styles.charCount}>{notes.length}/2000</Text>
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.onPrimary} />
+          ) : (
+            <Text style={styles.submitButtonText}>Add Ride</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+    </>
   );
 }
 

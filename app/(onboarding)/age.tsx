@@ -11,6 +11,10 @@ import {
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
 import { colors, radius } from '../../src/constants/theme';
+import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+
+/** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
+const DONE_ACCESSORY = 'onboarding-age-done';
 
 const MIN_AGE = 16;
 const MAX_AGE = 120;
@@ -69,6 +73,7 @@ export default function AgeScreen() {
 
         <View style={styles.inputContainer}>
           <TextInput
+            inputAccessoryViewID={DONE_ACCESSORY}
             style={[styles.input, error && styles.inputError]}
             value={ageInput}
             onChangeText={handleAgeChange}
@@ -91,6 +96,8 @@ export default function AgeScreen() {
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
       </View>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
     </KeyboardAvoidingView>
   );
 }

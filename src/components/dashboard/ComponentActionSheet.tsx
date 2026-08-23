@@ -3,14 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   TextInput,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   ComponentPrediction,
@@ -20,8 +17,13 @@ import {
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
 import { colors, radius } from '../../constants/theme';
+import { BottomSheet } from '../common/BottomSheet';
+import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
 import { formatComponentType } from '../../utils/formatComponentType';
 import { successTick, warningTick } from '../../lib/haptics';
+
+/** Unique per surface: sibling sheets stay mounted and would collide on a shared id. */
+const DONE_ACCESSORY = 'component-action-done';
 
 interface ComponentActionSheetProps {
   visible: boolean;
@@ -40,7 +42,6 @@ export function ComponentActionSheet({
   onReplace,
   onActionComplete,
 }: ComponentActionSheetProps) {
-  const insets = useSafeAreaInsets();
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
@@ -123,294 +124,266 @@ export function ComponentActionSheet({
   const ridesRemaining = prediction.ridesRemainingEstimate;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
-    >
-      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback accessible={false}>
-            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-              <View style={styles.handle} />
-
-              {/* Header */}
-              <View style={styles.header}>
-                <View style={styles.headerContent}>
-                  <Text style={styles.title}>
-                    {typeName}
-                    {location ? ` (${location})` : ''}
-                  </Text>
-                  {brandModel && brandModel !== 'Stock' && (
-                    <Text style={styles.brandModel}>{brandModel}</Text>
-                  )}
-                </View>
-                <TouchableOpacity
-                  onPress={handleClose}
-                  style={styles.closeButton}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close component actions"
-                >
-                  <Ionicons name="close" size={24} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Status Badge — free tier gets a Pro chip where the
-                    prediction status would sit */}
-                <View style={styles.statusRow}>
-                  {prediction.status ? (
-                    <ComponentHealthBadge status={prediction.status} />
-                  ) : (
-                    <ProChip />
-                  )}
-                </View>
-
-                {/* Stats Grid */}
-                <View style={styles.statsGrid}>
-                  {hoursRemaining !== null && hoursRemaining !== undefined && (
-                    <View style={styles.statItem}>
-                      <Ionicons
-                        name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
-                        size={20}
-                        color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
-                      />
-                      <Text style={styles.statValue}>
-                        {hoursRemaining <= 0
-                          ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
-                          : `${hoursRemaining.toFixed(0)}h`}
-                      </Text>
-                      <Text style={styles.statLabel}>
-                        {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
-                      </Text>
-                    </View>
-                  )}
-
-                  <View style={styles.statItem}>
-                    <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
-                    <Text style={styles.statValue}>{prediction.serviceIntervalHours}h</Text>
-                    <Text style={styles.statLabel}>Interval</Text>
-                  </View>
-
-                  <View style={styles.statItem}>
-                    <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
-                    <Text style={styles.statValue}>{prediction.hoursSinceService.toFixed(0)}h</Text>
-                    <Text style={styles.statLabel}>Since Service</Text>
-                  </View>
-
-                  {(hoursRemaining === null || hoursRemaining === undefined) && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{prediction.ridesSinceService}</Text>
-                      <Text style={styles.statLabel}>Rides Since Service</Text>
-                    </View>
-                  )}
-
-                  {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{ridesRemaining}</Text>
-                      <Text style={styles.statLabel}>Rides Left</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Snooze Options (shown after tapping Looks Good) */}
-                {showSnoozeOptions && !snoozeSuccess && (
-                  <View style={styles.snoozeSection}>
-                    <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
-                    {recommendedHours === null && (
-                      <Text style={styles.snoozeHint}>
-                        This component has no service interval set, so there is nothing to
-                        recommend. Enter the hours you want to add.
-                      </Text>
-                    )}
-                    <View style={styles.snoozeOptions}>
-                      {recommendedHours !== null && (
-                        <TouchableOpacity
-                          style={styles.snoozePresetButton}
-                          onPress={() => handleSnooze(recommendedHours)}
-                          disabled={snoozing}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Snooze for ${recommendedHours} hours`}
-                          accessibilityState={{ disabled: snoozing }}
-                        >
-                          {snoozing && !showCustomInput ? (
-                            <ActivityIndicator size="small" color={colors.onPrimary} />
-                          ) : (
-                            <Text style={styles.snoozePresetText}>
-                              Snooze {recommendedHours}h
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-                      )}
-
-                      {!showCustomInput && recommendedHours !== null ? (
-                        <TouchableOpacity
-                          onPress={() => setShowCustomInput(true)}
-                          disabled={snoozing}
-                          hitSlop={8}
-                          accessibilityRole="button"
-                          accessibilityLabel="Enter a custom snooze length"
-                        >
-                          <Text style={styles.customLink}>Custom</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={styles.customRow}>
-                          <TextInput
-                            style={styles.customInput}
-                            keyboardType="number-pad"
-                            placeholder="Hours"
-                            placeholderTextColor={colors.textMuted}
-                            value={customHours}
-                            onChangeText={setCustomHours}
-                            autoFocus
-                          />
-                          <Text style={styles.customUnit}>h</Text>
-                          <TouchableOpacity
-                            style={[
-                              styles.customApplyButton,
-                              (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
-                            ]}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Snooze for ${customHours || 0} hours`}
-                            accessibilityState={{ disabled: snoozing || !customHours || Number(customHours) < 1 }}
-                            onPress={() => handleSnooze(Number(customHours))}
-                            disabled={snoozing || !customHours || Number(customHours) < 1}
-                          >
-                            {snoozing ? (
-                              <ActivityIndicator size="small" color={colors.onPrimary} />
-                            ) : (
-                              <Text style={styles.customApplyText}>Apply</Text>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                )}
-
-                {snoozeError && (
-                  <View style={styles.snoozeErrorRow} accessibilityRole="alert">
-                    <Ionicons
-                      name="alert-circle-outline"
-                      size={16}
-                      color={colors.criticalOn}
-                      accessibilityElementsHidden
-                    />
-                    <Text style={styles.snoozeErrorText}>{snoozeError}</Text>
-                  </View>
-                )}
-
-                {/* Snooze confirmation, with a way back out of it. */}
-                {snoozeSuccess && (
-                  <View style={styles.snoozeSuccess}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={24}
-                      color={colors.positiveOn}
-                      accessibilityElementsHidden
-                    />
-                    <View style={styles.snoozeSuccessCopy}>
-                      <Text style={styles.snoozeSuccessText}>Service pushed back</Text>
-                      <Text style={styles.snoozeSuccessSub}>
-                        We&apos;ll stop flagging this component until then.
-                      </Text>
-                    </View>
-                    {preSnoozeInterval !== null && (
-                      <TouchableOpacity
-                        style={styles.undoButton}
-                        onPress={handleUndoSnooze}
-                        disabled={undoing}
-                        accessibilityRole="button"
-                        accessibilityLabel="Undo snooze"
-                        accessibilityState={{ disabled: undoing }}
-                      >
-                        {undoing ? (
-                          <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                          <Text style={styles.undoText}>Undo</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-              </ScrollView>
-
-              {/* Actions */}
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.actionButtonPrimary,
-                    showSnoozeOptions && styles.actionButtonActive,
-                  ]}
-                  onPress={() => setShowSnoozeOptions(true)}
-                  disabled={snoozing || snoozeSuccess}
-                  accessibilityRole="button"
-                  accessibilityLabel="Looks good, snooze this service"
-                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
-                >
-                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
-                  <Text style={styles.actionButtonTextPrimary}>
-                    {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={onLogService}
-                  disabled={snoozing || snoozeSuccess}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Log service for ${typeName}`}
-                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
-                >
-                  <Ionicons name="build-outline" size={20} color={colors.textSecondary} />
-                  <Text style={styles.actionButtonText}>Log Service</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={onReplace}
-                  disabled={snoozing || snoozeSuccess}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Replace ${typeName}`}
-                  accessibilityState={{ disabled: snoozing || snoozeSuccess }}
-                >
-                  <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
-                  <Text style={styles.actionButtonText}>Replace</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
+    <BottomSheet visible={visible} onClose={handleClose} maxHeight="80%">
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>
+            {typeName}
+            {location ? ` (${location})` : ''}
+          </Text>
+          {brandModel && brandModel !== 'Stock' && (
+            <Text style={styles.brandModel}>{brandModel}</Text>
+          )}
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+        <TouchableOpacity
+          onPress={handleClose}
+          style={styles.closeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close component actions"
+        >
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Status Badge — free tier gets a Pro chip where the
+            prediction status would sit */}
+        <View style={styles.statusRow}>
+          {prediction.status ? (
+            <ComponentHealthBadge status={prediction.status} />
+          ) : (
+            <ProChip />
+          )}
+        </View>
+
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          {hoursRemaining !== null && hoursRemaining !== undefined && (
+            <View style={styles.statItem}>
+              <Ionicons
+                name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
+                size={20}
+                color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
+              />
+              <Text style={styles.statValue}>
+                {hoursRemaining <= 0
+                  ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
+                  : `${hoursRemaining.toFixed(0)}h`}
+              </Text>
+              <Text style={styles.statLabel}>
+                {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.statItem}>
+            <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
+            <Text style={styles.statValue}>{prediction.serviceIntervalHours}h</Text>
+            <Text style={styles.statLabel}>Interval</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
+            <Text style={styles.statValue}>{prediction.hoursSinceService.toFixed(0)}h</Text>
+            <Text style={styles.statLabel}>Since Service</Text>
+          </View>
+
+          {(hoursRemaining === null || hoursRemaining === undefined) && (
+            <View style={styles.statItem}>
+              <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+              <Text style={styles.statValue}>{prediction.ridesSinceService}</Text>
+              <Text style={styles.statLabel}>Rides Since Service</Text>
+            </View>
+          )}
+
+          {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
+            <View style={styles.statItem}>
+              <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+              <Text style={styles.statValue}>{ridesRemaining}</Text>
+              <Text style={styles.statLabel}>Rides Left</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Snooze Options (shown after tapping Looks Good) */}
+        {showSnoozeOptions && !snoozeSuccess && (
+          <View style={styles.snoozeSection}>
+            <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
+            {recommendedHours === null && (
+              <Text style={styles.snoozeHint}>
+                This component has no service interval set, so there is nothing to
+                recommend. Enter the hours you want to add.
+              </Text>
+            )}
+            <View style={styles.snoozeOptions}>
+              {recommendedHours !== null && (
+                <TouchableOpacity
+                  style={styles.snoozePresetButton}
+                  onPress={() => handleSnooze(recommendedHours)}
+                  disabled={snoozing}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Snooze for ${recommendedHours} hours`}
+                  accessibilityState={{ disabled: snoozing }}
+                >
+                  {snoozing && !showCustomInput ? (
+                    <ActivityIndicator size="small" color={colors.onPrimary} />
+                  ) : (
+                    <Text style={styles.snoozePresetText}>
+                      Snooze {recommendedHours}h
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {!showCustomInput && recommendedHours !== null ? (
+                <TouchableOpacity
+                  onPress={() => setShowCustomInput(true)}
+                  disabled={snoozing}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Enter a custom snooze length"
+                >
+                  <Text style={styles.customLink}>Custom</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.customRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    keyboardType="number-pad"
+                    inputAccessoryViewID={DONE_ACCESSORY}
+                    placeholder="Hours"
+                    placeholderTextColor={colors.textMuted}
+                    value={customHours}
+                    onChangeText={setCustomHours}
+                    autoFocus
+                  />
+                  <Text style={styles.customUnit}>h</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.customApplyButton,
+                      (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Snooze for ${customHours || 0} hours`}
+                    accessibilityState={{ disabled: snoozing || !customHours || Number(customHours) < 1 }}
+                    onPress={() => handleSnooze(Number(customHours))}
+                    disabled={snoozing || !customHours || Number(customHours) < 1}
+                  >
+                    {snoozing ? (
+                      <ActivityIndicator size="small" color={colors.onPrimary} />
+                    ) : (
+                      <Text style={styles.customApplyText}>Apply</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {snoozeError && (
+          <View style={styles.snoozeErrorRow} accessibilityRole="alert">
+            <Ionicons
+              name="alert-circle-outline"
+              size={16}
+              color={colors.criticalOn}
+              accessibilityElementsHidden
+            />
+            <Text style={styles.snoozeErrorText}>{snoozeError}</Text>
+          </View>
+        )}
+
+        {/* Snooze confirmation, with a way back out of it. */}
+        {snoozeSuccess && (
+          <View style={styles.snoozeSuccess}>
+            <Ionicons
+              name="checkmark-circle"
+              size={24}
+              color={colors.positiveOn}
+              accessibilityElementsHidden
+            />
+            <View style={styles.snoozeSuccessCopy}>
+              <Text style={styles.snoozeSuccessText}>Service pushed back</Text>
+              <Text style={styles.snoozeSuccessSub}>
+                We&apos;ll stop flagging this component until then.
+              </Text>
+            </View>
+            {preSnoozeInterval !== null && (
+              <TouchableOpacity
+                style={styles.undoButton}
+                onPress={handleUndoSnooze}
+                disabled={undoing}
+                accessibilityRole="button"
+                accessibilityLabel="Undo snooze"
+                accessibilityState={{ disabled: undoing }}
+              >
+                {undoing ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Text style={styles.undoText}>Undo</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.actionButtonPrimary,
+            showSnoozeOptions && styles.actionButtonActive,
+          ]}
+          onPress={() => setShowSnoozeOptions(true)}
+          disabled={snoozing || snoozeSuccess}
+          accessibilityRole="button"
+          accessibilityLabel="Looks good, snooze this service"
+          accessibilityState={{ disabled: snoozing || snoozeSuccess }}
+        >
+          <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
+          <Text style={styles.actionButtonTextPrimary}>
+            {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onLogService}
+          disabled={snoozing || snoozeSuccess}
+          accessibilityRole="button"
+          accessibilityLabel={`Log service for ${typeName}`}
+          accessibilityState={{ disabled: snoozing || snoozeSuccess }}
+        >
+          <Ionicons name="build-outline" size={20} color={colors.textSecondary} />
+          <Text style={styles.actionButtonText}>Log Service</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onReplace}
+          disabled={snoozing || snoozeSuccess}
+          accessibilityRole="button"
+          accessibilityLabel={`Replace ${typeName}`}
+          accessibilityState={{ disabled: snoozing || snoozeSuccess }}
+        >
+          <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
+          <Text style={styles.actionButtonText}>Replace</Text>
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: colors.cardBorder,
-    borderRadius: radius.full,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -440,6 +413,9 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   content: {
+    // flexShrink lets the scrolling body give up height to the pinned action
+    // rows below when the keyboard shrinks the sheet.
+    flexShrink: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
   },

@@ -22,6 +22,10 @@ import {
 } from '../../src/graphql/generated';
 import { ComponentRideRow } from '../../src/components/gear/ComponentRideRow';
 import { colors, radius } from '../../src/constants/theme';
+import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+
+/** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
+const DONE_ACCESSORY = 'component-rides-done';
 
 const PAGE_SIZE = 50;
 const ADD_RIDES_TAKE = 300;
@@ -275,6 +279,8 @@ export default function ComponentRidesScreen() {
 
           <FlatList
             style={styles.list}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             data={entries}
             keyExtractor={(e) => e.ride.id}
             renderItem={({ item }) => {
@@ -321,6 +327,7 @@ export default function ComponentRidesScreen() {
             <View style={styles.searchRow}>
               <Ionicons name="search" size={16} color={colors.textMuted} />
               <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
                 style={styles.searchInput}
                 placeholder="Search rides"
                 placeholderTextColor={colors.textMuted}
@@ -376,9 +383,10 @@ export default function ComponentRidesScreen() {
 
           <FlatList
             style={styles.list}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             data={addCandidates}
             keyExtractor={(ride) => ride.id}
-            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <ComponentRideRow
                 ride={item}
@@ -415,6 +423,8 @@ export default function ComponentRidesScreen() {
           />
         </>
       )}
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
     </View>
   );
 }

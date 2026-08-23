@@ -3,22 +3,24 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   TextInput,
   ScrollView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '../../constants/theme';
+import { BottomSheet } from '../common/BottomSheet';
+import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
 import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
 import { formatComponentType } from '../../utils/formatComponentType';
 import type { EditableServiceLog } from './EditServiceSheet';
+
+/** Unique per surface: sibling sheets stay mounted and would collide on a shared id. */
+const DONE_ACCESSORY = 'component-detail-done';
 
 /** User-facing hints for what "service" means for specific component types */
 const SERVICE_HINTS: Record<string, string> = {
@@ -82,7 +84,6 @@ export function ComponentDetailSheet({
   onViewRides,
   onEditServiceLog,
 }: ComponentDetailSheetProps) {
-  const insets = useSafeAreaInsets();
   const [showSnoozeOptions, setShowSnoozeOptions] = useState(false);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
@@ -194,449 +195,422 @@ export function ComponentDetailSheet({
   const recommendedHours = serviceInterval ?? 50;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
-    >
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-              <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={handleClose} maxHeight="80%">
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>
+            {label}
+          </Text>
+          {brandModel && brandModel !== 'Stock' && (
+            <Text style={styles.brandModel}>{brandModel}</Text>
+          )}
+        </View>
+        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
 
-              {/* Header */}
-              <View style={styles.header}>
-                <View style={styles.headerContent}>
-                  <Text style={styles.title}>
-                    {label}
-                  </Text>
-                  {brandModel && brandModel !== 'Stock' && (
-                    <Text style={styles.brandModel}>{brandModel}</Text>
-                  )}
-                </View>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Status Badge */}
+        <View style={styles.statusRow}>
+          <View style={styles.conditionRow}>
+            <Text style={styles.conditionLabel}>Condition:</Text>
+            <ComponentHealthBadge status={status} />
+          </View>
+          {!predictionGated && (
+            <TouchableOpacity
+              style={styles.confidenceRow}
+              onPress={() => setShowConfidenceInfo(!showConfidenceInfo)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="analytics-outline" size={14} color={confidence.color} />
+              <Text style={[styles.confidenceText, { color: confidence.color }]}>
+                {confidence.label} confidence
+              </Text>
+              <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-              <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Status Badge */}
-                <View style={styles.statusRow}>
-                  <View style={styles.conditionRow}>
-                    <Text style={styles.conditionLabel}>Condition:</Text>
-                    <ComponentHealthBadge status={status} />
-                  </View>
-                  {!predictionGated && (
-                    <TouchableOpacity
-                      style={styles.confidenceRow}
-                      onPress={() => setShowConfidenceInfo(!showConfidenceInfo)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="analytics-outline" size={14} color={confidence.color} />
-                      <Text style={[styles.confidenceText, { color: confidence.color }]}>
-                        {confidence.label} confidence
-                      </Text>
-                      <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {showConfidenceInfo && (
-                  <View style={styles.confidenceInfoCard}>
-                    <Text style={styles.confidenceInfoTitle}>How confidence is calculated</Text>
-                    <Text style={styles.confidenceInfoText}>
-                      Confidence reflects how much data Loam Logger has to estimate when this component will need service.
-                    </Text>
-                    <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: colors.positiveOn }]} />
-                      <View style={styles.confidenceLevelContent}>
-                        <Text style={styles.confidenceLevelLabel}>High</Text>
-                        <Text style={styles.confidenceLevelDesc}>Service date was set during calibration, or multiple service logs provide a clear pattern.</Text>
-                      </View>
-                    </View>
-                    <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: colors.textSecondary }]} />
-                      <View style={styles.confidenceLevelContent}>
-                        <Text style={styles.confidenceLevelLabel}>Medium</Text>
-                        <Text style={styles.confidenceLevelDesc}>Wear was estimated using a slider or limited ride data. Accuracy improves as you log more rides and services.</Text>
-                      </View>
-                    </View>
-                    <View style={styles.confidenceLevelRow}>
-                      <View style={[styles.confidenceDot, { backgroundColor: colors.cautionOn }]} />
-                      <View style={styles.confidenceLevelContent}>
-                        <Text style={styles.confidenceLevelLabel}>Low</Text>
-                        <Text style={styles.confidenceLevelDesc}>Using default service intervals. Log a service or calibrate your components to improve accuracy.</Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-
-                {/* Service hint */}
-                {SERVICE_HINTS[component.type] && status !== 'ALL_GOOD' && (
-                  <View style={styles.serviceHint}>
-                    <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-                    <Text style={styles.serviceHintText}>{SERVICE_HINTS[component.type]}</Text>
-                  </View>
-                )}
-
-                {/* Stats Grid */}
-                <View style={styles.statsGrid}>
-                  {hoursRemaining !== null && hoursRemaining !== undefined ? (
-                    <View style={styles.statItem}>
-                      <Ionicons
-                        name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
-                        size={20}
-                        color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
-                      />
-                      {savingInterval ? (
-                        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
-                      ) : (
-                        <Text style={styles.statValue}>
-                          {hoursRemaining <= 0
-                            ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
-                            : `${hoursRemaining.toFixed(0)}h`}
-                        </Text>
-                      )}
-                      <Text style={styles.statLabel}>
-                        {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
-                      </Text>
-                    </View>
-                  ) : predictionGated ? (
-                    // Free tier: the countdown is Pro-only — show the chip
-                    // where the headline number would be.
-                    <View style={styles.statItem}>
-                      <Ionicons name="time-outline" size={20} color={colors.textMuted} />
-                      <ProChip />
-                      <Text style={styles.statLabel}>Remaining</Text>
-                    </View>
-                  ) : null}
-
-                  {serviceInterval && (
-                    editingInterval ? (
-                      <View style={[styles.statItem, styles.statItemTappable]}>
-                        <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
-                        <TextInput
-                          style={styles.intervalInput}
-                          value={intervalInput}
-                          onChangeText={setIntervalInput}
-                          keyboardType="number-pad"
-                          autoFocus
-                          selectTextOnFocus
-                          returnKeyType="done"
-                          onSubmitEditing={handleSaveInterval}
-                        />
-                        <Text style={styles.statLabel}>hours</Text>
-                        <View style={styles.intervalActions}>
-                          <TouchableOpacity onPress={() => setEditingInterval(false)} style={styles.intervalActionButton}>
-                            <Ionicons name="close" size={18} color={colors.textMuted} />
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={handleSaveInterval} style={styles.intervalActionButton}>
-                            <Ionicons name="checkmark" size={18} color={colors.primary} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={[styles.statItem, styles.statItemTappable]}
-                        onPress={handleEditInterval}
-                        activeOpacity={0.7}
-                        disabled={savingInterval}
-                      >
-                        <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
-                        {savingInterval ? (
-                          <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
-                        ) : (
-                          <Text style={styles.statValue}>{serviceInterval}h</Text>
-                        )}
-                        <Text style={styles.statLabel}>Interval</Text>
-                        {!savingInterval && (
-                          <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
-                        )}
-                      </TouchableOpacity>
-                    )
-                  )}
-
-                  {hoursSinceService !== null && hoursSinceService !== undefined && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{hoursSinceService.toFixed(0)}h</Text>
-                      <Text style={styles.statLabel}>Since Service</Text>
-                    </View>
-                  )}
-
-                  {predictionGated && prediction && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      <Text style={styles.statValue}>{prediction.ridesSinceService}</Text>
-                      <Text style={styles.statLabel}>Rides Since Service</Text>
-                    </View>
-                  )}
-
-                  {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
-                    <TouchableOpacity
-                      style={styles.statItem}
-                      onPress={() => setShowRidesInfo(!showRidesInfo)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
-                      {savingInterval ? (
-                        <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
-                      ) : (
-                        <Text style={styles.statValue}>{ridesRemaining}</Text>
-                      )}
-                      <Text style={styles.statLabel}>Rides Left</Text>
-                      <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {showRidesInfo && (
-                  <View style={styles.confidenceInfoCard}>
-                    <Text style={styles.confidenceInfoTitle}>How rides remaining is calculated</Text>
-                    <Text style={styles.confidenceInfoText}>
-                      Loam Logger looks at your recent ride history to determine your average ride duration, then estimates how many rides fit in the remaining service hours.
-                    </Text>
-                    <View style={styles.ridesInfoItem}>
-                      <Ionicons name="time-outline" size={16} color={colors.primary} />
-                      <Text style={styles.ridesInfoText}>
-                        Hours remaining is divided by your average ride length to get rides left.
-                      </Text>
-                    </View>
-                    <View style={styles.ridesInfoItem}>
-                      <Ionicons name="trending-up-outline" size={16} color={colors.primary} />
-                      <Text style={styles.ridesInfoText}>
-                        This updates automatically as you log more rides. Longer or shorter rides will shift the estimate.
-                      </Text>
-                    </View>
-                    <View style={styles.ridesInfoItem}>
-                      <Ionicons name="refresh-outline" size={16} color={colors.primary} />
-                      <Text style={styles.ridesInfoText}>
-                        Changing the service interval or logging a service resets the calculation.
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Service History */}
-                {(() => {
-                  // Filter out installation records (hoursAtService: 0) and invalid dates
-                  const realServiceLogs = (component.serviceLogs ?? [])
-                    .filter((log) => log.hoursAtService > 0 && formatDate(log.performedAt) !== 'Never')
-                    .slice()
-                    .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
-
-                  if (realServiceLogs.length > 0) {
-                    return (
-                      <View style={styles.serviceHistorySection}>
-                        <Text style={styles.serviceHistoryTitle}>Service History</Text>
-                        {realServiceLogs.slice(0, 5).map((log) => (
-                          <TouchableOpacity
-                            key={log.id}
-                            style={styles.serviceLogRow}
-                            onPress={() =>
-                              onEditServiceLog?.({
-                                id: log.id,
-                                performedAt: log.performedAt,
-                                notes: log.notes,
-                                hoursAtService: log.hoursAtService,
-                              })
-                            }
-                            disabled={!onEditServiceLog}
-                            activeOpacity={0.6}
-                          >
-                            <Ionicons name="build-outline" size={14} color={colors.textMuted} />
-                            <Text style={styles.serviceLogDate}>{formatDate(log.performedAt)}</Text>
-                            <Text style={styles.serviceLogHours}>{log.hoursAtService.toFixed(0)}h at service</Text>
-                            <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
-                          </TouchableOpacity>
-                        ))}
-                        {realServiceLogs.length > 5 && (
-                          <Text style={styles.serviceLogMore}>
-                            +{realServiceLogs.length - 5} more
-                          </Text>
-                        )}
-                      </View>
-                    );
-                  }
-
-                  return (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Last Serviced</Text>
-                      <Text style={styles.infoValue}>
-                        {lastServiced && formatDate(lastServiced) !== 'Never' ? formatDate(lastServiced) : 'Never'}
-                      </Text>
-                    </View>
-                  );
-                })()}
-
-                {/* Component Type */}
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Type</Text>
-                  <Text style={styles.infoValue}>
-                    {component.isStock ? 'Stock' : 'Aftermarket'}
-                  </Text>
-                </View>
-
-                {/* Notes */}
-                {component.notes && (
-                  <View style={styles.notesSection}>
-                    <Text style={styles.notesLabel}>Notes</Text>
-                    <Text style={styles.notesText}>{component.notes}</Text>
-                  </View>
-                )}
-
-                {/* Snooze Options (shown after tapping Looks Good) */}
-                {showSnoozeOptions && !snoozeSuccess && (
-                  <View style={styles.snoozeSection}>
-                    <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
-                    <View style={styles.snoozeOptions}>
-                      <TouchableOpacity
-                        style={styles.snoozePresetButton}
-                        onPress={() => handleSnooze(recommendedHours)}
-                        disabled={snoozing}
-                      >
-                        {snoozing && !showCustomInput ? (
-                          <ActivityIndicator size="small" color={colors.onPrimary} />
-                        ) : (
-                          <Text style={styles.snoozePresetText}>
-                            Snooze {recommendedHours}h
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-
-                      {!showCustomInput ? (
-                        <TouchableOpacity
-                          onPress={() => setShowCustomInput(true)}
-                          disabled={snoozing}
-                        >
-                          <Text style={styles.customLink}>Custom</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <View style={styles.customRow}>
-                          <TextInput
-                            style={styles.customInput}
-                            keyboardType="number-pad"
-                            placeholder="Hours"
-                            placeholderTextColor={colors.textMuted}
-                            value={customHours}
-                            onChangeText={setCustomHours}
-                            autoFocus
-                          />
-                          <Text style={styles.customUnit}>h</Text>
-                          <TouchableOpacity
-                            style={[
-                              styles.customApplyButton,
-                              (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
-                            ]}
-                            onPress={() => handleSnooze(Number(customHours))}
-                            disabled={snoozing || !customHours || Number(customHours) < 1}
-                          >
-                            {snoozing ? (
-                              <ActivityIndicator size="small" color={colors.onPrimary} />
-                            ) : (
-                              <Text style={styles.customApplyText}>Apply</Text>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                )}
-
-                {/* Snooze success feedback with undo */}
-                {snoozeSuccess && (
-                  <View style={styles.snoozeSuccess}>
-                    <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
-                    <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
-                    {preSnoozeInterval !== null && (
-                      <TouchableOpacity onPress={handleUndoSnooze} disabled={undoing}>
-                        {undoing ? (
-                          <ActivityIndicator size="small" color={colors.textMuted} />
-                        ) : (
-                          <Text style={styles.undoText}>Undo</Text>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-              </ScrollView>
-
-              {/* View the individual rides that sum to this component's hours */}
-              <TouchableOpacity
-                onPress={onViewRides}
-                disabled={snoozing || snoozeSuccess}
-                style={styles.viewRidesButton}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
-                <Text style={styles.viewRidesText}>View rides behind these hours</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              {/* Actions */}
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.actionButtonLooksGood,
-                    showSnoozeOptions && styles.actionButtonActive,
-                  ]}
-                  onPress={() => setShowSnoozeOptions(true)}
-                  disabled={snoozing || snoozeSuccess}
-                >
-                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>
-                    {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={onLogService}
-                  disabled={snoozing || snoozeSuccess}
-                >
-                  <Ionicons name="build-outline" size={20} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>Service</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.actionButtonSecondary]}
-                  onPress={onReplace}
-                  disabled={snoozing || snoozeSuccess}
-                >
-                  <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
-                  <Text style={styles.actionButtonTextSecondary}>Replace</Text>
-                </TouchableOpacity>
+        {showConfidenceInfo && (
+          <View style={styles.confidenceInfoCard}>
+            <Text style={styles.confidenceInfoTitle}>How confidence is calculated</Text>
+            <Text style={styles.confidenceInfoText}>
+              Confidence reflects how much data Loam Logger has to estimate when this component will need service.
+            </Text>
+            <View style={styles.confidenceLevelRow}>
+              <View style={[styles.confidenceDot, { backgroundColor: colors.positiveOn }]} />
+              <View style={styles.confidenceLevelContent}>
+                <Text style={styles.confidenceLevelLabel}>High</Text>
+                <Text style={styles.confidenceLevelDesc}>Service date was set during calibration, or multiple service logs provide a clear pattern.</Text>
               </View>
             </View>
-          </TouchableWithoutFeedback>
+            <View style={styles.confidenceLevelRow}>
+              <View style={[styles.confidenceDot, { backgroundColor: colors.textSecondary }]} />
+              <View style={styles.confidenceLevelContent}>
+                <Text style={styles.confidenceLevelLabel}>Medium</Text>
+                <Text style={styles.confidenceLevelDesc}>Wear was estimated using a slider or limited ride data. Accuracy improves as you log more rides and services.</Text>
+              </View>
+            </View>
+            <View style={styles.confidenceLevelRow}>
+              <View style={[styles.confidenceDot, { backgroundColor: colors.cautionOn }]} />
+              <View style={styles.confidenceLevelContent}>
+                <Text style={styles.confidenceLevelLabel}>Low</Text>
+                <Text style={styles.confidenceLevelDesc}>Using default service intervals. Log a service or calibrate your components to improve accuracy.</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Service hint */}
+        {SERVICE_HINTS[component.type] && status !== 'ALL_GOOD' && (
+          <View style={styles.serviceHint}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.serviceHintText}>{SERVICE_HINTS[component.type]}</Text>
+          </View>
+        )}
+
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          {hoursRemaining !== null && hoursRemaining !== undefined ? (
+            <View style={styles.statItem}>
+              <Ionicons
+                name={hoursRemaining <= 0 ? 'warning' : 'time-outline'}
+                size={20}
+                color={hoursRemaining <= 0 ? colors.health.overdue.on : colors.primary}
+              />
+              {savingInterval ? (
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+              ) : (
+                <Text style={styles.statValue}>
+                  {hoursRemaining <= 0
+                    ? `${Math.abs(hoursRemaining).toFixed(0)}h overdue`
+                    : `${hoursRemaining.toFixed(0)}h`}
+                </Text>
+              )}
+              <Text style={styles.statLabel}>
+                {hoursRemaining <= 0 ? 'Overdue' : 'Remaining'}
+              </Text>
+            </View>
+          ) : predictionGated ? (
+            // Free tier: the countdown is Pro-only — show the chip
+            // where the headline number would be.
+            <View style={styles.statItem}>
+              <Ionicons name="time-outline" size={20} color={colors.textMuted} />
+              <ProChip />
+              <Text style={styles.statLabel}>Remaining</Text>
+            </View>
+          ) : null}
+
+          {serviceInterval && (
+            editingInterval ? (
+              <View style={[styles.statItem, styles.statItemTappable]}>
+                <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.intervalInput}
+                  value={intervalInput}
+                  onChangeText={setIntervalInput}
+                  keyboardType="number-pad"
+                  inputAccessoryViewID={DONE_ACCESSORY}
+                  autoFocus
+                  selectTextOnFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleSaveInterval}
+                />
+                <Text style={styles.statLabel}>hours</Text>
+                <View style={styles.intervalActions}>
+                  <TouchableOpacity onPress={() => setEditingInterval(false)} style={styles.intervalActionButton}>
+                    <Ionicons name="close" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleSaveInterval} style={styles.intervalActionButton}>
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.statItem, styles.statItemTappable]}
+                onPress={handleEditInterval}
+                activeOpacity={0.7}
+                disabled={savingInterval}
+              >
+                <Ionicons name="refresh-outline" size={20} color={colors.textSecondary} />
+                {savingInterval ? (
+                  <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+                ) : (
+                  <Text style={styles.statValue}>{serviceInterval}h</Text>
+                )}
+                <Text style={styles.statLabel}>Interval</Text>
+                {!savingInterval && (
+                  <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
+                )}
+              </TouchableOpacity>
+            )
+          )}
+
+          {hoursSinceService !== null && hoursSinceService !== undefined && (
+            <View style={styles.statItem}>
+              <Ionicons name="speedometer-outline" size={20} color={colors.textSecondary} />
+              <Text style={styles.statValue}>{hoursSinceService.toFixed(0)}h</Text>
+              <Text style={styles.statLabel}>Since Service</Text>
+            </View>
+          )}
+
+          {predictionGated && prediction && (
+            <View style={styles.statItem}>
+              <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+              <Text style={styles.statValue}>{prediction.ridesSinceService}</Text>
+              <Text style={styles.statLabel}>Rides Since Service</Text>
+            </View>
+          )}
+
+          {ridesRemaining !== null && ridesRemaining !== undefined && ridesRemaining > 0 && (
+            <TouchableOpacity
+              style={styles.statItem}
+              onPress={() => setShowRidesInfo(!showRidesInfo)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+              {savingInterval ? (
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 4 }} />
+              ) : (
+                <Text style={styles.statValue}>{ridesRemaining}</Text>
+              )}
+              <Text style={styles.statLabel}>Rides Left</Text>
+              <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} style={styles.editIcon} />
+            </TouchableOpacity>
+          )}
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+
+        {showRidesInfo && (
+          <View style={styles.confidenceInfoCard}>
+            <Text style={styles.confidenceInfoTitle}>How rides remaining is calculated</Text>
+            <Text style={styles.confidenceInfoText}>
+              Loam Logger looks at your recent ride history to determine your average ride duration, then estimates how many rides fit in the remaining service hours.
+            </Text>
+            <View style={styles.ridesInfoItem}>
+              <Ionicons name="time-outline" size={16} color={colors.primary} />
+              <Text style={styles.ridesInfoText}>
+                Hours remaining is divided by your average ride length to get rides left.
+              </Text>
+            </View>
+            <View style={styles.ridesInfoItem}>
+              <Ionicons name="trending-up-outline" size={16} color={colors.primary} />
+              <Text style={styles.ridesInfoText}>
+                This updates automatically as you log more rides. Longer or shorter rides will shift the estimate.
+              </Text>
+            </View>
+            <View style={styles.ridesInfoItem}>
+              <Ionicons name="refresh-outline" size={16} color={colors.primary} />
+              <Text style={styles.ridesInfoText}>
+                Changing the service interval or logging a service resets the calculation.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Service History */}
+        {(() => {
+          // Filter out installation records (hoursAtService: 0) and invalid dates
+          const realServiceLogs = (component.serviceLogs ?? [])
+            .filter((log) => log.hoursAtService > 0 && formatDate(log.performedAt) !== 'Never')
+            .slice()
+            .sort((a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime());
+
+          if (realServiceLogs.length > 0) {
+            return (
+              <View style={styles.serviceHistorySection}>
+                <Text style={styles.serviceHistoryTitle}>Service History</Text>
+                {realServiceLogs.slice(0, 5).map((log) => (
+                  <TouchableOpacity
+                    key={log.id}
+                    style={styles.serviceLogRow}
+                    onPress={() =>
+                      onEditServiceLog?.({
+                        id: log.id,
+                        performedAt: log.performedAt,
+                        notes: log.notes,
+                        hoursAtService: log.hoursAtService,
+                      })
+                    }
+                    disabled={!onEditServiceLog}
+                    activeOpacity={0.6}
+                  >
+                    <Ionicons name="build-outline" size={14} color={colors.textMuted} />
+                    <Text style={styles.serviceLogDate}>{formatDate(log.performedAt)}</Text>
+                    <Text style={styles.serviceLogHours}>{log.hoursAtService.toFixed(0)}h at service</Text>
+                    <Ionicons name="pencil-outline" size={12} color={colors.textMuted} style={{ marginLeft: 'auto' }} />
+                  </TouchableOpacity>
+                ))}
+                {realServiceLogs.length > 5 && (
+                  <Text style={styles.serviceLogMore}>
+                    +{realServiceLogs.length - 5} more
+                  </Text>
+                )}
+              </View>
+            );
+          }
+
+          return (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Last Serviced</Text>
+              <Text style={styles.infoValue}>
+                {lastServiced && formatDate(lastServiced) !== 'Never' ? formatDate(lastServiced) : 'Never'}
+              </Text>
+            </View>
+          );
+        })()}
+
+        {/* Component Type */}
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Type</Text>
+          <Text style={styles.infoValue}>
+            {component.isStock ? 'Stock' : 'Aftermarket'}
+          </Text>
+        </View>
+
+        {/* Notes */}
+        {component.notes && (
+          <View style={styles.notesSection}>
+            <Text style={styles.notesLabel}>Notes</Text>
+            <Text style={styles.notesText}>{component.notes}</Text>
+          </View>
+        )}
+
+        {/* Snooze Options (shown after tapping Looks Good) */}
+        {showSnoozeOptions && !snoozeSuccess && (
+          <View style={styles.snoozeSection}>
+            <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
+            <View style={styles.snoozeOptions}>
+              <TouchableOpacity
+                style={styles.snoozePresetButton}
+                onPress={() => handleSnooze(recommendedHours)}
+                disabled={snoozing}
+              >
+                {snoozing && !showCustomInput ? (
+                  <ActivityIndicator size="small" color={colors.onPrimary} />
+                ) : (
+                  <Text style={styles.snoozePresetText}>
+                    Snooze {recommendedHours}h
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {!showCustomInput ? (
+                <TouchableOpacity
+                  onPress={() => setShowCustomInput(true)}
+                  disabled={snoozing}
+                >
+                  <Text style={styles.customLink}>Custom</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.customRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    keyboardType="number-pad"
+                    inputAccessoryViewID={DONE_ACCESSORY}
+                    placeholder="Hours"
+                    placeholderTextColor={colors.textMuted}
+                    value={customHours}
+                    onChangeText={setCustomHours}
+                    autoFocus
+                  />
+                  <Text style={styles.customUnit}>h</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.customApplyButton,
+                      (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
+                    ]}
+                    onPress={() => handleSnooze(Number(customHours))}
+                    disabled={snoozing || !customHours || Number(customHours) < 1}
+                  >
+                    {snoozing ? (
+                      <ActivityIndicator size="small" color={colors.onPrimary} />
+                    ) : (
+                      <Text style={styles.customApplyText}>Apply</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Snooze success feedback with undo */}
+        {snoozeSuccess && (
+          <View style={styles.snoozeSuccess}>
+            <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
+            <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
+            {preSnoozeInterval !== null && (
+              <TouchableOpacity onPress={handleUndoSnooze} disabled={undoing}>
+                {undoing ? (
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                ) : (
+                  <Text style={styles.undoText}>Undo</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* View the individual rides that sum to this component's hours */}
+      <TouchableOpacity
+        onPress={onViewRides}
+        disabled={snoozing || snoozeSuccess}
+        style={styles.viewRidesButton}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+        <Text style={styles.viewRidesText}>View rides behind these hours</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+      </TouchableOpacity>
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.actionButtonLooksGood,
+            showSnoozeOptions && styles.actionButtonActive,
+          ]}
+          onPress={() => setShowSnoozeOptions(true)}
+          disabled={snoozing || snoozeSuccess}
+        >
+          <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
+          <Text style={styles.actionButtonText}>
+            {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onLogService}
+          disabled={snoozing || snoozeSuccess}
+        >
+          <Ionicons name="build-outline" size={20} color={colors.primary} />
+          <Text style={styles.actionButtonText}>Service</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.actionButtonSecondary]}
+          onPress={onReplace}
+          disabled={snoozing || snoozeSuccess}
+        >
+          <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
+          <Text style={styles.actionButtonTextSecondary}>Replace</Text>
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: colors.cardBorder,
-    borderRadius: radius.full,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -664,6 +638,9 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   content: {
+    // flexShrink lets the scrolling body give up height to the pinned action
+    // rows below when the keyboard shrinks the sheet.
+    flexShrink: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
   },
