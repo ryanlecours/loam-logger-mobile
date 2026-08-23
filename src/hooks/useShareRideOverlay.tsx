@@ -13,7 +13,7 @@ import { ShareRideSheet } from '../components/share/ShareRideSheet';
  *   2. `<ShareSurface />` renders a `ShareRideSheet` modal that lets the
  *      user pick which fields to include and previews the result.
  *   3. On confirm, the off-screen `RideShareCard` is updated with only
- *      the user's selected fields, captured as a transparent PNG via
+ *      the user's selected fields, captured as an alpha PNG via
  *      `react-native-view-shot`, and handed to the OS share sheet via
  *      `expo-sharing`.
  *
@@ -81,9 +81,11 @@ export function useShareRideOverlay() {
 
         const uri = await captureRef(cardRef, {
           format: 'png',
-          // Transparent background preserved through the alpha channel —
-          // load-bearing for the "drop onto Instagram story" use case.
-          // Hex with full alpha would burn the bg into the PNG.
+          // No `backgroundColor` on purpose: the card paints its own
+          // translucent panel and leaves the corners outside its radius
+          // clear, and captureRef carries all of that through the alpha
+          // channel. Passing a hex here would flatten the panel against an
+          // opaque fill and hand the rider a rectangle to paste on a story.
           result: 'tmpfile',
           quality: 1,
         });

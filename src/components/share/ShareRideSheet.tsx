@@ -127,11 +127,19 @@ export function ShareRideSheet({ visible, onClose, values, onConfirm, sharing }:
               <Text style={styles.title}>Share ride</Text>
               <Text style={styles.subtitle}>Choose which stats to include.</Text>
 
-              {/* Live preview — sits on a checkered/dark backdrop so the
-                  white text and transparent background are both visible.
-                  This is just a UX preview; the actual capture happens
-                  off-screen via useShareRideOverlay's ShareSurface. */}
+              {/* Live preview. The backdrop is split light/dark on purpose:
+                  this export lands on someone's photo, and a uniformly dark
+                  backdrop would flatter it into looking fine while hiding the
+                  exact case the panel exists for. Showing both halves at once
+                  is the only honest preview of "will this read".
+
+                  UX preview only; the actual capture happens off-screen via
+                  useShareRideOverlay's shareSurface. */}
               <View style={styles.previewBackdrop}>
+                <View style={styles.previewSplit} pointerEvents="none">
+                  <View style={styles.previewLight} />
+                  <View style={styles.previewDark} />
+                </View>
                 <View style={styles.previewScale}>
                   <RideShareCard {...previewProps} />
                 </View>
@@ -257,12 +265,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   previewBackdrop: {
-    backgroundColor: '#000', // contrast for the white text/icons
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     overflow: 'hidden',
     marginBottom: 16,
+  },
+  previewSplit: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+  },
+  previewLight: {
+    flex: 1,
+    // Stands in for the bright half of a photo (a sky, snow, a pale wall):
+    // the case the overlay used to disappear into.
+    backgroundColor: colors.accentPearl,
+  },
+  previewDark: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
   previewScale: {
     // The card itself is 720pt wide for crisp PNG output. Shrink visually

@@ -3,20 +3,38 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
- * Transparent share overlay for a ride or aggregated ride-stats summary.
- * Captured by `react-native-view-shot` and shared via `expo-sharing` so the
- * user can drop the resulting PNG onto an Instagram story / feed post or
- * any other social app.
+ * Share overlay for a ride or aggregated ride-stats summary. Captured by
+ * `react-native-view-shot` and shared via `expo-sharing` so the user can drop
+ * the resulting PNG onto an Instagram story / feed post or any other social
+ * app.
  *
  * Layout: Loam Logger logo on top, then a single horizontal row of four
  * icon+value stats (distance, elevation, duration, average HR). The avgHr
  * group is omitted entirely when no HR data exists — the row stays
  * centered around whatever is present rather than showing a placeholder.
  *
- * Background is transparent. Captured via `captureRef(node, { format:
- * 'png', backgroundColor: 'transparent' })` in shareRideOverlay.ts so the
- * resulting PNG carries an alpha channel and can be layered on any
- * Instagram background.
+ * ## Why the panel is translucent rather than absent
+ *
+ * This used to be white text on a fully transparent background, leaning on a
+ * text shadow to survive whatever it landed on. It did not: a story photo with
+ * a bright sky or a snow field is the same value as the text, and a shadow
+ * only outlines letterforms, it does not put anything behind them.
+ *
+ * So the content sits on a forest-tinted obsidian panel at 65% alpha with a
+ * mint edge-light, which is what DESIGN.md's frosted-glass surfaces are
+ * everywhere else in the product. 65% is chosen, not picked. Composited over
+ * the worst case a story can offer (pure white) the panel lands on #5F625F,
+ * where cream scores 5.8:1; over a bright sky it is 7.1:1 and over a dark
+ * photo 17:1. The same cream directly on that white photo, which is what
+ * shipped before, is 1.06:1, which is not "hard to read", it is invisible.
+ * Going more transparent buys atmosphere back at the cost of the exact
+ * failure this exists to fix.
+ *
+ * The PNG still carries a real alpha channel: the panel is translucent and the
+ * corners outside its radius are fully clear, so it layers rather than sitting
+ * in an opaque rectangle. Note that the text itself composites to fully opaque
+ * in the capture, so the readability question is entirely about the field
+ * behind the letters.
  *
  * Sized for capture, not on-screen viewing — the consumer mounts this
  * off-screen via absolute positioning so it renders at full quality
@@ -83,7 +101,7 @@ export const RideShareCard = forwardRef<View, RideShareCardProps>(
 function Stat({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: string }) {
   return (
     <View style={styles.stat}>
-      <Ionicons name={icon} size={32} color="#FFFFFF" />
+      <Ionicons name={icon} size={32} color={INK} />
       <Text style={styles.statValue} allowFontScaling={false}>
         {value}
       </Text>
@@ -91,15 +109,31 @@ function Stat({ icon, value }: { icon: keyof typeof Ionicons.glyphMap; value: st
   );
 }
 
-// White text + icons on a transparent background — Instagram stories are
-// dark-leaning by default, and the strong text shadow keeps the overlay
-// readable on light photos too. If users want black-on-light variants
-// later, this is the single style block to fork.
+// DESIGN.md palette literals, inlined rather than imported from the theme.
+// This node is not app UI: it renders off-screen into a file that outlives the
+// session and gets read on someone else's phone, so it must not follow app
+// theming, Dynamic Type, or anything else that varies per device. Naming them
+// here keeps the brand values in one place without pretending they are tokens.
+const INK = '#FAF8F4'; // cream. DESIGN.md: never pure white.
+const PANEL = 'rgba(9, 14, 11, 0.65)'; // forest-tinted obsidian, matching the app's scrim hue
+const EDGE = 'rgba(156, 176, 164, 0.28)'; // mint, per the Edge-Light Rule
+const SHADOW = 'rgba(9, 14, 11, 0.45)'; // DESIGN.md: shadows are forest-tinted, never neutral black
+
 const styles = StyleSheet.create({
   container: {
-    // Transparent background — captureRef preserves alpha so the PNG can
-    // be layered onto any social-media background.
-    backgroundColor: 'transparent',
+    // Translucent panel rather than a bare transparent box: see the header.
+    // captureRef preserves alpha, so this layers onto a story instead of
+    // punching an opaque rectangle into it.
+    backgroundColor: PANEL,
+    // Full pill is for controls; a major panel is the roundest a surface gets.
+    // 32 rather than DESIGN.md's 24 because this renders at roughly 2x phone
+    // scale, and a radius that is not scaled with it reads as a sharper corner
+    // than the same panel on screen.
+    borderRadius: 32,
+    // 2px, not 1: the hairline edge-light is specified at on-screen scale and
+    // would land as a sub-pixel shimmer in the export.
+    borderWidth: 2,
+    borderColor: EDGE,
     paddingVertical: 32,
     paddingHorizontal: 40,
     alignItems: 'center',
@@ -115,14 +149,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: INK,
     textAlign: 'center',
     marginBottom: 16,
-    // Same shadow as statValue so the title stays readable against varied
-    // backgrounds (light photos, busy story backgrounds, etc.).
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    // Same shadow as statValue: now that the panel carries readability, this
+    // is edge definition rather than the whole defence, so it is lighter than
+    // the near-opaque black halo it replaces.
+    textShadowColor: SHADOW,
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowRadius: 3,
   },
   statsRow: {
     flexDirection: 'row',
@@ -137,11 +172,11 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
-    // Drop shadow improves readability against varied photo backgrounds
-    // — without this, white-on-white photos hide the text.
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    color: INK,
+    // Softens the letterform edges against whatever shows through the panel.
+    // The panel is what makes these readable; this only sharpens them.
+    textShadowColor: SHADOW,
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowRadius: 3,
   },
 });
