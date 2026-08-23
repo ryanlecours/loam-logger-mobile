@@ -3,9 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   TextInput,
   ActivityIndicator,
   Alert,
@@ -20,6 +18,11 @@ import {
   useDeleteServiceLogMutation,
 } from '../../graphql/generated';
 import { colors, radius } from '../../constants/theme';
+import { BottomSheet } from '../common/BottomSheet';
+import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
+
+/** Unique per surface: sibling screens stay mounted and would collide on a shared id. */
+const DONE_ACCESSORY = 'edit-service-done';
 
 export interface EditableServiceLog {
   id: string;
@@ -147,114 +150,103 @@ export function EditServiceSheet({
   const isToday = serviceDate.toDateString() === new Date().toDateString();
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.sheet}>
-              <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onClose} maxHeight="90%">
+      <View style={styles.header}>
+        <Text style={styles.title}>Edit Service</Text>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
 
-              <View style={styles.header}>
-                <Text style={styles.title}>Edit Service</Text>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+      <Text style={styles.subtitle}>{componentLabel}</Text>
 
-              <Text style={styles.subtitle}>{componentLabel}</Text>
-
-              <ScrollView
-                style={styles.body}
-                contentContainerStyle={styles.bodyContent}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.dateRow}>
-                  <Text style={styles.dateLabel}>Service date</Text>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowDatePicker(!showDatePicker)}
-                  >
-                    <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-                    <Text style={styles.dateButtonText}>
-                      {isToday ? 'Today' : serviceDate.toLocaleDateString()}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={serviceDate}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                    maximumDate={new Date()}
-                    onChange={onDateChange}
-                    themeVariant="dark"
-                  />
-                )}
-
-                <View style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>Hours at service</Text>
-                  <TextInput
-                    value={hours}
-                    onChangeText={setHours}
-                    keyboardType="decimal-pad"
-                    style={styles.input}
-                    placeholder="0"
-                    placeholderTextColor={colors.textMuted}
-                  />
-                </View>
-
-                <View style={styles.fieldBlock}>
-                  <Text style={styles.fieldLabel}>Notes</Text>
-                  <TextInput
-                    value={notes}
-                    onChangeText={setNotes}
-                    multiline
-                    numberOfLines={3}
-                    style={[styles.input, styles.notesInput]}
-                    placeholder="Optional notes"
-                    placeholderTextColor={colors.textMuted}
-                  />
-                </View>
-              </ScrollView>
-
-              <View style={styles.footer}>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={handleDelete}
-                  disabled={busy}
-                >
-                  <Ionicons name="trash-outline" size={16} color={colors.criticalOn} />
-                  <Text style={styles.deleteButtonText}>Delete</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.saveButton, busy && styles.saveButtonDisabled]}
-                  onPress={handleSave}
-                  disabled={busy}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={colors.onPrimary} />
-                  ) : (
-                    <Text style={styles.saveButtonText}>Save</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.dateRow}>
+          <Text style={styles.dateLabel}>Service date</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(!showDatePicker)}
+          >
+            <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+            <Text style={styles.dateButtonText}>
+              {isToday ? 'Today' : serviceDate.toLocaleDateString()}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+        {showDatePicker && (
+          <DateTimePicker
+            value={serviceDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            maximumDate={new Date()}
+            onChange={onDateChange}
+            themeVariant="dark"
+          />
+        )}
+
+        <View style={styles.fieldRow}>
+          <Text style={styles.fieldLabel}>Hours at service</Text>
+          <TextInput
+            value={hours}
+            onChangeText={setHours}
+            keyboardType="decimal-pad"
+            inputAccessoryViewID={DONE_ACCESSORY}
+            style={styles.input}
+            placeholder="0"
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Notes</Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={3}
+            inputAccessoryViewID={DONE_ACCESSORY}
+            style={[styles.input, styles.notesInput]}
+            placeholder="Optional notes"
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={busy}>
+          <Ionicons name="trash-outline" size={16} color={colors.criticalOn} />
+          <Text style={styles.deleteButtonText}>Delete</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.saveButton, busy && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={busy}
+        >
+          {busy ? (
+            <ActivityIndicator color={colors.onPrimary} />
+          ) : (
+            <Text style={styles.saveButtonText}>Save</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 24, maxHeight: '90%' },
-  handle: { width: 36, height: 4, backgroundColor: colors.cardBorder, borderRadius: radius.full, alignSelf: 'center', marginTop: 8, marginBottom: 8 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 4 },
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   closeButton: { padding: 4 },
   subtitle: { fontSize: 14, color: colors.textSecondary, paddingHorizontal: 20, paddingBottom: 12 },
-  body: { maxHeight: 400 },
+  // flexShrink lets the field list give up height to the footer when the
+  // keyboard shrinks the sheet, so Save and Delete stay reachable.
+  body: { flexShrink: 1, maxHeight: 400 },
   bodyContent: { paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateLabel: { fontSize: 14, color: colors.textSecondary },

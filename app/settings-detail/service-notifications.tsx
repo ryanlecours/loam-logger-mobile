@@ -13,6 +13,10 @@ import {
 import { Stack } from 'expo-router';
 import { useGearQuery, useUpdateBikeNotificationPreferenceMutation, ServiceNotificationMode } from '../../src/graphql/generated';
 import { colors } from '../../src/constants/theme';
+import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+
+/** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
+const DONE_ACCESSORY = 'service-notifications-done';
 
 const MODES: { value: ServiceNotificationMode; label: string }[] = [
   { value: ServiceNotificationMode.RidesBefore, label: 'Rides' },
@@ -145,6 +149,7 @@ function BikeNotificationCard({
               </Text>
               <View style={styles.thresholdInputGroup}>
                 <TextInput
+                  inputAccessoryViewID={DONE_ACCESSORY}
                   style={styles.thresholdInput}
                   value={localThreshold}
                   onChangeText={setLocalThreshold}
@@ -177,7 +182,15 @@ export default function ServiceNotificationsScreen() {
           headerTintColor: colors.textPrimary,
         }}
       />
-      <ScrollView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        // Threshold fields repeat once per bike, so the lower cards sit under
+        // the keypad. iOS pads the scroll insets and scrolls the focused field
+        // into view; Android's adjustResize already handles it.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -192,6 +205,8 @@ export default function ServiceNotificationsScreen() {
           ))
         )}
       </ScrollView>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
     </>
   );
 }

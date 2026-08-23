@@ -3,16 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   TextInput,
   ScrollView,
   ActivityIndicator,
   Alert,
   Platform,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, type Href } from 'expo-router';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,9 +18,14 @@ import {
   useInstallComponentMutation,
 } from '../../graphql/generated';
 import { colors, radius } from '../../constants/theme';
+import { BottomSheet } from '../common/BottomSheet';
+import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
 import { isTierError, getTierErrorMessage } from '../../utils/tierErrors';
 import { formatComponentType } from '../../utils/formatComponentType';
 import type { ApolloError } from '@apollo/client';
+
+/** Unique per surface: sibling sheets stay mounted and would collide on a shared id. */
+const DONE_ACCESSORY = 'replace-component-done';
 
 interface ReplaceComponentSheetProps {
   visible: boolean;
@@ -45,7 +47,6 @@ export function ReplaceComponentSheet({
   onReplaced,
 }: ReplaceComponentSheetProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('spare');
   const [selectedSpareId, setSelectedSpareId] = useState<string | null>(null);
   const [brand, setBrand] = useState('');
@@ -184,226 +185,198 @@ export function ReplaceComponentSheet({
   const typeName = formatComponentType(component.type);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={handleClose}
-    >
-      <TouchableWithoutFeedback onPress={handleClose} accessible={false}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback accessible={false}>
-            <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-              <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={handleClose} maxHeight="85%">
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Replace {typeName}</Text>
+        <TouchableOpacity
+          onPress={handleClose}
+          style={styles.closeButton}
+          accessibilityRole="button"
+          accessibilityLabel="Close replace component"
+        >
+          <Ionicons name="close" size={24} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
 
-              {/* Header */}
-              <View style={styles.header}>
-                <Text style={styles.title}>Replace {typeName}</Text>
-                <TouchableOpacity
-                  onPress={handleClose}
-                  style={styles.closeButton}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close replace component"
-                >
-                  <Ionicons name="close" size={24} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'spare' && styles.tabActive]}
+          onPress={() => setActiveTab('spare')}
+          accessibilityRole="tab"
+          accessibilityLabel="Use a spare component"
+          accessibilityState={{ selected: activeTab === 'spare' }}
+        >
+          <Text
+            style={[styles.tabText, activeTab === 'spare' && styles.tabTextActive]}
+          >
+            Use Spare
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'new' && styles.tabActive]}
+          onPress={() => setActiveTab('new')}
+          accessibilityRole="tab"
+          accessibilityLabel="Add a new component"
+          accessibilityState={{ selected: activeTab === 'new' }}
+        >
+          <Text
+            style={[styles.tabText, activeTab === 'new' && styles.tabTextActive]}
+          >
+            New Component
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-              {/* Tabs */}
-              <View style={styles.tabs}>
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'spare' && styles.tabActive]}
-                  onPress={() => setActiveTab('spare')}
-                  accessibilityRole="tab"
-                  accessibilityLabel="Use a spare component"
-                  accessibilityState={{ selected: activeTab === 'spare' }}
-                >
-                  <Text
-                    style={[styles.tabText, activeTab === 'spare' && styles.tabTextActive]}
-                  >
-                    Use Spare
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'new' && styles.tabActive]}
-                  onPress={() => setActiveTab('new')}
-                  accessibilityRole="tab"
-                  accessibilityLabel="Add a new component"
-                  accessibilityState={{ selected: activeTab === 'new' }}
-                >
-                  <Text
-                    style={[styles.tabText, activeTab === 'new' && styles.tabTextActive]}
-                  >
-                    New Component
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-                {activeTab === 'spare' ? (
-                  matchingSpares.length === 0 ? (
-                    <View style={styles.emptyState}>
-                      <Ionicons name="cube-outline" size={48} color={colors.textMuted} />
-                      <Text style={styles.emptyText}>
-                        No spare {typeName.toLowerCase()} components available
-                      </Text>
-                    </View>
-                  ) : (
-                    matchingSpares.map((spare) => {
-                      const isSelected = selectedSpareId === spare.id;
-                      const spareBrandModel = [spare.brand, spare.model]
-                        .filter(Boolean)
-                        .join(' ');
-
-                      return (
-                        <TouchableOpacity
-                          key={spare.id}
-                          style={[
-                            styles.spareItem,
-                            isSelected && styles.spareItemSelected,
-                          ]}
-                          onPress={() => setSelectedSpareId(spare.id)}
-                          accessibilityRole="radio"
-                          accessibilityLabel={spareBrandModel || 'Spare component'}
-                          accessibilityState={{ selected: isSelected }}
-                        >
-                          <View style={styles.spareContent}>
-                            <Text style={styles.spareBrand}>
-                              {spareBrandModel || 'Unknown'}
-                            </Text>
-                            <Text style={styles.spareHours}>
-                              {spare.hoursUsed?.toFixed(0) || 0}h used
-                            </Text>
-                          </View>
-                          {isSelected && (
-                            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })
-                  )
-                ) : (
-                  <View style={styles.form}>
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Brand *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={brand}
-                        onChangeText={setBrand}
-                        placeholder="e.g., Fox"
-                        placeholderTextColor={colors.textMuted}
-                      />
-                    </View>
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Model *</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={model}
-                        onChangeText={setModel}
-                        placeholder="e.g., 36 Factory"
-                        placeholderTextColor={colors.textMuted}
-                      />
-                    </View>
-                  </View>
-                )}
-
-                {/* Install date */}
-                <View style={styles.dateSection}>
-                  <Text style={styles.inputLabel}>Installed on</Text>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowDatePicker(!showDatePicker)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Install date: ${installedAt.toLocaleDateString()}. Change date.`}
-                  >
-                    <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-                    <Text style={styles.dateButtonText}>
-                      {installedAt.toDateString() === new Date().toDateString()
-                        ? 'Today'
-                        : installedAt.toLocaleDateString()}
-                    </Text>
-                  </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={installedAt}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                      maximumDate={new Date()}
-                      onChange={onDateChange}
-                      themeVariant="dark"
-                    />
-                  )}
-                </View>
-
-                {/* Note Field */}
-                <View style={styles.noteSection}>
-                  <Text style={styles.inputLabel}>Note (optional)</Text>
-                  <TextInput
-                    style={[styles.input, styles.noteInput]}
-                    value={note}
-                    onChangeText={setNote}
-                    placeholder="Why are you making this change?"
-                    placeholderTextColor={colors.textMuted}
-                    multiline
-                    numberOfLines={3}
-                    maxLength={500}
-                    textAlignVertical="top"
-                  />
-                </View>
-              </ScrollView>
-
-              {/* Footer */}
-              <View style={styles.footer}>
-                <TouchableOpacity
-                  style={[
-                    styles.submitButton,
-                    (!canSubmit || loading) && styles.submitButtonDisabled,
-                  ]}
-                  onPress={handleSubmit}
-                  disabled={!canSubmit || loading}
-                  accessibilityRole="button"
-                  accessibilityLabel="Replace component"
-                  accessibilityState={{ disabled: !canSubmit || loading, busy: loading }}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={colors.card} />
-                  ) : (
-                    <>
-                      <Ionicons name="swap-horizontal" size={20} color={colors.card} />
-                      <Text style={styles.submitButtonText}>Replace Component</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+        {activeTab === 'spare' ? (
+          matchingSpares.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="cube-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyText}>
+                No spare {typeName.toLowerCase()} components available
+              </Text>
             </View>
-          </TouchableWithoutFeedback>
+          ) : (
+            matchingSpares.map((spare) => {
+              const isSelected = selectedSpareId === spare.id;
+              const spareBrandModel = [spare.brand, spare.model]
+                .filter(Boolean)
+                .join(' ');
+
+              return (
+                <TouchableOpacity
+                  key={spare.id}
+                  style={[
+                    styles.spareItem,
+                    isSelected && styles.spareItemSelected,
+                  ]}
+                  onPress={() => setSelectedSpareId(spare.id)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={spareBrandModel || 'Spare component'}
+                  accessibilityState={{ selected: isSelected }}
+                >
+                  <View style={styles.spareContent}>
+                    <Text style={styles.spareBrand}>
+                      {spareBrandModel || 'Unknown'}
+                    </Text>
+                    <Text style={styles.spareHours}>
+                      {spare.hoursUsed?.toFixed(0) || 0}h used
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            })
+          )
+        ) : (
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Brand *</Text>
+              <TextInput
+                style={styles.input}
+                value={brand}
+                onChangeText={setBrand}
+                inputAccessoryViewID={DONE_ACCESSORY}
+                returnKeyType="done"
+                placeholder="e.g., Fox"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Model *</Text>
+              <TextInput
+                style={styles.input}
+                value={model}
+                onChangeText={setModel}
+                inputAccessoryViewID={DONE_ACCESSORY}
+                returnKeyType="done"
+                placeholder="e.g., 36 Factory"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Install date */}
+        <View style={styles.dateSection}>
+          <Text style={styles.inputLabel}>Installed on</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(!showDatePicker)}
+            accessibilityRole="button"
+            accessibilityLabel={`Install date: ${installedAt.toLocaleDateString()}. Change date.`}
+          >
+            <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+            <Text style={styles.dateButtonText}>
+              {installedAt.toDateString() === new Date().toDateString()
+                ? 'Today'
+                : installedAt.toLocaleDateString()}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={installedAt}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              maximumDate={new Date()}
+              onChange={onDateChange}
+              themeVariant="dark"
+            />
+          )}
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+
+        {/* Note Field */}
+        <View style={styles.noteSection}>
+          <Text style={styles.inputLabel}>Note (optional)</Text>
+          <TextInput
+            style={[styles.input, styles.noteInput]}
+            value={note}
+            onChangeText={setNote}
+            inputAccessoryViewID={DONE_ACCESSORY}
+            placeholder="Why are you making this change?"
+            placeholderTextColor={colors.textMuted}
+            multiline
+            numberOfLines={3}
+            maxLength={500}
+            textAlignVertical="top"
+          />
+        </View>
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[
+            styles.submitButton,
+            (!canSubmit || loading) && styles.submitButtonDisabled,
+          ]}
+          onPress={handleSubmit}
+          disabled={!canSubmit || loading}
+          accessibilityRole="button"
+          accessibilityLabel="Replace component"
+          accessibilityState={{ disabled: !canSubmit || loading, busy: loading }}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.card} />
+          ) : (
+            <>
+              <Ionicons name="swap-horizontal" size={20} color={colors.card} />
+              <Text style={styles.submitButtonText}>Replace Component</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: colors.cardBorder,
-    borderRadius: radius.full,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -448,6 +421,9 @@ const styles = StyleSheet.create({
     color: colors.card,
   },
   content: {
+    // flexShrink lets the scrolling body give up height to the pinned footer
+    // when the keyboard shrinks the sheet, so Replace stays reachable.
+    flexShrink: 1,
     paddingHorizontal: 20,
     maxHeight: 300,
   },

@@ -22,6 +22,10 @@ import { PickerSelect } from '../../src/components/common/PickerSelect';
 import { UNOWNED_BIKE_VALUE } from '../../src/constants/rideBike';
 import { formatDuration, formatElevation } from '../../src/utils/greetingMessages';
 import { colors, radius } from '../../src/constants/theme';
+import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+
+/** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
+const DONE_ACCESSORY = 'save-recording-done';
 
 const RIDE_TYPES = [
   { value: 'TRAIL', label: 'Trail' },
@@ -150,90 +154,105 @@ export default function SaveRecordingScreen() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* What the GPS measured */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryStat}>
-          <Ionicons name="time-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.summaryValue}>{formatDuration(summary.durationSeconds)}</Text>
-        </View>
-        <View style={styles.summaryStat}>
-          <Ionicons name="navigate-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.summaryValue}>{formatDistance(summary.distanceMeters)}</Text>
-        </View>
-        <View style={styles.summaryStat}>
-          <Ionicons name="trending-up-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.summaryValue}>
-            {formatElevation(summary.elevationGainMeters, distanceUnit)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ride Type</Text>
-        <PickerSelect selectedValue={rideType} onValueChange={setRideType} options={RIDE_TYPES} />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Bike</Text>
-        <PickerSelect
-          selectedValue={bikeId}
-          onValueChange={setBikeId}
-          options={[
-            ...bikes.map((bike) => ({
-              label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
-              value: bike.id,
-            })),
-            { label: 'Not my bike (demo or loaner)', value: UNOWNED_BIKE_VALUE },
-          ]}
-          placeholder="Select a bike"
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location (optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={location}
-          onChangeText={setLocation}
-          placeholder="e.g., Tiger Mountain"
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notes (optional)</Text>
-        <TextInput
-          style={[styles.input, styles.notesInput]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Add any notes about this ride..."
-          multiline
-          numberOfLines={4}
-          maxLength={2000}
-          textAlignVertical="top"
-        />
-      </View>
-
-      <TouchableOpacity
-        style={[styles.submitButton, (saving || loading) && styles.submitButtonDisabled]}
-        onPress={() => void handleSave()}
-        disabled={saving || loading}
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        // The keyboard covers the lower half of this form. On iOS this pads the
+        // scroll insets and brings the focused field into view; Android's
+        // adjustResize already shrinks the window, so it is a no-op there.
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        {saving || loading ? (
-          <ActivityIndicator color={colors.onPrimary} />
-        ) : (
-          <Text style={styles.submitButtonText}>Save Ride</Text>
-        )}
-      </TouchableOpacity>
+        {/* What the GPS measured */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryStat}>
+            <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.summaryValue}>{formatDuration(summary.durationSeconds)}</Text>
+          </View>
+          <View style={styles.summaryStat}>
+            <Ionicons name="navigate-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.summaryValue}>{formatDistance(summary.distanceMeters)}</Text>
+          </View>
+          <View style={styles.summaryStat}>
+            <Ionicons name="trending-up-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.summaryValue}>
+              {formatElevation(summary.elevationGainMeters, distanceUnit)}
+            </Text>
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={[styles.cancelButton, saving && styles.cancelButtonDisabled]}
-        onPress={handleDiscard}
-        disabled={saving}
-      >
-        <Text style={styles.cancelButtonText}>Discard</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ride Type</Text>
+          <PickerSelect selectedValue={rideType} onValueChange={setRideType} options={RIDE_TYPES} />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bike</Text>
+          <PickerSelect
+            selectedValue={bikeId}
+            onValueChange={setBikeId}
+            options={[
+              ...bikes.map((bike) => ({
+                label: bike.nickname || `${bike.manufacturer} ${bike.model}`,
+                value: bike.id,
+              })),
+              { label: 'Not my bike (demo or loaner)', value: UNOWNED_BIKE_VALUE },
+            ]}
+            placeholder="Select a bike"
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Location (optional)</Text>
+          <TextInput
+            inputAccessoryViewID={DONE_ACCESSORY}
+            style={styles.input}
+            value={location}
+            onChangeText={setLocation}
+            placeholder="e.g., Tiger Mountain"
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notes (optional)</Text>
+          <TextInput
+            inputAccessoryViewID={DONE_ACCESSORY}
+            style={[styles.input, styles.notesInput]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add any notes about this ride..."
+            multiline
+            numberOfLines={4}
+            maxLength={2000}
+            textAlignVertical="top"
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.submitButton, (saving || loading) && styles.submitButtonDisabled]}
+          onPress={() => void handleSave()}
+          disabled={saving || loading}
+        >
+          {saving || loading ? (
+            <ActivityIndicator color={colors.onPrimary} />
+          ) : (
+            <Text style={styles.submitButtonText}>Save Ride</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.cancelButton, saving && styles.cancelButtonDisabled]}
+          onPress={handleDiscard}
+          disabled={saving}
+        >
+          <Text style={styles.cancelButtonText}>Discard</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+    </>
   );
 }
 

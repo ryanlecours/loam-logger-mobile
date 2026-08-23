@@ -11,6 +11,50 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## Unreleased
+
+### App Store "What's New"
+
+Fixes
+- Typing an hours value or a service note no longer leaves the keyboard sitting
+  on top of the field. Number pads now get a Done button, so entering a custom
+  snooze or editing a note is not a dead end
+
+### Internal
+
+Keyboard handling
+- `fix(ui)`: extracted the bottom-sheet scaffold every sheet was hand-rolling
+  (scrim, slide-up card, handle, safe-area padding) into
+  `src/components/common/BottomSheet.tsx`, and wrapped it in a
+  `KeyboardAvoidingView`. A sheet is bottom-anchored by definition, so the
+  keypad rose into exactly the band holding the inputs and the action footer.
+  An inner ScrollView cannot rescue a footer that is its sibling, so Save,
+  Apply and Delete were unreachable. Adopted by `ComponentDetailSheet`,
+  `ComponentActionSheet`, `EditServiceSheet` and `ReplaceComponentSheet`, which
+  are the four sheets carrying text fields. The extraction is pixel-preserving:
+  the scrim value and the off-scale 20pt corner radius were carried over as-is
+  rather than moved onto `colors.scrim` and the radius scale, which is a design
+  decision and not part of a bug fix.
+- `fix(ui)`: a scrim tap while a field is focused now dismisses the keyboard
+  instead of closing the sheet. It used to close and discard whatever had been
+  typed, which mattered because it was also the only dismissal gesture
+  available to a numeric field.
+- `fix(ui)`: added `src/components/common/KeyboardDoneAccessory.tsx`, an iOS
+  `InputAccessoryView` carrying a Done button. iOS renders `number-pad` and
+  `decimal-pad` as a bare 10-key with no return key, so the
+  `returnKeyType="done"` on the service-interval field was silently inert.
+  Wired into every field on the sheets above plus the ride add/edit,
+  save-recording, add-bike, onboarding bike and age, service-reminder and
+  component-rides screens. Renders nothing on Android, where the system back
+  gesture already dismisses.
+- `fix(ui)`: the full-screen forms had no keyboard handling at all. Ride
+  add/edit, save-recording and service reminders now set
+  `automaticallyAdjustKeyboardInsets` (iOS pads the scroll insets and scrolls
+  the focused field into view; Android's `adjustResize` already covers it),
+  plus `keyboardShouldPersistTaps="handled"` and an interactive dismiss.
+  Add-bike and the onboarding steps already had a `KeyboardAvoidingView` and
+  only needed the persist-taps and the Done bar.
+
 ## 1.2.0 - 2026-08-19
 
 ### App Store "What's New"
