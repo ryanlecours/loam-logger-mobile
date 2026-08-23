@@ -40,7 +40,12 @@ describe('AltitudeFuser', () => {
   it('falls back to GPS, with the wide band, when there is no barometer', () => {
     const fuser = new AltitudeFuser();
     const result = fuser.push(100, 5, 1000, null);
-    expect(result).toEqual({ value: 100, hysteresisM: GPS_HYSTERESIS_M, source: 'gps' });
+    expect(result).toEqual({
+      value: 100,
+      hysteresisM: GPS_HYSTERESIS_M,
+      source: 'gps',
+      series: 'gps',
+    });
   });
 
   it('returns null when neither sensor has anything usable', () => {
@@ -70,11 +75,51 @@ describe('AltitudeFuser', () => {
   it('follows the barometer, not the GPS noise, once referenced', () => {
     const fuser = new AltitudeFuser();
     fuser.push(840, 5, 1000, baro(0, 1000));
-    // GPS jumps 20 m; the barometer says the rider climbed 3. The slow offset
-    // is the whole point: one noisy fix must not move the output 20 m.
-    const result = fuser.push(860, 5, 2000, baro(3, 2000));
+    // One GPS fix jumps 20 m; the barometer says the rider climbed 3 and
+    // stopped. The slow offset is the whole point: that fix must not move the
+    // output 20 m, then or ever. Run it out past the smoother's time constant
+    // so the answer is where the series settles, not where it is one sample
+    // after a step.
+    fuser.push(860, 5, 2000, baro(3, 2000));
+    let result;
+    for (let i = 3; i <= 60; i++) result = fuser.push(843, 5, i * 1000, baro(3, i * 1000));
     expect(result?.value).toBeGreaterThan(842.9);
     expect(result?.value).toBeLessThan(843.3);
+  });
+
+  // The smoother is the actual defence against a ratcheting deadband, so it
+  // has to be real filtering and not a token alpha: a one-sample spike must
+  // arrive at the output as a small fraction of itself.
+  it('rejects a single-sample barometric spike', () => {
+    const fuser = new AltitudeFuser();
+    fuser.push(840, 5, 1000, baro(0, 1000));
+    const level = fuser.push(840, 5, 2000, baro(0, 2000))?.value as number;
+    const spiked = fuser.push(840, 5, 3000, baro(6, 3000))?.value as number;
+    expect(spiked - level).toBeLessThan(1);
+  });
+
+  // A backgrounded app gets its location stream throttled, and a fixed alpha
+  // would silently turn into a minute-long time constant and flatten real
+  // climbs. The gap has to drive the weight.
+  it('holds the same time constant when fixes arrive slowly', () => {
+    const fast = new AltitudeFuser();
+    const slow = new AltitudeFuser();
+    fast.push(840, 5, 0, baro(0, 0));
+    slow.push(840, 5, 0, baro(0, 0));
+    // 30 s of a steady 10 m step, sampled at 1 Hz and at 0.2 Hz. GPS agrees
+    // with the step (850 = 10 m of relative altitude on an 840 m datum) so
+    // the offset stays put and the smoother is the only thing being measured.
+    let fastValue = 0;
+    let slowValue = 0;
+    for (let t = 1000; t <= 30000; t += 1000) {
+      fastValue = fast.push(850, 5, t, baro(10, t))?.value as number;
+    }
+    for (let t = 5000; t <= 30000; t += 5000) {
+      slowValue = slow.push(850, 5, t, baro(10, t))?.value as number;
+    }
+    expect(Math.abs(fastValue - slowValue)).toBeLessThan(0.1);
+    // And both are most of the way there, rather than both being stuck.
+    expect(fastValue).toBeGreaterThan(848);
   });
 
   it('hands back to GPS, and the wide band, when the barometer goes stale', () => {
@@ -197,7 +242,11 @@ describe('fusion end to end', () => {
         baro: baro(trueAltitude - 1200 + gauss() * 0.15 + (8 * i) / SAMPLES, i * 1000),
       };
     });
-    expect(gain).toBeGreaterThan(TRUE_GAIN_M * 0.95);
+    // Slightly wider on the low side than the deadband alone would need: the
+    // smoother lags ~10 s at each of the eight turning points here, which is
+    // a metre or two of real gain per lap. That is the price of the descent
+    // cases below, and it is one-sided in the safe direction.
+    expect(gain).toBeGreaterThan(TRUE_GAIN_M * 0.93);
     expect(gain).toBeLessThan(TRUE_GAIN_M * 1.05);
   });
 
@@ -215,5 +264,102 @@ describe('fusion end to end', () => {
     });
     expect(gain).toBeGreaterThan(TRUE_GAIN_M * 0.9);
     expect(gain).toBeLessThan(TRUE_GAIN_M * 1.1);
+  });
+
+  // Every case above is a lap that climbs as much as it descends, so a
+  // phantom booked on the way down hides inside a tolerance sized for a
+  // total that is mostly real climb. A ride reported 2,555 ft against a
+  // Garmin's 1,736 ft with all of these passing, and the entire 819 ft
+  // difference was on the descent. A descent is its own test because it is
+  // the only shape where the correct answer is zero and nothing can mask it.
+  describe('a descent books no climb', () => {
+    const DESCENT_SAMPLES = 1200; // 20 minutes at 1 Hz
+    const DROP_M = 530;
+
+    /**
+     * Apparent altitude from airflow over the phone, which is what a
+     * barometer on a descending rider actually reports on top of the terrain.
+     * Dynamic head is v^2/2g metres, and v is gusty, so this is metres of
+     * swing at the seconds timescale: a real signal, not sensor error, and
+     * nothing in an accuracy spec bounds it.
+     */
+    function aeroSeries(seed: number, count: number): number[] {
+      const gauss = makeNoise(seed);
+      let speed = 8;
+      return Array.from({ length: count }, () => {
+        speed = Math.max(1, 0.9 * speed + 0.1 * 8 + gauss() * 1.5);
+        return (speed * speed) / (2 * 9.81);
+      });
+    }
+
+    it('books nothing on a straight descent through airflow noise', () => {
+      const aero = aeroSeries(11, DESCENT_SAMPLES);
+      const truth = Array.from(
+        { length: DESCENT_SAMPLES },
+        (_, i) => DROP_M * (1 - i / DESCENT_SAMPLES),
+      );
+      const gauss = makeNoise(4242);
+      let error = 0;
+      const gain = gainOver(truth, (i, trueAltitude) => {
+        error = 0.97 * error + 1.0 * gauss();
+        return {
+          gps: trueAltitude + error,
+          baro: baro(trueAltitude - 1200 + aero[i], i * 1000),
+        };
+      });
+      // Raw barometer into the 1 m deadband booked ~270 m (~900 ft) here.
+      expect(gain).toBeLessThan(15);
+    });
+
+    it('still books the real rollers on the way home', () => {
+      const NET_M = 200;
+      const ROLLERS = 10;
+      const AMP_M = 15;
+      const truth: number[] = [];
+      let realGain = 0;
+      for (let i = 0; i < DESCENT_SAMPLES; i++) {
+        const value =
+          NET_M * (1 - i / DESCENT_SAMPLES) +
+          (AMP_M / 2) * (1 - Math.cos((2 * Math.PI * ROLLERS * i) / DESCENT_SAMPLES));
+        if (i > 0 && value > truth[i - 1]) realGain += value - truth[i - 1];
+        truth.push(value);
+      }
+
+      const aero = aeroSeries(11, DESCENT_SAMPLES);
+      const gauss = makeNoise(4242);
+      let error = 0;
+      const gain = gainOver(truth, (i, trueAltitude) => {
+        error = 0.97 * error + 1.0 * gauss();
+        return {
+          gps: trueAltitude + error,
+          baro: baro(trueAltitude - 1200 + aero[i], i * 1000),
+        };
+      });
+      // The deadband and the smoother's lag each cost a little real gain at
+      // every turning point; the noise must not put any of it back.
+      expect(gain).toBeGreaterThan(realGain * 0.5);
+      expect(gain).toBeLessThan(realGain * 1.1);
+    });
+
+    // The offset tracks GPS on a ~200 s constant, so a GPS excursion younger
+    // than that leaves the two series metres apart. Handing over at that
+    // moment is a change of datum, not a climb.
+    it('does not book the step when the barometer hands over to GPS', () => {
+      const COUNT = 400;
+      const DRIFT_STARTS = 340;
+      const BARO_DIES = 360;
+      const truth = Array.from({ length: COUNT }, (_, i) => 800 - i * 0.4);
+      const gain = gainOver(truth, (i, trueAltitude) => {
+        // GPS walks 15 m high over 20 s and stays there; the slow offset has
+        // no chance to absorb it before the barometer drops out, so the two
+        // series are ~11 m apart at the moment of handover.
+        const drift = i < DRIFT_STARTS ? 0 : Math.min(1, (i - DRIFT_STARTS) / 20) * 15;
+        return {
+          gps: trueAltitude + drift,
+          baro: i >= BARO_DIES ? null : baro(trueAltitude - 1200, i * 1000),
+        };
+      });
+      expect(gain).toBeLessThan(2);
+    });
   });
 });

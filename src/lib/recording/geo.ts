@@ -75,6 +75,16 @@ export interface AltitudeReading {
   /** Meters. Absolute datum, already smoothed and source-fused. */
   value: number;
   hysteresisM: number;
+  /**
+   * Opaque tag naming the series this value belongs to. Two readings tagged
+   * the same are on a common datum and their difference is a real climb; two
+   * tagged differently are not comparable at all, however close they look.
+   *
+   * The producer decides what counts as a series (see ./altitude, which tags
+   * by sensor). Undefined means "one continuous series", which is what a
+   * caller with a single altitude source wants.
+   */
+  series?: string;
 }
 
 /**
@@ -88,10 +98,18 @@ export interface Accumulator {
   lastFix: GeoSample | null;
   /** Level the next climb is measured from. See `accumulate`. */
   altitudeAnchor: number | null;
+  /** Which series `altitudeAnchor` was measured in. See `accumulate`. */
+  altitudeSeries: string | null;
 }
 
 export function emptyAccumulator(): Accumulator {
-  return { distanceM: 0, elevationGainM: 0, lastFix: null, altitudeAnchor: null };
+  return {
+    distanceM: 0,
+    elevationGainM: 0,
+    lastFix: null,
+    altitudeAnchor: null,
+    altitudeSeries: null,
+  };
 }
 
 /**
@@ -110,6 +128,14 @@ export function emptyAccumulator(): Accumulator {
  * asymmetry inflated a 1,532 ft ride to 4,002 ft. Widening the threshold
  * cannot fix it (the ratchet just needs a bigger wobble); only refusing to
  * move the anchor downward for free can.
+ *
+ * A change of `series` re-anchors without paying out. The anchor is a level
+ * in one sensor's datum, and the gap between two datums is not a climb: when
+ * the barometer drops out mid-descent the fused value hands over to GPS
+ * several metres away, and booking that handover step is the same ratchet
+ * wearing a different hat. Losing the real climb that straddles the seam is
+ * the price, and it is bounded by one deadband; booking the step is not
+ * bounded by anything and repeats on every flap.
  */
 export function accumulate(
   acc: Accumulator,
@@ -118,7 +144,7 @@ export function accumulate(
 ): Accumulator {
   if (!isUsableFix(sample)) return acc;
 
-  let { distanceM, elevationGainM, altitudeAnchor } = acc;
+  let { distanceM, elevationGainM, altitudeAnchor, altitudeSeries } = acc;
 
   if (acc.lastFix) {
     const segment = haversineMeters(
@@ -134,8 +160,10 @@ export function accumulate(
 
   if (altitude) {
     const { value, hysteresisM } = altitude;
-    if (altitudeAnchor === null) {
+    const series = altitude.series ?? null;
+    if (altitudeAnchor === null || series !== altitudeSeries) {
       altitudeAnchor = value;
+      altitudeSeries = series;
     } else if (value - altitudeAnchor >= hysteresisM) {
       elevationGainM += value - altitudeAnchor;
       altitudeAnchor = value;
@@ -144,5 +172,5 @@ export function accumulate(
     }
   }
 
-  return { distanceM, elevationGainM, lastFix: sample, altitudeAnchor };
+  return { distanceM, elevationGainM, lastFix: sample, altitudeAnchor, altitudeSeries };
 }

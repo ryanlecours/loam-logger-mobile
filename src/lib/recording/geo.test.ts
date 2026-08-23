@@ -99,6 +99,31 @@ describe('accumulate', () => {
     expect(acc.elevationGainM).toBe(0);
   });
 
+  // Two sensors on two datums. Whatever the gap between them happens to be at
+  // the moment of handover, it is not something the rider rode up.
+  it('re-anchors without paying out when the series changes', () => {
+    let acc = emptyAccumulator();
+    acc = accumulate(acc, sample({ t: 0 }), { ...at(100), series: 'baro' });
+    acc = accumulate(acc, sample({ t: 1 }), { ...at(111), series: 'gps' });
+    expect(acc.elevationGainM).toBe(0);
+    expect(acc.altitudeAnchor).toBe(111);
+    // And the new series starts measuring from its own level immediately.
+    acc = accumulate(acc, sample({ t: 2 }), { ...at(116), series: 'gps' });
+    expect(acc.elevationGainM).toBe(5);
+  });
+
+  // A barometer that flaps in and out is the case that made this matter: the
+  // step gets booked on every hand-back, and nothing bounds how often that is.
+  it('books nothing for a series that flaps back and forth', () => {
+    let acc = emptyAccumulator();
+    let t = 0;
+    for (let i = 0; i < 200; i++) {
+      acc = accumulate(acc, sample({ t: t++ }), { ...at(100), series: 'baro' });
+      acc = accumulate(acc, sample({ t: t++ }), { ...at(112), series: 'gps' });
+    }
+    expect(acc.elevationGainM).toBe(0);
+  });
+
   it('ignores altitude entirely when the caller has no fused reading', () => {
     let acc = emptyAccumulator();
     acc = accumulate(acc, sample({ t: 0 }), null);
