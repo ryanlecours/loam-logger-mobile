@@ -40,12 +40,22 @@ function buildTimeframeOptions(): { value: TimeframeOption; label: string }[] {
 const TIMEFRAME_OPTIONS = buildTimeframeOptions();
 
 /**
- * Riding insights: streaks, records, heart rate, locations and weather.
+ * Riding insights: totals, streaks, records, heart rate, bikes, locations and
+ * weather.
  *
- * These lived at the bottom of the dashboard, which made a gear-health screen
- * end in a weather breakdown. They are real features and riders like them, but
- * they answer "how have I been riding", not "what does my bike need", so they
- * get their own screen off the Rides tab instead of a home on the dashboard.
+ * Most of these lived at the bottom of the dashboard, which made a gear-health
+ * screen end in a weather breakdown. They are real features and riders like
+ * them, but they answer "how have I been riding", not "what does my bike
+ * need", so they get their own screen off the Rides tab instead of a home on
+ * the dashboard.
+ *
+ * Totals and hours-per-bike appear here AND on the dashboard, deliberately.
+ * The dashboard shows them because they are what turns into component wear;
+ * this screen shows them because they are what its timeframe control is for,
+ * and a rider asking what 2024 came to has nowhere else to ask. The duplicated
+ * numbers are not the hazard the dashboard card's comment warns about: that
+ * was two timeframe controls disagreeing on one scroll, and these are two
+ * screens each showing its own control right above its own answer.
  *
  * The sections render open rather than as an accordion. On a screen whose only
  * job is this, six collapsed headers is a decision the rider should not have to
@@ -136,6 +146,26 @@ export default function RideInsightsScreen() {
             <Text style={styles.muted}>No rides in this timeframe yet.</Text>
           ) : (
             <>
+              {/* The totals come first because they are the question the
+                  timeframe control above is asking. Without them this screen
+                  answered "how consistently, and where" while the only place
+                  showing how much was the dashboard, which is fixed to its own
+                  timeframe and cannot say what 2024 came to. */}
+              <Section icon="stats-chart-outline" title="Totals">
+                <View style={styles.metricGrid}>
+                  <Metric value={String(stats.totalRides)} label="Rides" />
+                  <Metric
+                    value={formatDuration(Math.round(stats.totalHours * 3600))}
+                    label="Time"
+                  />
+                  <Metric value={formatDistance(stats.totalDistance)} label="Distance" />
+                  <Metric
+                    value={formatElevation(stats.totalElevation, distanceUnit)}
+                    label="Climbing"
+                  />
+                </View>
+              </Section>
+
               <Section icon="trending-up-outline" title="Trends and streaks">
                 <Row label="Week over week (distance)">
                   <Text style={[styles.rowValue, { color: distanceTrend.color }]}>
@@ -197,6 +227,27 @@ export default function RideInsightsScreen() {
                     From {stats.ridesWithHr} ride{stats.ridesWithHr === 1 ? '' : 's'} with heart-rate
                     data.
                   </Text>
+                </Section>
+              )}
+
+              {/* Its own section rather than a tail on Totals: it is a
+                  breakdown, and it belongs next to the other one. One bike at
+                  100% is not a breakdown, so it waits for a second. */}
+              {stats.bikeTime.length > 1 && (
+                <Section icon="bicycle-outline" title="Time by bike">
+                  {stats.bikeTime.map((bike) => (
+                    <View key={bike.name} style={styles.bikeRow}>
+                      <View style={styles.bikeInfo}>
+                        <Text style={styles.bikeName} numberOfLines={1}>
+                          {bike.name}
+                        </Text>
+                        <View style={styles.bikeTrack}>
+                          <View style={[styles.bikeBar, { width: `${bike.percentage}%` }]} />
+                        </View>
+                      </View>
+                      <Text style={styles.rowValue}>{bike.hours}h</Text>
+                    </View>
+                  ))}
                 </Section>
               )}
 
@@ -276,6 +327,31 @@ function Section({
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       {children}
+    </View>
+  );
+}
+
+/**
+ * One headline number. Same treatment as the dashboard's totals grid, for the
+ * same reason: these are the values a rider reads at a glance, and the two
+ * screens showing the same four numbers should not disagree about their size.
+ */
+function Metric({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={styles.metric}>
+      {/* The value gets one line and is allowed to shrink into it; the label
+          may wrap instead of forcing the grid to reflow around "Distance". */}
+      <Text
+        style={styles.metricValue}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
+        {value}
+      </Text>
+      <Text style={styles.metricLabel} numberOfLines={2}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -377,6 +453,32 @@ const styles = StyleSheet.create({
     ...type.footnoteStrong,
     color: colors.textPrimary,
   },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    // Rows breathe more than columns so four numbers read as two pairs rather
+    // than an even mesh.
+    rowGap: space.xl,
+    columnGap: space.lg,
+  },
+  metric: {
+    // Two across, not four. "140,010 ft" needs ~114pt at title size and
+    // "126h 6m" is not much shorter, so a quarter-width column would leave no
+    // gutter and run the two values together. Falls to one column when
+    // Dynamic Type leaves no room for two.
+    minWidth: 120,
+    flexGrow: 1,
+    flexBasis: '47%',
+  },
+  metricValue: {
+    ...type.title,
+    color: colors.textPrimary,
+  },
+  metricLabel: {
+    ...type.labelSmall,
+    color: colors.textSecondary,
+    marginTop: space.hair,
+  },
   streakRow: {
     flexDirection: 'row',
     gap: space.xl,
@@ -397,6 +499,31 @@ const styles = StyleSheet.create({
     ...type.labelSmall,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  bikeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.lg,
+  },
+  bikeInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: space.sm,
+  },
+  bikeName: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  bikeTrack: {
+    height: space.sm,
+    backgroundColor: colors.cardBorder,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  bikeBar: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: radius.full,
   },
   locationRow: {
     flexDirection: 'row',
