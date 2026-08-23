@@ -21,6 +21,7 @@ import { CalibrationSheet } from '../../src/components/calibration/CalibrationSh
 import type { IntegrationProvider } from '../../src/api/integrations';
 import { colors, radius } from '../../src/constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
+import { describeSaveError } from '../../src/utils/errorCopy';
 
 function IntegrationRow({
   provider,
@@ -113,6 +114,21 @@ export default function SettingsScreen() {
 
   const predictionMode = meData?.me?.predictionMode ?? 'simple';
 
+  /**
+   * Shared failure path for the preference writes on this screen. See
+   * describeSaveError: a rate limit, a dropped connection and a server refusal
+   * need different words, and only the dropped connection leaves the stored
+   * value in doubt, so only that case refetches.
+   */
+  const reportSaveFailure = useCallback(
+    async (error: unknown, subject: string) => {
+      const { title, body, resync } = describeSaveError(error, subject);
+      Alert.alert(title, body);
+      if (resync) await refetchMe().catch(() => {});
+    },
+    [refetchMe]
+  );
+
   const handlePredictionModeChange = useCallback(async (mode: string) => {
     if (mode === 'predictive' && !isPro) {
       Alert.alert(
@@ -128,22 +144,24 @@ export default function SettingsScreen() {
     }
     try {
       await updatePreferences({ variables: { input: { predictionMode: mode } } });
-      await refetchMe();
-    } catch {
-      Alert.alert('Error', 'Failed to update prediction mode.');
+      // The write is what the rider asked for; a refetch that fails after it
+      // committed must not be reported as a failed save.
+      await refetchMe().catch(() => {});
+    } catch (error) {
+      await reportSaveFailure(error, 'prediction mode');
     }
-  }, [isPro, updatePreferences, refetchMe, router]);
+  }, [isPro, updatePreferences, refetchMe, router, reportSaveFailure]);
 
   const aiFeaturesEnabled = meData?.me?.aiFeaturesEnabled ?? false;
 
   const handleAiFeaturesToggle = useCallback(async (enabled: boolean) => {
     try {
       await updatePreferences({ variables: { input: { aiFeaturesEnabled: enabled } } });
-      await refetchMe();
-    } catch {
-      Alert.alert('Error', 'Failed to update AI preference.');
+      await refetchMe().catch(() => {});
+    } catch (error) {
+      await reportSaveFailure(error, 'AI preference');
     }
-  }, [updatePreferences, refetchMe]);
+  }, [updatePreferences, refetchMe, reportSaveFailure]);
 
   const [importProvider, setImportProvider] = useState<IntegrationProvider | null>(null);
   const [dataSourceLoading, setDataSourceLoading] = useState(false);

@@ -1,8 +1,10 @@
 import { View, Text, Switch, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useUserTier } from '../../hooks/useUserTier';
+import { describeSaveError } from '../../utils/errorCopy';
 import { ProChip } from '../common/UpgradePrompt';
 import { openNotificationSettings } from '../../lib/notifications';
 import { RideSyncNotificationMode } from '../../graphql/generated';
@@ -29,6 +31,7 @@ const MODE_DESCRIPTIONS: Record<RideSyncNotificationMode, string> = {
 export function NotificationPreferences() {
   const router = useRouter();
   const { isFree } = useUserTier();
+  const { refetchUser } = useAuth();
   const {
     permissionStatus,
     rideSyncNotificationMode,
@@ -52,19 +55,37 @@ export function NotificationPreferences() {
     }
   };
 
+  /**
+   * One failure path for both controls.
+   *
+   * The old handlers caught everything and said "Failed to update notification
+   * preferences", which was wrong in the case that actually shipped: the write
+   * committed, the response was lost on the way back, and the rider was told
+   * their change failed while the server held the new value. `resync` covers
+   * that by pulling the row back down, so whatever the server really stored is
+   * what the switch shows a moment later.
+   */
+  const reportSaveFailure = async (error: unknown) => {
+    const { title, body, resync } = describeSaveError(error, 'notification preferences');
+    Alert.alert(title, body);
+    // refetchUser swallows its own errors, so a still-dead connection here
+    // just leaves the control where it was: no second alert, no throw.
+    if (resync) await refetchUser();
+  };
+
   const handleModeChange = async (mode: RideSyncNotificationMode) => {
     try {
       await setRideSyncNotificationMode(mode);
-    } catch {
-      Alert.alert('Error', 'Failed to update notification preferences.');
+    } catch (error) {
+      await reportSaveFailure(error);
     }
   };
 
   const handleDigestToggle = async (enabled: boolean) => {
     try {
       await setWeeklyDigestEnabled(enabled);
-    } catch {
-      Alert.alert('Error', 'Failed to update notification preferences.');
+    } catch (error) {
+      await reportSaveFailure(error);
     }
   };
 
