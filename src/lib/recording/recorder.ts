@@ -703,6 +703,10 @@ function readingFromRow(row: PointRow): AltitudeReading | null {
   return {
     value: row.fused_altitude,
     hysteresisM: hysteresisForSource(row.alt_source as AltitudeSource),
+    // The stored source is the series tag the live fuser handed to
+    // `accumulate`, so a replay re-anchors at exactly the same seams the live
+    // run did and lands on the same total.
+    series: row.alt_source,
   };
 }
 

@@ -477,10 +477,13 @@ describe('rideRecorder', () => {
       await rideRecorder.start(makeController(), barometer);
       expect(sensor.push).not.toBeNull();
 
-      // GPS altitude pinned flat and noisy; the barometer climbs 20 m. The
-      // deadband on a barometric reading is 1 m, so the climb is visible.
-      for (let i = 0; i < 20; i++) {
-        sensor.push?.({ relativeAltitudeM: i, at: Date.now(), epoch: 1 });
+      // GPS altitude pinned flat and noisy; the barometer climbs 20 m and
+      // then holds at the top. The deadband on a barometric reading is 1 m,
+      // so the climb is visible. The flat tail is not padding: the smoother
+      // in front of that deadband has a ~10 s time constant, so a climb this
+      // steep (1 m/s) only arrives in full once the rider stops climbing.
+      for (let i = 0; i < 50; i++) {
+        sensor.push?.({ relativeAltitudeM: Math.min(i, 19), at: Date.now(), epoch: 1 });
         emit({
           longitude: -122.3321 + i * 0.0001,
           altitude: 100 + (i % 2 === 0 ? 2 : -2),
