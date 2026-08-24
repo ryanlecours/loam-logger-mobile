@@ -129,4 +129,71 @@ describe('useBulkBikeAssignment run', () => {
     expect(await run(2600)).toEqual({ kind: 'nothing' });
     expect(mockAssign).not.toHaveBeenCalled();
   });
+
+  const RACE = new Error('Some of those rides already have a bike');
+
+  it('retries once against a fresh id list when the first write loses the webhook race', async () => {
+    // A sync webhook gave one of the previewed rides a bike between the id
+    // read and the first write, so the server refused the whole batch. Nothing
+    // committed, so re-reading the ids and going again is safe.
+    mockFetchIds
+      .mockResolvedValueOnce(idsFor(500))
+      .mockResolvedValueOnce(idsFor(400));
+    mockAssign
+      .mockRejectedValueOnce(RACE)
+      .mockResolvedValueOnce({
+        data: { assignBikeToRides: { success: true, updatedCount: 400 } },
+      });
+    mockFetchSummary.mockResolvedValue({ data: { unassignedRideSummary: { totalCount: 0 } } });
+
+    expect(await run(500)).toEqual({ kind: 'assigned', assigned: 400, remaining: 0 });
+    // The retry read fresh ids rather than reusing the batch the server just
+    // rejected, which is the whole point of retrying.
+    expect(mockFetchIds).toHaveBeenCalledTimes(2);
+    expect(mockAssign).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after the second attempt rather than retrying the race forever', async () => {
+    mockFetchIds.mockResolvedValue(idsFor(500));
+    mockAssign.mockRejectedValue(RACE);
+
+    expect(await run(500)).toEqual({ kind: 'failed' });
+    expect(mockFetchIds).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports partial with what landed when a later chunk fails', async () => {
+    // Two chunks commit, the third does not. Each chunk is its own
+    // transaction, so 1000 rides really do have a bike now.
+    mockFetchIds.mockResolvedValue(idsFor(1500));
+    mockAssign
+      .mockResolvedValueOnce({ data: { assignBikeToRides: { success: true, updatedCount: 500 } } })
+      .mockResolvedValueOnce({ data: { assignBikeToRides: { success: true, updatedCount: 500 } } })
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    expect(await run(1500)).toEqual({ kind: 'partial', assigned: 1000 });
+    // No second pass: re-reading the ids here would double-count the 1000 the
+    // rider has already been shown as done.
+    expect(mockFetchIds).toHaveBeenCalledTimes(1);
+    expect(mockRefetchQueries).toHaveBeenCalled();
+  });
+
+  it('does not retry a race error once chunks have already committed', async () => {
+    // Same race, but after real work landed. Retrying would re-read ids that
+    // no longer include the committed rides and restart the count.
+    mockFetchIds.mockResolvedValue(idsFor(1000));
+    mockAssign
+      .mockResolvedValueOnce({ data: { assignBikeToRides: { success: true, updatedCount: 500 } } })
+      .mockRejectedValueOnce(RACE);
+
+    expect(await run(1000)).toEqual({ kind: 'partial', assigned: 500 });
+    expect(mockFetchIds).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails cleanly when the very first chunk fails for a reason retrying cannot fix', async () => {
+    mockFetchIds.mockResolvedValue(idsFor(500));
+    mockAssign.mockRejectedValue(new Error('Network error'));
+
+    expect(await run(500)).toEqual({ kind: 'failed' });
+    expect(mockFetchIds).toHaveBeenCalledTimes(1);
+  });
 });

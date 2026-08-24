@@ -156,6 +156,10 @@ export default function AssignRidesScreen() {
 
   const matchCount = summary?.totalCount ?? 0;
   const matchHours = Math.round((summary?.totalDurationSeconds ?? 0) / SECONDS_PER_HOUR);
+  // What a single pass actually covers. The rider agrees to this number, not
+  // to the whole match, whenever the two differ.
+  const isCapped = matchCount > MAX_RIDES_PER_PASS;
+  const passCount = Math.min(matchCount, MAX_RIDES_PER_PASS);
 
   // byProvider always describes the date-scoped set, whichever provider is
   // selected, so its sum is the "All" count and picking one never strands the
@@ -185,9 +189,19 @@ export default function AssignRidesScreen() {
     // Bulk assignment is not one-tap reversible, and the hours it credits can
     // push components past their service thresholds in a single move. Name
     // both numbers before it happens.
+    //
+    // When the match exceeds one pass, the rider is agreeing to the capped
+    // number, not the full match. The hours stay described as the whole
+    // match's rather than scaled down to the capped share: the ids come back
+    // newest first, so this pass takes the most recent rides, and their hours
+    // are not the average the arithmetic would imply.
     Alert.alert(
-      `Assign ${matchCount} ride${matchCount === 1 ? '' : 's'} to ${name}?`,
-      `This adds about ${matchHours} h to its components and updates their service predictions.`,
+      isCapped
+        ? `Assign ${passCount} of ${matchCount} rides to ${name}?`
+        : `Assign ${matchCount} ride${matchCount === 1 ? '' : 's'} to ${name}?`,
+      isCapped
+        ? `This pass takes the ${passCount} most recent and credits their hours to its components, updating service predictions. All ${matchCount} carry about ${matchHours} h in total. Run it again for the rest.`
+        : `This adds about ${matchHours} h to its components and updates their service predictions.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -232,7 +246,7 @@ export default function AssignRidesScreen() {
         },
       ]
     );
-  }, [selectedBikeId, selectedBike, matchCount, matchHours, filter, run]);
+  }, [selectedBikeId, selectedBike, matchCount, matchHours, isCapped, passCount, filter, run]);
 
   const dateSpan =
     summary?.earliestStartTime && summary?.latestStartTime
@@ -245,6 +259,8 @@ export default function AssignRidesScreen() {
       : 'Assigning...'
     : matchCount === 0
       ? 'Nothing to assign'
+      : isCapped
+      ? `Assign ${passCount} of ${matchCount}`
       : `Assign ${matchCount} ride${matchCount === 1 ? '' : 's'}`;
 
   const ctaDisabled = submitting || !selectedBikeId || matchCount === 0 || invalidCustomRange;
