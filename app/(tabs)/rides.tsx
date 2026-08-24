@@ -220,6 +220,33 @@ export default function RidesScreen() {
           </TouchableOpacity>
         </View>
       )}
+      {/* Fixing these one row at a time is the wrong shape of work when a
+          Garmin backfill lands hundreds at once. Its own row rather than a
+          third control crammed into the bar above: one line, one decision.
+          The bulk screen selects server-side, so it reaches rides this
+          paginated list has not loaded. */}
+      {unassignedOnly && rides.length > 0 && (
+        <TouchableOpacity
+          style={styles.bulkAssignRow}
+          onPress={() => router.push('/assign-rides' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="Assign a bike to several rides at once"
+        >
+          <Ionicons
+            name="albums-outline"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+          />
+          <Text style={styles.bulkAssignText}>Assign several at once</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={colors.primary}
+            accessibilityElementsHidden
+          />
+        </TouchableOpacity>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -343,6 +370,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   unassignedClearText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  // Same shape as insightsRow below: a link to another screen, not a filter.
+  bulkAssignRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
+  },
+  bulkAssignText: {
+    flex: 1,
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,

@@ -1,0 +1,35 @@
+# Bulk bike assignment. The rider picks a bike, a provider and a date window;
+# the server decides which rides that selects. Nothing here filters a page the
+# client happens to have loaded: the rides list is paginated 20 at a time, and
+# "assign every unassigned Garmin ride" has to mean all of them.
+
+# Preview numbers, refetched on every filter change. byProvider always covers
+# the date-scoped set (not the selected provider), so it can drive the picker.
+query UnassignedRideSummary($filter: UnassignedRideFilterInput) {
+  unassignedRideSummary(filter: $filter) {
+    totalCount
+    totalDurationSeconds
+    earliestStartTime
+    latestStartTime
+    byProvider {
+      provider
+      count
+    }
+  }
+}
+
+# The ids the mutation will act on, read at submit time rather than carried
+# over from the preview: a webhook can give one of these rides a bike in
+# between, and assignBikeToRides rejects the whole batch if it finds one.
+query UnassignedRideIds($filter: RidesFilterInput, $take: Int) {
+  rides(filter: $filter, take: $take) {
+    id
+  }
+}
+
+mutation AssignBikeToRides($rideIds: [ID!]!, $bikeId: ID!) {
+  assignBikeToRides(rideIds: $rideIds, bikeId: $bikeId) {
+    success
+    updatedCount
+  }
+}

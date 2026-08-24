@@ -974,6 +974,12 @@ export enum PredictionStatus {
   Overdue = 'OVERDUE'
 }
 
+export type ProviderRideCount = {
+  __typename?: 'ProviderRideCount';
+  count: Scalars['Int']['output'];
+  provider: RideProvider;
+};
+
 export type Query = {
   __typename?: 'Query';
   bike?: Maybe<Bike>;
@@ -995,6 +1001,7 @@ export type Query = {
   sharedBikeHistory?: Maybe<SharedBikeHistory>;
   stravaGearMappings: Array<StravaGearMapping>;
   unassignedRideCount: Scalars['Int']['output'];
+  unassignedRideSummary: UnassignedRideSummary;
   unassignedRides: UnassignedRidesPage;
   unmappedStravaGears: Array<StravaGearInfo>;
 };
@@ -1055,6 +1062,11 @@ export type QueryRidesArgs = {
 
 export type QuerySharedBikeHistoryArgs = {
   slug: Scalars['String']['input'];
+};
+
+
+export type QueryUnassignedRideSummaryArgs = {
+  filter?: InputMaybe<UnassignedRideFilterInput>;
 };
 
 
@@ -1136,6 +1148,25 @@ export type Ride = {
   whoopWorkoutId?: Maybe<Scalars['String']['output']>;
 };
 
+/**
+ * The one provider a ride is filed under, by the same priority the clients use
+ * when a UI can only name a single source: Strava > Garmin > WHOOP > Suunto >
+ * Manual.
+ *
+ * Exclusive on purpose, unlike attribution. A Garmin-recorded ride imported via
+ * Strava is attributed to both (the Garmin API Brand Guidelines require it
+ * wherever the data appears), but as a *filter* that overlap would make
+ * per-provider counts sum past the total and offer the same ride up in two
+ * different buckets. These five buckets partition the rider's rides.
+ */
+export enum RideProvider {
+  Garmin = 'GARMIN',
+  Manual = 'MANUAL',
+  Strava = 'STRAVA',
+  Suunto = 'SUUNTO',
+  Whoop = 'WHOOP'
+}
+
 export enum RideSyncNotificationMode {
   ActionNeeded = 'ACTION_NEEDED',
   All = 'ALL',
@@ -1204,6 +1235,7 @@ export type RideWeather = {
 export type RidesFilterInput = {
   bikeId?: InputMaybe<Scalars['ID']['input']>;
   endDate?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<RideProvider>;
   startDate?: InputMaybe<Scalars['String']['input']>;
   unassigned?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -1433,6 +1465,36 @@ export type UnassignedRide = {
   location?: Maybe<Scalars['String']['output']>;
   rideType: Scalars['String']['output'];
   startTime: Scalars['String']['output'];
+};
+
+export type UnassignedRideFilterInput = {
+  endDate?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<RideProvider>;
+  startDate?: InputMaybe<Scalars['String']['input']>;
+};
+
+/**
+ * Aggregates over the rides still waiting on a bike, so a client can preview a
+ * bulk assignment without downloading the rides themselves.
+ *
+ * totalCount, totalDurationSeconds and the two bounds describe the set the
+ * whole filter selects. byProvider deliberately ignores the filter's provider
+ * field and breaks down the date-scoped set instead: it exists to populate the
+ * provider picker, and a breakdown of a set already narrowed to one provider
+ * would only ever hold one bucket.
+ *
+ * totalDurationSeconds is the point of the preview as much as the count is.
+ * Assigning a bike credits exactly those hours to its components, which is what
+ * moves service predictions, so the rider should see the number before it lands
+ * rather than after.
+ */
+export type UnassignedRideSummary = {
+  __typename?: 'UnassignedRideSummary';
+  byProvider: Array<ProviderRideCount>;
+  earliestStartTime?: Maybe<Scalars['String']['output']>;
+  latestStartTime?: Maybe<Scalars['String']['output']>;
+  totalCount: Scalars['Int']['output'];
+  totalDurationSeconds: Scalars['Int']['output'];
 };
 
 export type UnassignedRidesPage = {
@@ -1680,6 +1742,29 @@ export type AddRideMutationVariables = Exact<{
 
 
 export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+
+export type UnassignedRideSummaryQueryVariables = Exact<{
+  filter?: InputMaybe<UnassignedRideFilterInput>;
+}>;
+
+
+export type UnassignedRideSummaryQuery = { __typename?: 'Query', unassignedRideSummary: { __typename?: 'UnassignedRideSummary', totalCount: number, totalDurationSeconds: number, earliestStartTime?: string | null, latestStartTime?: string | null, byProvider: Array<{ __typename?: 'ProviderRideCount', provider: RideProvider, count: number }> } };
+
+export type UnassignedRideIdsQueryVariables = Exact<{
+  filter?: InputMaybe<RidesFilterInput>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type UnassignedRideIdsQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string }> };
+
+export type AssignBikeToRidesMutationVariables = Exact<{
+  rideIds: Array<Scalars['ID']['input']> | Scalars['ID']['input'];
+  bikeId: Scalars['ID']['input'];
+}>;
+
+
+export type AssignBikeToRidesMutation = { __typename?: 'Mutation', assignBikeToRides: { __typename?: 'BulkAssignResult', success: boolean, updatedCount: number } };
 
 export type BackfillGarminWeatherMutationVariables = Exact<{ [key: string]: never; }>;
 
@@ -2275,6 +2360,135 @@ export function useAddRideMutation(baseOptions?: Apollo.MutationHookOptions<AddR
 export type AddRideMutationHookResult = ReturnType<typeof useAddRideMutation>;
 export type AddRideMutationResult = Apollo.MutationResult<AddRideMutation>;
 export type AddRideMutationOptions = Apollo.BaseMutationOptions<AddRideMutation, AddRideMutationVariables>;
+export const UnassignedRideSummaryDocument = gql`
+    query UnassignedRideSummary($filter: UnassignedRideFilterInput) {
+  unassignedRideSummary(filter: $filter) {
+    totalCount
+    totalDurationSeconds
+    earliestStartTime
+    latestStartTime
+    byProvider {
+      provider
+      count
+    }
+  }
+}
+    `;
+
+/**
+ * __useUnassignedRideSummaryQuery__
+ *
+ * To run a query within a React component, call `useUnassignedRideSummaryQuery` and pass it any options that fit your needs.
+ * When your component renders, `useUnassignedRideSummaryQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useUnassignedRideSummaryQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *   },
+ * });
+ */
+export function useUnassignedRideSummaryQuery(baseOptions?: Apollo.QueryHookOptions<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>(UnassignedRideSummaryDocument, options);
+      }
+export function useUnassignedRideSummaryLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>(UnassignedRideSummaryDocument, options);
+        }
+// @ts-ignore
+export function useUnassignedRideSummarySuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>): Apollo.UseSuspenseQueryResult<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>;
+export function useUnassignedRideSummarySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>): Apollo.UseSuspenseQueryResult<UnassignedRideSummaryQuery | undefined, UnassignedRideSummaryQueryVariables>;
+export function useUnassignedRideSummarySuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>(UnassignedRideSummaryDocument, options);
+        }
+export type UnassignedRideSummaryQueryHookResult = ReturnType<typeof useUnassignedRideSummaryQuery>;
+export type UnassignedRideSummaryLazyQueryHookResult = ReturnType<typeof useUnassignedRideSummaryLazyQuery>;
+export type UnassignedRideSummarySuspenseQueryHookResult = ReturnType<typeof useUnassignedRideSummarySuspenseQuery>;
+export type UnassignedRideSummaryQueryResult = Apollo.QueryResult<UnassignedRideSummaryQuery, UnassignedRideSummaryQueryVariables>;
+export const UnassignedRideIdsDocument = gql`
+    query UnassignedRideIds($filter: RidesFilterInput, $take: Int) {
+  rides(filter: $filter, take: $take) {
+    id
+  }
+}
+    `;
+
+/**
+ * __useUnassignedRideIdsQuery__
+ *
+ * To run a query within a React component, call `useUnassignedRideIdsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useUnassignedRideIdsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useUnassignedRideIdsQuery({
+ *   variables: {
+ *      filter: // value for 'filter'
+ *      take: // value for 'take'
+ *   },
+ * });
+ */
+export function useUnassignedRideIdsQuery(baseOptions?: Apollo.QueryHookOptions<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>(UnassignedRideIdsDocument, options);
+      }
+export function useUnassignedRideIdsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>(UnassignedRideIdsDocument, options);
+        }
+// @ts-ignore
+export function useUnassignedRideIdsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>): Apollo.UseSuspenseQueryResult<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>;
+export function useUnassignedRideIdsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>): Apollo.UseSuspenseQueryResult<UnassignedRideIdsQuery | undefined, UnassignedRideIdsQueryVariables>;
+export function useUnassignedRideIdsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>(UnassignedRideIdsDocument, options);
+        }
+export type UnassignedRideIdsQueryHookResult = ReturnType<typeof useUnassignedRideIdsQuery>;
+export type UnassignedRideIdsLazyQueryHookResult = ReturnType<typeof useUnassignedRideIdsLazyQuery>;
+export type UnassignedRideIdsSuspenseQueryHookResult = ReturnType<typeof useUnassignedRideIdsSuspenseQuery>;
+export type UnassignedRideIdsQueryResult = Apollo.QueryResult<UnassignedRideIdsQuery, UnassignedRideIdsQueryVariables>;
+export const AssignBikeToRidesDocument = gql`
+    mutation AssignBikeToRides($rideIds: [ID!]!, $bikeId: ID!) {
+  assignBikeToRides(rideIds: $rideIds, bikeId: $bikeId) {
+    success
+    updatedCount
+  }
+}
+    `;
+export type AssignBikeToRidesMutationFn = Apollo.MutationFunction<AssignBikeToRidesMutation, AssignBikeToRidesMutationVariables>;
+
+/**
+ * __useAssignBikeToRidesMutation__
+ *
+ * To run a mutation, you first call `useAssignBikeToRidesMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAssignBikeToRidesMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [assignBikeToRidesMutation, { data, loading, error }] = useAssignBikeToRidesMutation({
+ *   variables: {
+ *      rideIds: // value for 'rideIds'
+ *      bikeId: // value for 'bikeId'
+ *   },
+ * });
+ */
+export function useAssignBikeToRidesMutation(baseOptions?: Apollo.MutationHookOptions<AssignBikeToRidesMutation, AssignBikeToRidesMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AssignBikeToRidesMutation, AssignBikeToRidesMutationVariables>(AssignBikeToRidesDocument, options);
+      }
+export type AssignBikeToRidesMutationHookResult = ReturnType<typeof useAssignBikeToRidesMutation>;
+export type AssignBikeToRidesMutationResult = Apollo.MutationResult<AssignBikeToRidesMutation>;
+export type AssignBikeToRidesMutationOptions = Apollo.BaseMutationOptions<AssignBikeToRidesMutation, AssignBikeToRidesMutationVariables>;
 export const BackfillGarminWeatherDocument = gql`
     mutation BackfillGarminWeather {
   backfillGarminWeather {
