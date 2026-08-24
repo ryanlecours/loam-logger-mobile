@@ -209,7 +209,10 @@ export default function AssignRidesScreen() {
                 );
                 break;
               case 'nothing':
-                setFailure('Those rides already have bikes. Nothing left to assign.');
+                // Does not name a cause: a ride leaves the unassigned set by
+                // gaining a bike OR by being flagged "not my bike", and from
+                // here the two are indistinguishable.
+                setFailure('Those rides are no longer waiting on a bike. Nothing left to assign.');
                 break;
               case 'partial':
                 // Each chunk is its own transaction, so this work really did

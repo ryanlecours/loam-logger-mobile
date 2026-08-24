@@ -3,6 +3,7 @@ import { useApolloClient } from '@apollo/client';
 import {
   useAssignBikeToRidesMutation,
   useUnassignedRideIdsLazyQuery,
+  useUnassignedRideSummaryLazyQuery,
   type RideProvider,
 } from '../graphql/generated';
 
@@ -16,14 +17,14 @@ export const ASSIGN_CHUNK_SIZE = 500;
 /** Never ask for more ids than one pass of the mutation can accept. */
 export const MAX_RIDES_PER_PASS = 2000;
 
-/** Queries whose answers change the moment rides gain a bike. */
-const AFFECTED_QUERIES = [
-  'RidesPage',
-  'UnassignedRideCount',
-  'UnassignedRideSummary',
-  'Gear',
-  'GearLight',
-];
+/**
+ * Queries whose answers change the moment rides gain a bike.
+ *
+ * UnassignedRideSummary is absent on purpose: the run refetches it directly
+ * because it needs the new total as a value, not just a fresh screen, and that
+ * fetch writes the same cache entry this list would have refreshed.
+ */
+const AFFECTED_QUERIES = ['RidesPage', 'UnassignedRideCount', 'Gear', 'GearLight'];
 
 export function chunkRideIds(rideIds: string[], size = ASSIGN_CHUNK_SIZE): string[][] {
   const chunks: string[][] = [];
@@ -73,6 +74,7 @@ export function useBulkBikeAssignment() {
     fetchPolicy: 'network-only',
   });
   const [assignBikeToRides] = useAssignBikeToRidesMutation();
+  const [fetchSummary] = useUnassignedRideSummaryLazyQuery({ fetchPolicy: 'network-only' });
 
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -89,6 +91,27 @@ export function useBulkBikeAssignment() {
     }
   }, [client]);
 
+  /**
+   * What still matches the filter now that the writes have landed.
+   *
+   * Read from the server rather than subtracted from the previewed count:
+   * rides leave the unassigned set for reasons this run had nothing to do with
+   * (assigned on the web, flagged "not my bike"), so arithmetic against a
+   * count taken before submit would quote a stale number back to the rider.
+   */
+  const remainingAfterRun = useCallback(
+    async (filter: AssignmentFilter, fallback: number): Promise<number> => {
+      try {
+        const { data } = await fetchSummary({ variables: { filter } });
+        return data?.unassignedRideSummary?.totalCount ?? fallback;
+      } catch {
+        // A failed count is a stale number, not a failed assignment.
+        return fallback;
+      }
+    },
+    [fetchSummary]
+  );
+
   const run = useCallback(
     async ({
       bikeId,
@@ -97,7 +120,7 @@ export function useBulkBikeAssignment() {
     }: {
       bikeId: string;
       filter: AssignmentFilter;
-      /** The previewed match count, used only to report what a second pass would take. */
+      /** The previewed match count. Only a fallback if the post-run count cannot be read. */
       expectedCount: number;
     }): Promise<AssignmentOutcome> => {
       setSubmitting(true);
@@ -146,8 +169,9 @@ export function useBulkBikeAssignment() {
 
           if (raced) continue;
 
+          const remaining = await remainingAfterRun(filter, Math.max(0, expectedCount - assigned));
           await refreshAffected();
-          return { kind: 'assigned', assigned, remaining: Math.max(0, expectedCount - assigned) };
+          return { kind: 'assigned', assigned, remaining };
         }
 
         return { kind: 'failed' };
@@ -156,7 +180,7 @@ export function useBulkBikeAssignment() {
         setProgress(null);
       }
     },
-    [assignBikeToRides, fetchRideIds, refreshAffected]
+    [assignBikeToRides, fetchRideIds, refreshAffected, remainingAfterRun]
   );
 
   return { run, submitting, progress };
