@@ -64,7 +64,7 @@ export default function AgeScreen() {
   return (
     <Screen>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.content}>
@@ -106,9 +106,8 @@ export default function AgeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   content: {
     flex: 1,

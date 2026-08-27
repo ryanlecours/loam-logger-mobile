@@ -163,7 +163,7 @@ export default function LoginScreen() {
   return (
     <Screen>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
@@ -263,9 +263,8 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,

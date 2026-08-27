@@ -136,7 +136,11 @@ the style declares, so `<Screen style={{ paddingTop: 16 }}>` keeps its 16pt of
 design spacing and gains the device inset underneath. It also carries the
 `flex: 1` and the obsidian background every screen needs, so the old
 `container: { flex: 1, backgroundColor: colors.background }` style is redundant
-once a screen adopts it.
+once a screen adopts it. Delete it. A screen that puts a
+`KeyboardAvoidingView` directly inside still needs `flex: 1` on that child so
+it fills the Screen, but not the background: painting it twice is dead weight,
+and leaving it under the name `container` invites someone to add chrome back
+to a style that no longer owns any.
 
 Two rules that follow from that:
 
