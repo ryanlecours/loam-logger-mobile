@@ -7,7 +7,8 @@ export interface SpokesSearchResult {
   id: string;
   maker: string;
   model: string;
-  year: number;
+  /** Null when 99spokes sends a listing with no model year. Sorted last. */
+  year: number | null;
   family: string;
   category: string;
   subcategory: string | null;

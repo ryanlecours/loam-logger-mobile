@@ -120,6 +120,12 @@ export default function BikeScreen() {
         setBikeImages(images);
         setSelectedImageUrl(fullBike.thumbnailUrl || images[0]?.url || null);
         setStep('details');
+      } else if (result.year === null) {
+        // The detail fetch is what would have supplied a model year, and
+        // addBike requires one. Building the bike from a yearless search row
+        // would only push the failure to the end of the flow, after the rider
+        // has named it and picked a photo.
+        Alert.alert('Error', 'Failed to load bike details');
       } else {
         // Fallback to search result data
         const bike: SpokesBike = {
@@ -216,7 +222,10 @@ export default function BikeScreen() {
       <View style={styles.resultContent}>
         <Text style={styles.resultMake}>{item.maker}</Text>
         <Text style={styles.resultModel}>{item.model}</Text>
-        <Text style={styles.resultYear}>{item.year} • {item.category}</Text>
+        <Text style={styles.resultYear}>
+          {item.year ? `${item.year} • ` : ''}
+          {item.category}
+        </Text>
       </View>
       <Text style={styles.resultArrow}>›</Text>
     </TouchableOpacity>

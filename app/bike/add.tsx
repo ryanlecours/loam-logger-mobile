@@ -419,7 +419,8 @@ export default function AddBikeScreen() {
                       {item.maker} {item.model}
                     </Text>
                     <Text style={styles.resultSubtitle}>
-                      {item.year} · {item.category}
+                      {item.year ? `${item.year} · ` : ''}
+                      {item.category}
                     </Text>
                   </View>
                   {loadingBike ? (
