@@ -19,6 +19,7 @@ import { colors, radius } from '../../src/constants/theme';
 import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
 import { Screen } from '../../src/components/common/Screen';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
+import { BikeThumbnail } from '../../src/components/gear/BikeThumbnail';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
 
@@ -85,7 +86,7 @@ export default function BikeScreen() {
     const timeout = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await searchBikes({ query: text });
+        const results = await searchBikes({ query: text, excludeFramesets: true });
         setSearchResults(results);
       } catch (err) {
         setSearchError(err instanceof Error ? err.message : 'Search failed');
@@ -209,6 +210,9 @@ export default function BikeScreen() {
       onPress={() => handleSelectBike(item)}
       disabled={loadingBike}
     >
+      {/* `contain`, not the default crop: these trims differ by colorway and
+          build, and a center crop of a wide studio shot shows only a shock. */}
+      <BikeThumbnail uri={item.thumbnailUrl} size={56} fit="contain" />
       <View style={styles.resultContent}>
         <Text style={styles.resultMake}>{item.maker}</Text>
         <Text style={styles.resultModel}>{item.model}</Text>
@@ -528,6 +532,7 @@ const styles = StyleSheet.create({
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     backgroundColor: colors.card,
     borderRadius: 8,
     padding: 16,
