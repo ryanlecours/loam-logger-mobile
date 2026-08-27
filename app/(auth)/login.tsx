@@ -24,6 +24,7 @@ import {
   shouldPromptForEnrollment,
 } from '../../src/lib/biometric';
 import { colors, radius } from '../../src/constants/theme';
+import { Screen } from '../../src/components/common/Screen';
 
 /**
  * Build the alert body for a server-side auth failure. When the backend returned
@@ -160,109 +161,110 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+    <Screen>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Text style={styles.title}>Loam Logger</Text>
-        <Text style={styles.subtitle}>Drop in knowing your bike's dialed</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>Loam Logger</Text>
+          <Text style={styles.subtitle}>Drop in knowing your bike's dialed</Text>
 
-        <View style={styles.form}>
-          {/* Apple Sign-In (iOS only; renders null on Android / unsupported) */}
-          <View style={styles.ssoButton}>
-            <AppleSignInButton
-              onSuccess={handleAppleSuccess}
-              onError={handleAppleError}
+          <View style={styles.form}>
+            {/* Apple Sign-In (iOS only; renders null on Android / unsupported) */}
+            <View style={styles.ssoButton}>
+              <AppleSignInButton
+                onSuccess={handleAppleSuccess}
+                onError={handleAppleError}
+                disabled={isLoading}
+              />
+            </View>
+
+            {/* Google Sign-In */}
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
               disabled={isLoading}
             />
+
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Email/Password */}
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={colors.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              editable={!isLoading}
+            />
+
+            <TextInput
+              ref={passwordRef}
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              returnKeyType="go"
+              onSubmitEditing={handleLogin}
+              editable={!isLoading}
+            />
+
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.onPrimary} />
+              ) : (
+                <Text style={styles.buttonText}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => router.push('/(auth)/forgot-password' as Href)}
+              disabled={isLoading}
+            >
+              <Text style={styles.linkText}>
+                Forgot password?
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => router.push('/(auth)/signup')}
+              disabled={isLoading}
+            >
+              <Text style={styles.linkText}>
+                Don't have an account? Sign up
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Google Sign-In */}
-          <GoogleSignInButton
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            disabled={isLoading}
-          />
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Email/Password */}
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor={colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            editable={!isLoading}
-          />
-
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            returnKeyType="go"
-            onSubmitEditing={handleLogin}
-            editable={!isLoading}
-          />
-
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.onPrimary} />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push('/(auth)/forgot-password' as Href)}
-            disabled={isLoading}
-          >
-            <Text style={styles.linkText}>
-              Forgot password?
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => router.push('/(auth)/signup')}
-            disabled={isLoading}
-          >
-            <Text style={styles.linkText}>
-              Don't have an account? Sign up
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,

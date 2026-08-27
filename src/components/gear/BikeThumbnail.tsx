@@ -9,6 +9,14 @@ interface BikeThumbnailProps {
   size?: number;
   /** One step below the containing surface's radius. Worn-Smooth Rule. */
   cornerRadius?: number;
+  /**
+   * 'cover' fills the well, which is right once the rider knows the bike: it
+   * is their own photo and the crop still reads as theirs. 'contain' is for
+   * catalog search results, where the whole point of the image is telling two
+   * near-identical trims apart and a center crop of a wide studio shot would
+   * show nothing but a shock.
+   */
+  fit?: 'cover' | 'contain';
 }
 
 /**
@@ -28,7 +36,12 @@ interface BikeThumbnailProps {
  * bike with no photo gets, so the two failure modes look identical instead of
  * one of them looking like a rendering bug.
  */
-export function BikeThumbnail({ uri, size = 48, cornerRadius = radius.sm }: BikeThumbnailProps) {
+export function BikeThumbnail({
+  uri,
+  size = 48,
+  cornerRadius = radius.sm,
+  fit = 'cover',
+}: BikeThumbnailProps) {
   const [failed, setFailed] = useState(false);
 
   // A rider who replaces a broken photo must not stay stuck on the glyph.
@@ -50,7 +63,7 @@ export function BikeThumbnail({ uri, size = 48, cornerRadius = radius.sm }: Bike
         <Image
           source={{ uri }}
           style={styles.image}
-          resizeMode="cover"
+          resizeMode={fit}
           onError={() => setFailed(true)}
           testID="bike-thumbnail-image"
         />

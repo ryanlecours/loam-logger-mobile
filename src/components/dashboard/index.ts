@@ -1,5 +1,7 @@
 export { DashboardSkeleton } from './DashboardSkeleton';
 export { EmptyBikeState } from './EmptyBikeState';
+export { HealthyBikeList } from './HealthyBikeList';
+export { FirstRideSetupCard } from './FirstRideSetupCard';
 export { RecentRidesList } from './RecentRidesList';
 export { UnassignedRidesBanner } from './UnassignedRidesBanner';
 export { RideStatsCard } from './RideStatsCard';

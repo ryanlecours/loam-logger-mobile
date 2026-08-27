@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Screen } from '../../src/components/common/Screen';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import {
   useComponentRidesQuery,
@@ -38,7 +38,6 @@ function formatAnchorDate(iso: string): string {
 
 export default function ComponentRidesScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     componentId: string;
     componentLabel?: string;
@@ -223,7 +222,7 @@ export default function ComponentRidesScreen() {
   const totalsDiffer = Math.abs(countedHours - hoursUsed) >= 0.05;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <Screen>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
@@ -425,15 +424,11 @@ export default function ComponentRidesScreen() {
       )}
 
       <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

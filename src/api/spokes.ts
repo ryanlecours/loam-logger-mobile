@@ -7,16 +7,30 @@ export interface SpokesSearchResult {
   id: string;
   maker: string;
   model: string;
-  year: number;
+  /** Null when 99spokes sends a listing with no model year. Sorted last. */
+  year: number | null;
   family: string;
   category: string;
   subcategory: string | null;
+  /** Catalog product shot. Null when 99spokes has no image for the build. */
+  thumbnailUrl: string | null;
+  /** 'complete' | 'frameset' when 99spokes reports it. */
+  buildKind: string | null;
+  /** Frame-only listing. Absent from results when `excludeFramesets` was set. */
+  isFrameset: boolean;
 }
 
 export interface SearchBikesParams {
   query: string;
   year?: number;
   category?: string;
+  /**
+   * Drop frame-only listings. Onboarding sets this: a frameset carries no fork,
+   * drivetrain, brakes or tires from 99spokes, so picking one ends the flow on a
+   * bike with almost nothing to track. Add Bike leaves it off, so a rider who
+   * really did buy a frame and build it up can still log it.
+   */
+  excludeFramesets?: boolean;
 }
 
 /**
@@ -35,6 +49,9 @@ export async function searchBikes(params: SearchBikesParams): Promise<SpokesSear
   }
   if (params.category) {
     url.searchParams.set('category', params.category);
+  }
+  if (params.excludeFramesets) {
+    url.searchParams.set('excludeFramesets', '1');
   }
 
   const response = await fetch(url.toString(), {

@@ -18,6 +18,7 @@ import { searchBikes, getBikeById, SpokesSearchResult } from '../../src/api/spok
 import { useAddBikeMutation, useGearLightQuery, useUnmappedStravaGearsLazyQuery, useMeQuery, AcquisitionCondition } from '../../src/graphql/generated';
 import { SpokesBike, SpokesImage } from '../../src/hooks/useOnboarding';
 import { StravaGearMappingSheet } from '../../src/components/gear/StravaGearMappingSheet';
+import { BikeThumbnail } from '../../src/components/gear/BikeThumbnail';
 import { colors, radius } from '../../src/constants/theme';
 import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
@@ -409,12 +410,17 @@ export default function AddBikeScreen() {
                   onPress={() => handleSelectBike(item)}
                   disabled={loadingBike}
                 >
+                  {/* `contain`, not the default crop: near-identical trims are
+                      told apart by colorway, and a center crop of a wide studio
+                      shot shows only a shock. */}
+                  <BikeThumbnail uri={item.thumbnailUrl} size={44} fit="contain" />
                   <View style={styles.resultContent}>
                     <Text style={styles.resultTitle}>
                       {item.maker} {item.model}
                     </Text>
                     <Text style={styles.resultSubtitle}>
-                      {item.year} · {item.category}
+                      {item.year ? `${item.year} · ` : ''}
+                      {item.category}
                     </Text>
                   </View>
                   {loadingBike ? (
@@ -638,6 +644,7 @@ const styles = StyleSheet.create({
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     padding: 16,
     backgroundColor: colors.card,
   },

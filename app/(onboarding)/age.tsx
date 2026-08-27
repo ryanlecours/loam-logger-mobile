@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
 import { colors, radius } from '../../src/constants/theme';
 import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+import { Screen } from '../../src/components/common/Screen';
 
 /** Unique per surface: other screens stay mounted underneath and would collide on a shared id. */
 const DONE_ACCESSORY = 'onboarding-age-done';
@@ -61,51 +62,52 @@ export default function AgeScreen() {
   const isValid = ageInput.length > 0 && parseInt(ageInput, 10) >= MIN_AGE;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>How old are you?</Text>
-        <Text style={styles.subtitle}>
-          You must be at least {MIN_AGE} to use Loam Logger
-        </Text>
+    <Screen>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>How old are you?</Text>
+          <Text style={styles.subtitle}>
+            You must be at least {MIN_AGE} to use Loam Logger
+          </Text>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            inputAccessoryViewID={DONE_ACCESSORY}
-            style={[styles.input, error && styles.inputError]}
-            value={ageInput}
-            onChangeText={handleAgeChange}
-            placeholder="Enter your age"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="number-pad"
-            maxLength={3}
-            autoFocus
-            returnKeyType="done"
-            onSubmitEditing={validateAndContinue}
-          />
-          {error && <Text style={styles.errorText}>{error}</Text>}
+          <View style={styles.inputContainer}>
+            <TextInput
+              inputAccessoryViewID={DONE_ACCESSORY}
+              style={[styles.input, error && styles.inputError]}
+              value={ageInput}
+              onChangeText={handleAgeChange}
+              placeholder="Enter your age"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              maxLength={3}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={validateAndContinue}
+            />
+            {error && <Text style={styles.errorText}>{error}</Text>}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.button, !isValid && styles.buttonDisabled]}
+            onPress={validateAndContinue}
+            disabled={!isValid}
+          >
+            <Text style={styles.buttonText}>Continue</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.button, !isValid && styles.buttonDisabled]}
-          onPress={validateAndContinue}
-          disabled={!isValid}
-        >
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
-      </View>
-
-      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
-    </KeyboardAvoidingView>
+        <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   content: {
     flex: 1,

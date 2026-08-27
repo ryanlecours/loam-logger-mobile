@@ -18,6 +18,7 @@ import {
   checkPasswordRequirements,
 } from '../../src/components/PasswordRequirements';
 import { colors, radius } from '../../src/constants/theme';
+import { Screen } from '../../src/components/common/Screen';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -100,102 +101,103 @@ export default function SignupScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <Screen>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.content}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join the Loam Logger community</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join the Loam Logger community</Text>
 
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor={colors.textMuted}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              maxLength={100}
-              editable={!loading}
-            />
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                placeholderTextColor={colors.textMuted}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                maxLength={100}
+                editable={!loading}
+              />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor={colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              editable={!loading}
-            />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={colors.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                editable={!loading}
+              />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-            />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                editable={!loading}
+              />
 
-            {password.length > 0 && <PasswordRequirements password={password} />}
+              {password.length > 0 && <PasswordRequirements password={password} />}
 
-            <TextInput
-              style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
-              placeholder="Confirm Password"
-              placeholderTextColor={colors.textMuted}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              editable={!loading}
-            />
+              <TextInput
+                style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
+                placeholder="Confirm Password"
+                placeholderTextColor={colors.textMuted}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                editable={!loading}
+              />
 
-            {confirmPassword.length > 0 && password !== confirmPassword && (
-              <Text style={styles.errorText}>Passwords do not match</Text>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                (!canSubmit || loading) && styles.buttonDisabled,
-              ]}
-              onPress={handleSignup}
-              disabled={!canSubmit || loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.onPrimary} />
-              ) : (
-                <Text style={styles.buttonText}>Sign Up</Text>
+              {confirmPassword.length > 0 && password !== confirmPassword && (
+                <Text style={styles.errorText}>Passwords do not match</Text>
               )}
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.linkButton}
-              onPress={() => router.back()}
-              disabled={loading}
-            >
-              <Text style={styles.linkText}>
-                Already have an account? Sign in
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  (!canSubmit || loading) && styles.buttonDisabled,
+                ]}
+                onPress={handleSignup}
+                disabled={!canSubmit || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.onPrimary} />
+                ) : (
+                  <Text style={styles.buttonText}>Sign Up</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.linkButton}
+                onPress={() => router.back()}
+                disabled={loading}
+              >
+                <Text style={styles.linkText}>
+                  Already have an account? Sign in
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,

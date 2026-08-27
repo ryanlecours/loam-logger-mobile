@@ -35,6 +35,17 @@ describe('BikeThumbnail', () => {
     expect(screen.queryByTestId(IMAGE, HIDDEN)).toBeNull();
   });
 
+  // The rider's own bike is cropped to fill the well. Catalog search results
+  // are not: the image is there to tell two near-identical trims apart, and a
+  // center crop of a wide studio shot shows nothing but a shock.
+  it('crops by default and letterboxes when asked to fit', async () => {
+    await render(<BikeThumbnail uri={URI} />);
+    expect(screen.getByTestId(IMAGE, HIDDEN).props.resizeMode).toBe('cover');
+
+    await screen.rerender(<BikeThumbnail uri={URI} fit="contain" />);
+    expect(screen.getByTestId(IMAGE, HIDDEN).props.resizeMode).toBe('contain');
+  });
+
   // thumbnailUrl points at remote storage and a 404 is silent. Before this, a
   // dead link rendered an empty dark square, which reads as a rendering fault
   // rather than a missing photo. Both failures should now look the same.

@@ -2,7 +2,7 @@ import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity } 
 import { useRouter, Href } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Screen } from '../../src/components/common/Screen';
 import { useBikeTriage } from '../../src/hooks/useBikeTriage';
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
 import {
@@ -16,6 +16,8 @@ import {
 import {
   DashboardSkeleton,
   EmptyBikeState,
+  HealthyBikeList,
+  FirstRideSetupCard,
   BikeTriageGroup,
   ComponentActionSheet,
   RecentRidesList,
@@ -36,6 +38,7 @@ import { PendingRideCard } from '../../src/components/rides';
 import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
 import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
+import { isFirstRun, showStatsBlock } from '../../src/utils/dashboardFirstRun';
 import { selectionTick } from '../../src/lib/haptics';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
@@ -87,12 +90,30 @@ function BrandHeader() {
 }
 
 /**
+ * Rendered in one of two slots depending on whether the rider has ridden yet.
+ * Same card either way; only its position on the scroll moves.
+ */
+function ProUpsell() {
+  return (
+    <View style={styles.upgradeBanner}>
+      <UpgradePrompt message="Pro tells you how many hours each part has left, and flags what's coming due, so a wrench night beats a trailside fix." />
+    </View>
+  );
+}
+
+/**
  * The dashboard triages; the Gear tab inventories.
  *
  * It answers one question: is the bike I want to ride good to go, or what needs
  * doing? So it lists only bikes that need work, and collapses everything
  * healthy into a single line. Managing what you own lives in Gear, and
  * duplicating that list here would just be a second inventory.
+ *
+ * With one exception, added because it was the whole screen for a new rider:
+ * when NOTHING needs work the exception list has nothing to draw, and a
+ * headline over empty space reads as "your bike didn't save". So the all-clear
+ * case names the bikes instead of collapsing them, and an account that has not
+ * ridden yet gets the one step that starts the clock ahead of the Pro card.
  *
  * Each bike that needs work is one collapsed row carrying its photo, its worst
  * state by name, and a count. Naming the components inline for every bike put
@@ -218,10 +239,10 @@ export default function DashboardScreen() {
 
   if (bikesLoading && totalBikes === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <Screen edges={['top']}>
         <BrandHeader />
         <DashboardSkeleton />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
@@ -229,23 +250,38 @@ export default function DashboardScreen() {
   // failure left nothing to show.
   if (bikesError && totalBikes === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <Screen edges={['top']}>
         <BrandHeader />
         <ErrorState {...describeError(bikesError, 'gear')} onRetry={onRetry} retrying={retrying} />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   if (!bikesError && !bikesLoading && totalBikes === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <Screen edges={['top']}>
         <BrandHeader />
         <EmptyBikeState />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   const attentionCount = needsAttention.length;
+
+  const showFirstRun = isFirstRun({
+    predictionsReady,
+    recentRideCount: recentRidesData?.rides.length ?? 0,
+    recentRidesLoading,
+    recentRidesFailed: !!recentRidesError,
+    pendingRideCount: pendingRides.length,
+  });
+
+  const statsBlockVisible = showStatsBlock({
+    statsLoading,
+    statsFailed: !!statsError,
+    totalRides: rideStats.totalRides,
+  });
+
   const headline = dashboardHeadline({
     attentionCount,
     healthyCount: healthy.length,
@@ -254,7 +290,8 @@ export default function DashboardScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    // Top edge only: the tab bar already sits above the home indicator.
+    <Screen edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -332,11 +369,18 @@ export default function DashboardScreen() {
               />
             ))}
 
-            {/* Healthy bikes are a reassurance, not a list. One line, and it
-                links into Gear rather than repeating Gear here. Skipped only
-                when the headline already reads "All N bikes are good to go",
-                which happens exactly when every bike is in this bucket. */}
-            {headline.tone !== 'good' && healthy.length > 0 && (
+            {/* Nothing needs work, so the exception list has no exceptions to
+                show. Name the bikes instead of leaving the rider staring at a
+                headline over empty space: after onboarding, an empty screen
+                reads as "it didn't save" rather than "it's fine". */}
+            {attentionCount === 0 && healthy.length > 0 && (
+              <HealthyBikeList bikes={healthy} />
+            )}
+
+            {/* Something else DOES need work, so the healthy ones are a
+                reassurance rather than the subject. One line, linking into
+                Gear rather than repeating Gear here. */}
+            {attentionCount > 0 && healthy.length > 0 && (
               <TouchableOpacity
                 style={styles.goodRow}
                 onPress={() => router.push('/(tabs)/gear' as Href)}
@@ -380,10 +424,17 @@ export default function DashboardScreen() {
           </>
         )}
 
-        {!isPro && (
-          <View style={styles.upgradeBanner}>
-            <UpgradePrompt message="Pro tells you how many hours each part has left, and flags what's coming due, so a wrench night beats a trailside fix." />
-          </View>
+        {/* A rider with no rides has no hours, and Pro's pitch is hours
+            remaining, so leading with it sells a number they cannot have yet.
+            It stays on the same scroll, below the one step that would earn
+            them that number. */}
+        {!isPro && !showFirstRun && <ProUpsell />}
+
+        {showFirstRun && (
+          <FirstRideSetupCard
+            onConnectPress={() => router.push('/(tabs)/settings' as Href)}
+            onAddRidePress={() => router.push('/ride/add' as Href)}
+          />
         )}
 
         {/* Above the rides list, not inside it: the count spans the rider's
@@ -400,52 +451,62 @@ export default function DashboardScreen() {
           <PendingRideCard key={pendingRide.id} pendingRide={pendingRide} />
         ))}
 
-        <RecentRidesList
-          rides={recentRidesData?.rides ?? []}
-          bikes={needsAttention.map((t) => t.bike).concat(healthy, untracked)}
-          loading={recentRidesLoading && !recentRidesData}
-          error={recentRidesError}
-          onRetry={onRetry}
-          onSeeAll={() => router.push('/(tabs)/rides' as Href)}
-          onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
-          onConnectPress={() => router.push('/(tabs)/settings' as Href)}
-          onAddRidePress={() => router.push('/ride/add' as Href)}
-        />
+        {!showFirstRun && (
+          <RecentRidesList
+            rides={recentRidesData?.rides ?? []}
+            bikes={needsAttention.map((t) => t.bike).concat(healthy, untracked)}
+            loading={recentRidesLoading && !recentRidesData}
+            error={recentRidesError}
+            onRetry={onRetry}
+            onSeeAll={() => router.push('/(tabs)/rides' as Href)}
+            onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
+            onConnectPress={() => router.push('/(tabs)/settings' as Href)}
+            onAddRidePress={() => router.push('/ride/add' as Href)}
+          />
+        )}
 
-        {/* One timeframe control, directly above the only block it governs. */}
-        <View style={styles.timeframeTabs}>
-          {TIMEFRAME_OPTIONS.map(({ key, label }) => {
-            const active = timeframe === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[styles.timeframeTab, active && styles.timeframeTabActive]}
-                onPress={() => {
-                  // The numbers below change with no transition, so the tick is
-                  // the only confirmation the tap registered.
-                  selectionTick();
-                  setTimeframe(key);
-                }}
-                activeOpacity={0.7}
-                accessibilityRole="tab"
-                accessibilityLabel={TIMEFRAME_LABELS[key]}
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[styles.timeframeTabText, active && styles.timeframeTabTextActive]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {!isPro && showFirstRun && <ProUpsell />}
 
-        <RideStatsCard
-          stats={rideStats}
-          loading={statsLoading}
-          error={statsError}
-          onRetry={refetchStats}
-          timeframeLabel={TIMEFRAME_LABELS[timeframe]}
-        />
+        {/* One timeframe control, directly above the only block it governs.
+            Both go together: the card renders nothing at zero rides, and a
+            filter over nothing is just a dead control. */}
+        {statsBlockVisible && (
+          <>
+            <View style={styles.timeframeTabs}>
+              {TIMEFRAME_OPTIONS.map(({ key, label }) => {
+                const active = timeframe === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.timeframeTab, active && styles.timeframeTabActive]}
+                    onPress={() => {
+                      // The numbers below change with no transition, so the tick is
+                      // the only confirmation the tap registered.
+                      selectionTick();
+                      setTimeframe(key);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityRole="tab"
+                    accessibilityLabel={TIMEFRAME_LABELS[key]}
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={[styles.timeframeTabText, active && styles.timeframeTabTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <RideStatsCard
+              stats={rideStats}
+              loading={statsLoading}
+              error={statsError}
+              onRetry={refetchStats}
+              timeframeLabel={TIMEFRAME_LABELS[timeframe]}
+            />
+          </>
+        )}
       </ScrollView>
 
       <ComponentActionSheet
@@ -489,15 +550,11 @@ export default function DashboardScreen() {
       )}
 
       <CalibrationSheet visible={showCalibration} onClose={() => setShowCalibration(false)} />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollView: {
     flex: 1,
   },
