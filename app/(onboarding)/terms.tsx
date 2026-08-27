@@ -12,6 +12,7 @@ import { isUnauthorizedError } from '../../src/utils/errors';
 import { LegalDocument } from '../../src/components/legal/LegalDocument';
 import { TERMS_SECTIONS, CURRENT_TERMS_VERSION } from '../../src/legal/terms';
 import { colors, radius } from '../../src/constants/theme';
+import { Screen } from '../../src/components/common/Screen';
 
 export default function TermsScreen() {
   const { refetchUser, logout } = useAuth();
@@ -41,7 +42,7 @@ export default function TermsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Terms of Service</Text>
         <Text style={styles.subtitle}>Please read and accept to continue</Text>
@@ -76,18 +77,15 @@ export default function TermsScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
+    // Design spacing only. Screen adds the status-bar inset on top.
+    paddingTop: 16,
     paddingBottom: 16,
   },
   title: {
@@ -121,7 +119,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    // Design spacing only. Screen adds the home-indicator inset on top.
+    paddingBottom: 16,
     paddingTop: 8,
   },
   button: {

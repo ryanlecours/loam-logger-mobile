@@ -16,6 +16,7 @@ import { getAccessToken } from '../../src/lib/auth';
 import { isUnauthorizedError } from '../../src/utils/errors';
 import { buildSpokesComponentsInput } from '../../src/utils/bikeFormHelpers';
 import { colors, radius } from '../../src/constants/theme';
+import { Screen } from '../../src/components/common/Screen';
 
 interface BulletProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -146,7 +147,7 @@ export default function NotificationsOnboardingScreen() {
   }, [requestPermissions, finishOnboarding]);
 
   return (
-    <View style={styles.container}>
+    <Screen>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Stay in sync</Text>
         <Text style={styles.subtitle}>
@@ -181,15 +182,11 @@ export default function NotificationsOnboardingScreen() {
           <Text style={styles.skipText}>Not now</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 24,
@@ -198,7 +195,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 76,
+    marginTop: 16,
     marginBottom: 8,
     color: colors.primary,
   },
@@ -248,7 +245,8 @@ const styles = StyleSheet.create({
   buttonContainer: {
     gap: 12,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    // Design spacing only. Screen adds the home-indicator inset on top.
+    paddingBottom: 16,
   },
   button: {
     backgroundColor: colors.primary,

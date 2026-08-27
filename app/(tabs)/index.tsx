@@ -2,7 +2,7 @@ import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity } 
 import { useRouter, Href } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Screen } from '../../src/components/common/Screen';
 import { useBikeTriage } from '../../src/hooks/useBikeTriage';
 import { useRideStats, type TimeframeOption } from '../../src/hooks/useRideStats';
 import {
@@ -218,10 +218,10 @@ export default function DashboardScreen() {
 
   if (bikesLoading && totalBikes === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <Screen edges={['top']}>
         <BrandHeader />
         <DashboardSkeleton />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
@@ -229,19 +229,19 @@ export default function DashboardScreen() {
   // failure left nothing to show.
   if (bikesError && totalBikes === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <Screen edges={['top']}>
         <BrandHeader />
         <ErrorState {...describeError(bikesError, 'gear')} onRetry={onRetry} retrying={retrying} />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   if (!bikesError && !bikesLoading && totalBikes === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <Screen edges={['top']}>
         <BrandHeader />
         <EmptyBikeState />
-      </SafeAreaView>
+      </Screen>
     );
   }
 
@@ -254,7 +254,8 @@ export default function DashboardScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    // Top edge only: the tab bar already sits above the home indicator.
+    <Screen edges={['top']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -489,15 +490,11 @@ export default function DashboardScreen() {
       )}
 
       <CalibrationSheet visible={showCalibration} onClose={() => setShowCalibration(false)} />
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollView: {
     flex: 1,
   },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Screen } from '../src/components/common/Screen';
 
 import { useRideStats, type TimeframeOption } from '../src/hooks/useRideStats';
 import { useDistanceUnit } from '../src/hooks/useDistanceUnit';
@@ -89,7 +90,10 @@ export default function RideInsightsScreen() {
           top inset, which put the timeframe row under the status bar. Every
           other pushed screen draws its own header, so this one does too. */}
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* Top edge only: the bottom inset is applied to the scroll content
+          below so the list scrolls past the home indicator rather than
+          stopping short of it. */}
+      <Screen edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -306,7 +310,7 @@ export default function RideInsightsScreen() {
             </>
           )}
         </ScrollView>
-      </View>
+      </Screen>
     </>
   );
 }
@@ -387,10 +391,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
     textAlign: 'center',
-  },
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
   },
   content: {
     padding: space.xl,

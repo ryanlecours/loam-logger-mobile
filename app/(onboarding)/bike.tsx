@@ -17,6 +17,7 @@ import { useOnboarding, type SpokesBike, type SpokesImage } from '../../src/hook
 import { searchBikes, getBikeById, type SpokesSearchResult } from '../../src/api/spokes';
 import { colors, radius } from '../../src/constants/theme';
 import { KeyboardDoneAccessory } from '../../src/components/common/KeyboardDoneAccessory';
+import { Screen } from '../../src/components/common/Screen';
 import { SpokesAttribution } from '../../src/components/common/SpokesAttribution';
 import { BikeDetailsStep } from '../../src/components/bike/BikeDetailsStep';
 import { WearStartStep } from '../../src/components/bike/WearStartStep';
@@ -221,7 +222,7 @@ export default function BikeScreen() {
 
   if (step === 'wearStart') {
     return (
-      <View style={styles.container}>
+      <Screen>
         <View style={styles.content}>
           <ScrollView style={styles.flex} keyboardShouldPersistTaps="handled">
             <WearStartStep
@@ -246,7 +247,7 @@ export default function BikeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -260,7 +261,7 @@ export default function BikeScreen() {
     }
 
     return (
-      <View style={styles.container}>
+      <Screen>
         <View style={styles.content}>
           <BikeDetailsStep
             bike={bike}
@@ -289,188 +290,189 @@ export default function BikeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </Screen>
     );
   }
 
   // --- Step: Search ---
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>Add Your Bike</Text>
-        <Text style={styles.subtitle}>Search for your bike to auto-fill specs</Text>
+    // `edges={['top']}`: the search field autofocuses, so the keyboard owns
+    // the bottom of this step. Reserving the home-indicator inset here would
+    // float the results list above the keyboard.
+    <Screen edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Add Your Bike</Text>
+          <Text style={styles.subtitle}>Search for your bike to auto-fill specs</Text>
 
-        {!isManualEntry ? (
-          <>
-            <View style={styles.searchContainer}>
-              <TextInput
-                inputAccessoryViewID={DONE_ACCESSORY}
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={handleSearchChange}
-                placeholder="Search by make and model..."
-                placeholderTextColor={colors.textMuted}
-                autoFocus
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-              {searching && (
-                <ActivityIndicator style={styles.searchSpinner} color={colors.primary} />
+          {!isManualEntry ? (
+            <>
+              <View style={styles.searchContainer}>
+                <TextInput
+                  inputAccessoryViewID={DONE_ACCESSORY}
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={handleSearchChange}
+                  placeholder="Search by make and model..."
+                  placeholderTextColor={colors.textMuted}
+                  autoFocus
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+                {searching && (
+                  <ActivityIndicator style={styles.searchSpinner} color={colors.primary} />
+                )}
+              </View>
+
+              <SpokesAttribution />
+
+              {searchError && (
+                <Text style={styles.errorText}>{searchError}</Text>
               )}
-            </View>
 
-            <SpokesAttribution />
+              {loadingBike && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.loadingText}>Loading bike details...</Text>
+                </View>
+              )}
 
-            {searchError && (
-              <Text style={styles.errorText}>{searchError}</Text>
-            )}
-
-            {loadingBike && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Loading bike details...</Text>
-              </View>
-            )}
-
-            <FlatList
-              data={searchResults}
-              renderItem={renderSearchResult}
-              keyExtractor={(item) => item.id}
-              style={styles.resultsList}
-              contentContainerStyle={styles.resultsListContent}
-              ListEmptyComponent={
-                searchQuery.length >= 2 && !searching ? (
-                  <Text style={styles.emptyText}>No bikes found. Try a different search.</Text>
-                ) : searchQuery.length < 2 ? (
-                  <Text style={styles.hintText}>
-                    Start typing to search for your bike{'\n'}
-                    (e.g., "Santa Cruz Hightower" or "Trek Fuel EX")
-                  </Text>
-                ) : null
-              }
-              ListFooterComponent={
-                <TouchableOpacity
-                  style={styles.manualEntryButton}
-                  onPress={() => setIsManualEntry(true)}
-                >
-                  <Text style={styles.manualEntryText}>
-                    Can't find your bike? Enter details manually
-                  </Text>
-                </TouchableOpacity>
-              }
-            />
-          </>
-        ) : (
-          /* Manual entry form */
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.manualFormContent}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-          >
-            <Text style={styles.manualFormTitle}>Enter Bike Details</Text>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Manufacturer *</Text>
-              <TextInput
-                inputAccessoryViewID={DONE_ACCESSORY}
-                style={styles.fieldInput}
-                value={manualForm.manufacturer}
-                onChangeText={(text) => setManualForm((f) => ({ ...f, manufacturer: text }))}
-                placeholder="e.g., Santa Cruz"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="words"
+              <FlatList
+                data={searchResults}
+                renderItem={renderSearchResult}
+                keyExtractor={(item) => item.id}
+                style={styles.resultsList}
+                contentContainerStyle={styles.resultsListContent}
+                ListEmptyComponent={
+                  searchQuery.length >= 2 && !searching ? (
+                    <Text style={styles.emptyText}>No bikes found. Try a different search.</Text>
+                  ) : searchQuery.length < 2 ? (
+                    <Text style={styles.hintText}>
+                      Start typing to search for your bike{'\n'}
+                      (e.g., "Santa Cruz Hightower" or "Trek Fuel EX")
+                    </Text>
+                  ) : null
+                }
+                ListFooterComponent={
+                  <TouchableOpacity
+                    style={styles.manualEntryButton}
+                    onPress={() => setIsManualEntry(true)}
+                  >
+                    <Text style={styles.manualEntryText}>
+                      Can't find your bike? Enter details manually
+                    </Text>
+                  </TouchableOpacity>
+                }
               />
-            </View>
+            </>
+          ) : (
+            /* Manual entry form */
+            <ScrollView
+              style={styles.flex}
+              contentContainerStyle={styles.manualFormContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+            >
+              <Text style={styles.manualFormTitle}>Enter Bike Details</Text>
 
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Model *</Text>
-              <TextInput
-                inputAccessoryViewID={DONE_ACCESSORY}
-                style={styles.fieldInput}
-                value={manualForm.model}
-                onChangeText={(text) => setManualForm((f) => ({ ...f, model: text }))}
-                placeholder="e.g., Bronson"
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="words"
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Year *</Text>
-              <TextInput
-                inputAccessoryViewID={DONE_ACCESSORY}
-                style={styles.fieldInput}
-                value={manualForm.year}
-                onChangeText={(text) => setManualForm((f) => ({ ...f, year: text }))}
-                placeholder="e.g., 2024"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="number-pad"
-                maxLength={4}
-              />
-            </View>
-
-            <View style={styles.fieldRow}>
-              <View style={[styles.field, styles.fieldHalf]}>
-                <Text style={styles.fieldLabel}>Fork Travel (mm)</Text>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Manufacturer *</Text>
                 <TextInput
                   inputAccessoryViewID={DONE_ACCESSORY}
                   style={styles.fieldInput}
-                  value={manualForm.travelForkMm}
-                  onChangeText={(text) => setManualForm((f) => ({ ...f, travelForkMm: text }))}
-                  placeholder="e.g., 160"
+                  value={manualForm.manufacturer}
+                  onChangeText={(text) => setManualForm((f) => ({ ...f, manufacturer: text }))}
+                  placeholder="e.g., Santa Cruz"
                   placeholderTextColor={colors.textMuted}
-                  keyboardType="number-pad"
+                  autoCapitalize="words"
                 />
               </View>
-              <View style={[styles.field, styles.fieldHalf]}>
-                <Text style={styles.fieldLabel}>Rear Travel (mm)</Text>
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Model *</Text>
                 <TextInput
                   inputAccessoryViewID={DONE_ACCESSORY}
                   style={styles.fieldInput}
-                  value={manualForm.travelShockMm}
-                  onChangeText={(text) => setManualForm((f) => ({ ...f, travelShockMm: text }))}
-                  placeholder="e.g., 150"
+                  value={manualForm.model}
+                  onChangeText={(text) => setManualForm((f) => ({ ...f, model: text }))}
+                  placeholder="e.g., Bronson"
                   placeholderTextColor={colors.textMuted}
-                  keyboardType="number-pad"
+                  autoCapitalize="words"
                 />
               </View>
-            </View>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleManualContinue}
-            >
-              <Text style={styles.buttonText}>Continue</Text>
-            </TouchableOpacity>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Year *</Text>
+                <TextInput
+                  inputAccessoryViewID={DONE_ACCESSORY}
+                  style={styles.fieldInput}
+                  value={manualForm.year}
+                  onChangeText={(text) => setManualForm((f) => ({ ...f, year: text }))}
+                  placeholder="e.g., 2024"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                />
+              </View>
 
-            <TouchableOpacity
-              style={styles.manualEntryButton}
-              onPress={() => {
-                setIsManualEntry(false);
-                setManualForm(INITIAL_MANUAL_FORM);
-              }}
-            >
-              <Text style={styles.manualEntryText}>Back to search</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
-      </View>
+              <View style={styles.fieldRow}>
+                <View style={[styles.field, styles.fieldHalf]}>
+                  <Text style={styles.fieldLabel}>Fork Travel (mm)</Text>
+                  <TextInput
+                    inputAccessoryViewID={DONE_ACCESSORY}
+                    style={styles.fieldInput}
+                    value={manualForm.travelForkMm}
+                    onChangeText={(text) => setManualForm((f) => ({ ...f, travelForkMm: text }))}
+                    placeholder="e.g., 160"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View style={[styles.field, styles.fieldHalf]}>
+                  <Text style={styles.fieldLabel}>Rear Travel (mm)</Text>
+                  <TextInput
+                    inputAccessoryViewID={DONE_ACCESSORY}
+                    style={styles.fieldInput}
+                    value={manualForm.travelShockMm}
+                    onChangeText={(text) => setManualForm((f) => ({ ...f, travelShockMm: text }))}
+                    placeholder="e.g., 150"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </View>
 
-      <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
-    </KeyboardAvoidingView>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleManualContinue}
+              >
+                <Text style={styles.buttonText}>Continue</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.manualEntryButton}
+                onPress={() => {
+                  setIsManualEntry(false);
+                  setManualForm(INITIAL_MANUAL_FORM);
+                }}
+              >
+                <Text style={styles.manualEntryText}>Back to search</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
+
+        <KeyboardDoneAccessory nativeID={DONE_ACCESSORY} />
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   flex: {
     flex: 1,
   },
@@ -482,7 +484,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 76,
+    marginTop: 16,
     marginBottom: 8,
     color: colors.primary,
   },
@@ -588,7 +590,8 @@ const styles = StyleSheet.create({
   buttonContainer: {
     gap: 12,
     marginTop: 'auto',
-    paddingBottom: 40,
+    // Design spacing only. Screen adds the home-indicator inset on top.
+    paddingBottom: 16,
   },
   button: {
     backgroundColor: colors.primary,

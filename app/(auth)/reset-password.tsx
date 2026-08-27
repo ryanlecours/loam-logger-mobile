@@ -17,6 +17,7 @@ import {
   PasswordRequirements,
   checkPasswordRequirements,
 } from '../../src/components/PasswordRequirements';
+import { Screen } from '../../src/components/common/Screen';
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -76,74 +77,76 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{expired ? 'Link Expired' : 'Reset Password'}</Text>
-        <Text style={styles.subtitle}>
-          {expired
-            ? 'This reset link has expired. Request a new one to continue.'
-            : 'Choose a new password for your account.'}
-        </Text>
+    <Screen>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>{expired ? 'Link Expired' : 'Reset Password'}</Text>
+          <Text style={styles.subtitle}>
+            {expired
+              ? 'This reset link has expired. Request a new one to continue.'
+              : 'Choose a new password for your account.'}
+          </Text>
 
-        {expired ? (
-          <View style={styles.form}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => router.replace('/(auth)/forgot-password' as Href)}
-            >
-              <Text style={styles.buttonText}>Request a New Link</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.linkButtonCenter}
-              onPress={() => router.replace('/(auth)/login' as Href)}
-            >
-              <Text style={styles.linkText}>Back to Sign In</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="New password"
-              placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!submitting}
-            />
-            {password.length > 0 && <PasswordRequirements password={password} />}
-            <TextInput
-              style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
-              placeholder="Confirm new password"
-              placeholderTextColor={colors.textMuted}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              editable={!submitting}
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
+          {expired ? (
+            <View style={styles.form}>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => router.replace('/(auth)/forgot-password' as Href)}
+              >
+                <Text style={styles.buttonText}>Request a New Link</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.linkButtonCenter}
+                onPress={() => router.replace('/(auth)/login' as Href)}
+              >
+                <Text style={styles.linkText}>Back to Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="New password"
+                placeholderTextColor={colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!submitting}
+              />
+              {password.length > 0 && <PasswordRequirements password={password} />}
+              <TextInput
+                style={[styles.input, { marginTop: password.length > 0 ? 16 : 0 }]}
+                placeholder="Confirm new password"
+                placeholderTextColor={colors.textMuted}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!submitting}
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
+              />
 
-            <TouchableOpacity
-              style={[styles.button, submitting && styles.buttonDisabled]}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color={colors.onPrimary} />
-              ) : (
-                <Text style={styles.buttonText}>Reset Password</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+              <TouchableOpacity
+                style={[styles.button, submitting && styles.buttonDisabled]}
+                onPress={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={colors.onPrimary} />
+                ) : (
+                  <Text style={styles.buttonText}>Reset Password</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 

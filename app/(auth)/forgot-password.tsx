@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, radius } from '../../src/constants/theme';
+import { Screen } from '../../src/components/common/Screen';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -62,62 +63,64 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{submitted ? 'Check Your Email' : 'Forgot Password'}</Text>
-        <Text style={styles.subtitle}>
-          {submitted
-            ? "If an account exists for that email, we've sent a reset link. It expires in 1 hour."
-            : "Enter your email and we'll send you a link to reset your password."}
-        </Text>
+    <Screen>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>{submitted ? 'Check Your Email' : 'Forgot Password'}</Text>
+          <Text style={styles.subtitle}>
+            {submitted
+              ? "If an account exists for that email, we've sent a reset link. It expires in 1 hour."
+              : "Enter your email and we'll send you a link to reset your password."}
+          </Text>
 
-        <View style={styles.form}>
-          {submitted ? (
-            <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/login')}>
-              <Text style={styles.buttonText}>Back to Sign In</Text>
-            </TouchableOpacity>
-          ) : (
-            <>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor={colors.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                editable={!submitting}
-                returnKeyType="go"
-                onSubmitEditing={handleSubmit}
-              />
-
-              <TouchableOpacity
-                style={[styles.button, submitting && styles.buttonDisabled]}
-                onPress={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator color={colors.onPrimary} />
-                ) : (
-                  <Text style={styles.buttonText}>Send Reset Link</Text>
-                )}
+          <View style={styles.form}>
+            {submitted ? (
+              <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/login')}>
+                <Text style={styles.buttonText}>Back to Sign In</Text>
               </TouchableOpacity>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  editable={!submitting}
+                  returnKeyType="go"
+                  onSubmitEditing={handleSubmit}
+                />
 
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={() => router.replace('/(auth)/login')}
-                disabled={submitting}
-              >
-                <Text style={styles.linkText}>Back to Sign In</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+                <TouchableOpacity
+                  style={[styles.button, submitting && styles.buttonDisabled]}
+                  onPress={handleSubmit}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color={colors.onPrimary} />
+                  ) : (
+                    <Text style={styles.buttonText}>Send Reset Link</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.linkButton}
+                  onPress={() => router.replace('/(auth)/login')}
+                  disabled={submitting}
+                >
+                  <Text style={styles.linkText}>Back to Sign In</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 

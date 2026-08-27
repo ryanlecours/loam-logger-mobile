@@ -110,6 +110,48 @@ loam-logger-mobile/
   codegen.ts          # GraphQL codegen config
 ```
 
+## Screen layout: safe areas
+
+Most stacks in this app run `headerShown: false`, and Android runs
+`edgeToEdgeEnabled`. Nothing above a screen reserves the status bar, the notch,
+or the home indicator, so a screen whose root is a plain `<View style={{flex: 1}}>`
+draws its first pixel at the display's first pixel and its title lands behind
+the clock and battery.
+
+**Every screen rendered without a native header must root itself in
+`src/components/common/Screen.tsx`.**
+
+```tsx
+import { Screen } from '../../src/components/common/Screen';
+
+return (
+  <Screen>
+    {/* ... */}
+  </Screen>
+);
+```
+
+`Screen` reads the real OS insets and applies them ON TOP OF whatever padding
+the style declares, so `<Screen style={{ paddingTop: 16 }}>` keeps its 16pt of
+design spacing and gains the device inset underneath. It also carries the
+`flex: 1` and the obsidian background every screen needs, so the old
+`container: { flex: 1, backgroundColor: colors.background }` style is redundant
+once a screen adopts it.
+
+Two rules that follow from that:
+
+- **Never hard-code a top gap** (`marginTop: 76`, `paddingTop: 60`) to clear the
+  status bar. That is a guess at one device's inset: wrong on every other
+  device, and silently absent the moment the first element changes. Keep only
+  the design spacing you actually want between the inset and the content.
+- **Pass `edges` when something else owns an edge.** `['top']` inside the tab
+  navigator (the tab bar covers the bottom), and `['top']` when a
+  `KeyboardAvoidingView` sits directly inside and the reserved bottom inset
+  would float content above the open keyboard.
+
+Screens that draw a native header (`app/bike/`, `app/ride/`,
+`app/settings-detail/`) do not need this; the header already reserves the inset.
+
 ## Authentication Flow
 
 1. User opens app -> Root layout checks for stored tokens
