@@ -26,7 +26,10 @@ interface RecentRidesListProps {
   onSeeAll?: () => void;
   onRidePress?: (ride: Ride) => void;
   onConnectPress?: () => void;
+  onRecordPress?: () => void;
   onAddRidePress?: () => void;
+  /** A session is already running, so the record action returns to it. */
+  recorderLive?: boolean;
 }
 
 export function RecentRidesList({
@@ -38,7 +41,9 @@ export function RecentRidesList({
   onSeeAll,
   onRidePress,
   onConnectPress,
+  onRecordPress,
   onAddRidePress,
+  recorderLive = false,
 }: RecentRidesListProps) {
   const getBikeName = (bikeId: string | null | undefined): string | undefined => {
     if (!bikeId) return undefined;
@@ -96,7 +101,8 @@ export function RecentRidesList({
           <Ionicons name="bicycle-outline" size={32} color={colors.textMuted} />
           <Text style={styles.emptyText}>No rides yet</Text>
           <Text style={styles.emptySubtext}>
-            Connect Strava, Garmin, WHOOP, or Suunto to import past rides, or log one manually.
+            Connect Strava, Garmin, WHOOP, or Suunto to import past rides, or
+            record your next one right here.
           </Text>
           {onConnectPress && (
             <TouchableOpacity
@@ -112,6 +118,24 @@ export function RecentRidesList({
                 accessibilityElementsHidden
               />
               <Text style={styles.emptyPrimaryButtonText}>Connect a data source</Text>
+            </TouchableOpacity>
+          )}
+          {onRecordPress && (
+            <TouchableOpacity
+              style={styles.emptyRecordButton}
+              onPress={onRecordPress}
+              accessibilityRole="button"
+              accessibilityLabel={recorderLive ? 'Back to your ride in progress' : 'Record a ride'}
+            >
+              <Ionicons
+                name={recorderLive ? 'radio-button-on' : 'play'}
+                size={16}
+                color={colors.primary}
+                accessibilityElementsHidden
+              />
+              <Text style={styles.emptyRecordButtonText}>
+                {recorderLive ? 'Back to your ride' : 'Record a ride'}
+              </Text>
             </TouchableOpacity>
           )}
           {onAddRidePress && (
@@ -135,24 +159,49 @@ export function RecentRidesList({
         <Text style={styles.title} accessibilityRole="header">
           RECENT RIDES
         </Text>
-        {onSeeAll && (
-          <TouchableOpacity
-            onPress={onSeeAll}
-            style={styles.seeAllButton}
-            accessibilityRole="button"
-            // "See all" alone is meaningless out of context, which is exactly
-            // how a screen reader encounters it.
-            accessibilityLabel="See all rides"
-          >
-            <Text style={styles.seeAllText}>See all</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={colors.primary}
-              accessibilityElementsHidden
-            />
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerActions}>
+          {/* Recording used to live only behind the Rides tab's FAB, inside an
+              alert offering two choices, which is three taps and a guess away
+              from the screen riders open first. It sits in the header rather
+              than as a floating button because the dashboard scrolls and its
+              subject is the bike, not the ride. */}
+          {onRecordPress && (
+            <TouchableOpacity
+              onPress={onRecordPress}
+              style={styles.headerAction}
+              accessibilityRole="button"
+              accessibilityLabel={recorderLive ? 'Back to your ride in progress' : 'Record a ride'}
+            >
+              <Ionicons
+                name={recorderLive ? 'radio-button-on' : 'play'}
+                size={14}
+                color={colors.primary}
+                accessibilityElementsHidden
+              />
+              <Text style={styles.headerActionText}>
+                {recorderLive ? 'Back to ride' : 'Record'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {onSeeAll && (
+            <TouchableOpacity
+              onPress={onSeeAll}
+              style={styles.seeAllButton}
+              accessibilityRole="button"
+              // "See all" alone is meaningless out of context, which is exactly
+              // how a screen reader encounters it.
+              accessibilityLabel="See all rides"
+            >
+              <Text style={styles.seeAllText}>See all</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={colors.primary}
+                accessibilityElementsHidden
+              />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <View style={styles.card}>
         {rides.map((ride) => (
@@ -182,6 +231,22 @@ const styles = StyleSheet.create({
   title: {
     ...type.eyebrow,
     color: colors.textSecondary,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xl,
+  },
+  headerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+    // The header row is short type; the target has to be tall enough on its own.
+    minHeight: 44,
+  },
+  headerActionText: {
+    ...type.footnoteStrong,
+    color: colors.primary,
   },
   seeAllButton: {
     minHeight: 44,
@@ -241,6 +306,23 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     gap: space.sm,
     marginTop: space.xl,
+  },
+  emptyRecordButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    gap: space.sm,
+    marginTop: space.lg,
+  },
+  emptyRecordButtonText: {
+    ...type.footnoteStrong,
+    color: colors.primary,
   },
   emptyPrimaryButtonText: {
     ...type.footnoteStrong,

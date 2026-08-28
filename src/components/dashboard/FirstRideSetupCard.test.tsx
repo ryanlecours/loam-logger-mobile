@@ -7,15 +7,21 @@ import { FirstRideSetupCard } from './FirstRideSetupCard';
  */
 
 const onConnectPress = jest.fn();
+const onRecordPress = jest.fn();
 const onAddRidePress = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
-async function renderCard() {
+async function renderCard(recorderLive = false) {
   await render(
-    <FirstRideSetupCard onConnectPress={onConnectPress} onAddRidePress={onAddRidePress} />,
+    <FirstRideSetupCard
+      onConnectPress={onConnectPress}
+      onRecordPress={onRecordPress}
+      onAddRidePress={onAddRidePress}
+      recorderLive={recorderLive}
+    />,
   );
 }
 
@@ -26,6 +32,28 @@ describe('FirstRideSetupCard', () => {
     await fireEvent.press(screen.getByLabelText('Connect a data source'));
 
     expect(onConnectPress).toHaveBeenCalledTimes(1);
+  });
+
+  // Recording was reachable only from the Rides tab's FAB, behind an alert
+  // offering two choices. It needs no account and no typing, so it belongs on
+  // the screen a rider with nothing logged is already looking at.
+  it('offers recording without leaving the app', async () => {
+    await renderCard();
+
+    await fireEvent.press(screen.getByLabelText('Record a ride'));
+
+    expect(onRecordPress).toHaveBeenCalledTimes(1);
+  });
+
+  // A rider can back out of the record screen mid-ride. Saying "Record a ride"
+  // then would invite starting a second one on top of the live session.
+  it('points back at a session that is already running', async () => {
+    await renderCard(true);
+
+    expect(screen.queryByLabelText('Record a ride')).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Back to your ride in progress'));
+
+    expect(onRecordPress).toHaveBeenCalledTimes(1);
   });
 
   it('offers the manual path for a rider who tracks nothing', async () => {

@@ -4,7 +4,10 @@ import { colors, radius, space, type } from '../../constants/theme';
 
 interface FirstRideSetupCardProps {
   onConnectPress: () => void;
+  onRecordPress: () => void;
   onAddRidePress: () => void;
+  /** A session is already running, so the record action returns to it. */
+  recorderLive?: boolean;
 }
 
 /**
@@ -17,12 +20,23 @@ interface FirstRideSetupCardProps {
  * inside a card headed "No rides yet", framed as an absence rather than a next
  * step.
  *
- * Importing history is deliberately not a third button. Backfill runs per
+ * Three actions, in the order they pay off. Connecting comes first because it
+ * backfills a whole history at once, so components start accruing the hours
+ * they have already earned. Recording is second: it needs no account and no
+ * typing, but it only produces the ride the rider is about to do. Typing one in
+ * by hand is last, and stays a link rather than a button.
+ *
+ * Importing history is deliberately not a fourth action. Backfill runs per
  * provider from the provider's own row in Settings, so it cannot start before
  * something is connected. Connecting IS the import path, and the copy says so
  * rather than offering a button that would dead-end.
  */
-export function FirstRideSetupCard({ onConnectPress, onAddRidePress }: FirstRideSetupCardProps) {
+export function FirstRideSetupCard({
+  onConnectPress,
+  onRecordPress,
+  onAddRidePress,
+  recorderLive = false,
+}: FirstRideSetupCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.iconWell}>
@@ -34,7 +48,8 @@ export function FirstRideSetupCard({ onConnectPress, onAddRidePress }: FirstRide
       </Text>
       <Text style={styles.body}>
         Your parts are tracked, but none of them log hours until rides land.
-        Connect an account and your past rides come in with it, or log one by hand.
+        Connect an account and your past rides come in with it, or record your
+        next one right here.
       </Text>
 
       <TouchableOpacity
@@ -55,11 +70,29 @@ export function FirstRideSetupCard({ onConnectPress, onAddRidePress }: FirstRide
 
       <TouchableOpacity
         style={styles.secondaryButton}
+        onPress={onRecordPress}
+        accessibilityRole="button"
+        accessibilityLabel={recorderLive ? 'Back to your ride in progress' : 'Record a ride'}
+      >
+        <Ionicons
+          name={recorderLive ? 'radio-button-on' : 'play'}
+          size={16}
+          color={colors.primary}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+        <Text style={styles.secondaryButtonText}>
+          {recorderLive ? 'Back to your ride' : 'Record a ride'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.tertiaryButton}
         onPress={onAddRidePress}
         accessibilityRole="button"
         accessibilityLabel="Log a ride manually"
       >
-        <Text style={styles.secondaryButtonText}>Log a ride manually</Text>
+        <Text style={styles.tertiaryButtonText}>Log a ride manually</Text>
       </TouchableOpacity>
     </View>
   );
@@ -114,12 +147,29 @@ const styles = StyleSheet.create({
     color: colors.onPrimary,
   },
   secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.md,
+    alignSelf: 'stretch',
+    minHeight: 44,
+    paddingHorizontal: space.xxl,
+    marginTop: space.lg,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+  },
+  secondaryButtonText: {
+    ...type.calloutStrong,
+    color: colors.primary,
+  },
+  tertiaryButton: {
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: space.xl,
     marginTop: space.md,
   },
-  secondaryButtonText: {
+  tertiaryButtonText: {
     ...type.footnote,
     color: colors.textMuted,
     textDecorationLine: 'underline',

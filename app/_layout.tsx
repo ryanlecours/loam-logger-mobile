@@ -10,10 +10,11 @@ import { rideRecorder } from '../src/lib/recording/recorder';
 // module scope. Must run on every JS launch before the task can deliver a
 // batch, including a launch that happens in the background.
 import '../src/lib/recording/locationTask';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { colors } from '../src/constants/theme';
 import { configureNotificationHandler, setupNotificationResponseListener } from '../src/lib/notifications';
 import { useNotifications } from '../src/hooks/useNotifications';
+import { useRecorderStatus, isRecorderLive } from '../src/hooks/useRecorderStatus';
 import { usePendingNotificationRoute } from '../src/hooks/usePendingNotificationRoute';
 import { useUserTier } from '../src/hooks/useUserTier';
 import { initializeRevenueCat } from '../src/lib/revenuecat';
@@ -61,15 +62,8 @@ function RootLayoutNav() {
   const segments = useSegments() as string[];
   const router = useRouter();
 
-  // Status only, not the full snapshot: the snapshot object is republished
-  // on every GPS point, which would re-render this layout once a second for
-  // the whole ride. useSyncExternalStore compares the returned value, so
-  // subscribing to the status string alone re-renders only on transitions.
-  const recorderStatus = useSyncExternalStore(
-    rideRecorder.subscribe,
-    () => rideRecorder.getSnapshot().status,
-    () => rideRecorder.getSnapshot().status,
-  );
+  // Status only, not the full snapshot. See useRecorderStatus for why.
+  const recorderStatus = useRecorderStatus();
 
   useEffect(() => {
     if (loading) return;
@@ -157,7 +151,7 @@ function RootLayoutNav() {
   // (already on the record screen) from pushing a duplicate.
   const resurfacedRef = useRef(false);
   useEffect(() => {
-    const live = recorderStatus === 'recording' || recorderStatus === 'paused';
+    const live = isRecorderLive(recorderStatus);
     if (!live) {
       resurfacedRef.current = false;
       return;

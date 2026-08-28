@@ -34,6 +34,7 @@ import { Skeleton, SkeletonGroup } from '../../src/components/common/Skeleton';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions';
 import { usePendingRides } from '../../src/hooks/usePendingRides';
+import { useRecorderStatus, isRecorderLive } from '../../src/hooks/useRecorderStatus';
 import { PendingRideCard } from '../../src/components/rides';
 import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
@@ -186,6 +187,11 @@ export default function DashboardScreen() {
 
   // Rides logged offline, waiting in the outbox to upload.
   const { pendingRides } = usePendingRides();
+
+  // Status only. A rider can back out of the record screen mid-ride, so the
+  // dashboard has to know a session is running or its record action would
+  // invite starting a second one.
+  const recorderLive = isRecorderLive(useRecorderStatus());
 
   useEffect(() => {
     if (calibrationData?.calibrationState?.showOverlay) {
@@ -433,7 +439,9 @@ export default function DashboardScreen() {
         {showFirstRun && (
           <FirstRideSetupCard
             onConnectPress={() => router.push('/(tabs)/settings' as Href)}
+            onRecordPress={() => router.push('/ride/record' as Href)}
             onAddRidePress={() => router.push('/ride/add' as Href)}
+            recorderLive={recorderLive}
           />
         )}
 
@@ -461,7 +469,9 @@ export default function DashboardScreen() {
             onSeeAll={() => router.push('/(tabs)/rides' as Href)}
             onRidePress={(ride) => router.push(`/ride/${ride.id}` as Href)}
             onConnectPress={() => router.push('/(tabs)/settings' as Href)}
+            onRecordPress={() => router.push('/ride/record' as Href)}
             onAddRidePress={() => router.push('/ride/add' as Href)}
+            recorderLive={recorderLive}
           />
         )}
 
