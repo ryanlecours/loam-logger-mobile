@@ -455,7 +455,6 @@ export type ComponentHistoryPayload = {
   anchor?: Maybe<Scalars['String']['output']>;
   component: Component;
   conditions: Array<ComponentConditionBucket>;
-  consistencyWarning: Scalars['Boolean']['output'];
   coverage: ComponentHistoryCoverage;
   cumulative: Array<ComponentCumulativePoint>;
   driftDetected: Scalars['Boolean']['output'];
@@ -1958,7 +1957,7 @@ export type ComponentHistoryQueryVariables = Exact<{
 }>;
 
 
-export type ComponentHistoryQuery = { __typename?: 'Query', componentHistory: { __typename?: 'ComponentHistoryPayload', anchor?: string | null, coverage: ComponentHistoryCoverage, historyIncomplete: boolean, driftDetected: boolean, consistencyWarning: boolean, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, status: ComponentStatus, hoursUsed: number, serviceDueAtHours?: number | null, priorHours: number, lifetimeHours: number, hoursSinceService: number, hoursSinceInspection: number, inspectionDueAtHours?: number | null, lastInspectedAt?: string | null, installedAt?: string | null, lastServicedAt?: string | null, retiredAt?: string | null, replacedById?: string | null }, lifetime: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, firstRideAt?: string | null, lastRideAt?: string | null }, sinceService: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number }, tenures: Array<{ __typename?: 'ComponentTenure', id: string, slotKey: string, installedAt: string, removedAt?: string | null, synthetic: boolean, bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, thumbnailUrl?: string | null } | null, totals: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number } }>, serviceEvents: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number }>, conditions: Array<{ __typename?: 'ComponentConditionBucket', condition: WeatherCondition, rideCount: number, durationSeconds: number }>, cumulative: Array<{ __typename?: 'ComponentCumulativePoint', date: string, cumulativeHours: number, cumulativeDistanceMeters: number, cumulativeElevationGainMeters: number }> } };
+export type ComponentHistoryQuery = { __typename?: 'Query', componentHistory: { __typename?: 'ComponentHistoryPayload', anchor?: string | null, coverage: ComponentHistoryCoverage, historyIncomplete: boolean, driftDetected: boolean, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, status: ComponentStatus, hoursUsed: number, serviceDueAtHours?: number | null, priorHours: number, lifetimeHours: number, hoursSinceService: number, hoursSinceInspection: number, inspectionDueAtHours?: number | null, lastInspectedAt?: string | null, installedAt?: string | null, lastServicedAt?: string | null, retiredAt?: string | null, replacedById?: string | null }, lifetime: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, firstRideAt?: string | null, lastRideAt?: string | null }, sinceService: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number }, tenures: Array<{ __typename?: 'ComponentTenure', id: string, slotKey: string, installedAt: string, removedAt?: string | null, synthetic: boolean, bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, thumbnailUrl?: string | null } | null, totals: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number } }>, serviceEvents: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number }>, conditions: Array<{ __typename?: 'ComponentConditionBucket', condition: WeatherCondition, rideCount: number, durationSeconds: number }>, cumulative: Array<{ __typename?: 'ComponentCumulativePoint', date: string, cumulativeHours: number, cumulativeDistanceMeters: number, cumulativeElevationGainMeters: number }> } };
 
 export type UpdateBikeComponentInstallMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -3232,7 +3231,6 @@ export const ComponentHistoryDocument = gql`
     coverage
     historyIncomplete
     driftDetected
-    consistencyWarning
     component {
       id
       type
@@ -3267,6 +3265,8 @@ export const ComponentHistoryDocument = gql`
     sinceService {
       rideCount
       durationSeconds
+      distanceMeters
+      elevationGainMeters
     }
     tenures {
       id

@@ -131,14 +131,15 @@ export default function ComponentHistoryScreen() {
         })();
 
   // Hours come from the stored, ledger-backed counters: they include declared
-  // pre-Loam hours, which the ride-summed totals cannot know about.
-  const shownSeconds = Math.round(
-    (window === 'lifetime'
-      ? payload.component.lifetimeHours
-      : payload.component.hoursSinceService) * 3600
-  );
-  const shownRides =
-    window === 'lifetime' ? payload.lifetime.rideCount : payload.sinceService.rideCount;
+  // pre-Loam hours, which the ride-summed totals cannot know about. The API
+  // already returns sinceService that way. Rides, distance and elevation are
+  // summed from the rides in either window.
+  const shownTotals = window === 'lifetime' ? payload.lifetime : payload.sinceService;
+  const shownSeconds =
+    window === 'lifetime'
+      ? Math.round(payload.component.lifetimeHours * 3600)
+      : payload.sinceService.durationSeconds;
+  const shownRides = shownTotals.rideCount;
 
   return (
     <>
@@ -185,19 +186,11 @@ export default function ComponentHistoryScreen() {
               <Stat label="Rides" value={shownRides.toLocaleString()} />
               <Stat
                 label="Distance"
-                value={
-                  window === 'lifetime'
-                    ? formatDistance(payload.lifetime.distanceMeters, distanceUnit)
-                    : '—'
-                }
+                value={formatDistance(shownTotals.distanceMeters, distanceUnit)}
               />
               <Stat
                 label="Elevation"
-                value={
-                  window === 'lifetime'
-                    ? formatElevation(payload.lifetime.elevationGainMeters, distanceUnit)
-                    : '—'
-                }
+                value={formatElevation(shownTotals.elevationGainMeters, distanceUnit)}
               />
             </View>
 
@@ -207,13 +200,14 @@ export default function ComponentHistoryScreen() {
                   ? `First recorded ride ${fmtDate(payload.lifetime.firstRideAt)}.`
                   : 'No rides recorded against this component yet.'
                 : payload.anchor
-                ? `Counting from the last service on ${fmtDate(
-                    payload.anchor
-                  )}. Distance and elevation are only totalled over a component's whole life.`
-                : "Counting all recorded rides. Distance and elevation are only totalled over a component's whole life."}
+                ? `Counting from the last service on ${fmtDate(payload.anchor)}.`
+                : 'No service logged yet, so this counts every recorded ride.'}
             </Text>
 
-            {payload.component.priorHours > 0 && (
+            {/* Since a service, the hours are measured from that service's
+                reading, so declared pre-Loam hours only remain in them while
+                none is logged. */}
+            {payload.component.priorHours > 0 && (window === 'lifetime' || !payload.anchor) && (
               <Text style={styles.caption}>
                 Includes {Math.round(payload.component.priorHours)}h declared before this
                 component was tracked in Loam Logger.
@@ -227,20 +221,13 @@ export default function ComponentHistoryScreen() {
               </Text>
             )}
 
-            {(payload.historyIncomplete || payload.consistencyWarning) && (
+            {payload.historyIncomplete && (
               <View style={styles.notice}>
                 {payload.historyIncomplete && (
                   <Text style={styles.noticeText}>
                     Part of this component's install history is missing, so these totals
                     may understate its real life. Deleting a bike removes the records
                     linking its rides to the parts that were on it.
-                  </Text>
-                )}
-                {payload.consistencyWarning && (
-                  <Text style={styles.noticeText}>
-                    The since-service hours on this component exceed its recorded
-                    lifetime. That usually means it moved to a busier bike without a
-                    service being logged at the swap.
                   </Text>
                 )}
               </View>

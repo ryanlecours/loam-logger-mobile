@@ -5,16 +5,15 @@
 # constant-size for any history length. ComponentRides is the paged row-level
 # companion.
 #
-# `lifetime` and `sinceService` are different windows, not two views of one
-# number: lifetime spans every install tenure with no service anchor, while
-# sinceService is the canonical dashboard window.
+# `lifetime` and `sinceService` are two windows over the same tenure-bounded
+# rides: every ride, and the rides since the latest service. sinceService's
+# hours are the stored counter the dashboard shows.
 query ComponentHistory($componentId: ID!) {
   componentHistory(componentId: $componentId) {
     anchor
     coverage
     historyIncomplete
     driftDetected
-    consistencyWarning
     component {
       id
       type
@@ -52,6 +51,8 @@ query ComponentHistory($componentId: ID!) {
     sinceService {
       rideCount
       durationSeconds
+      distanceMeters
+      elevationGainMeters
     }
     tenures {
       id
