@@ -50,7 +50,7 @@ const CONDITION_BAR: Record<string, string> = {
 const fmtDate = (iso: string): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return 'Unknown';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export default function ComponentHistoryScreen() {

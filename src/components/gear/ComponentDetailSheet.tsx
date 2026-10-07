@@ -36,7 +36,8 @@ interface ComponentDetailSheetProps {
   onReplace: () => void;
   /** Opens the full-screen "rides behind this component's hours" view. */
   onViewRides: () => void;
-  onViewHistory: () => void;
+  /** Opens the component's full history screen. The row is hidden when omitted. */
+  onViewHistory?: () => void;
   /**
    * Fires when a user taps a service log row in the embedded history list.
    * Parent should render an EditServiceSheet as a sibling to this one —
@@ -576,16 +577,18 @@ export function ComponentDetailSheet({
       {/* The whole life story: every bike it has been mounted on, lifetime
           distance/elevation/hours, services and conditions. The rides link
           above stays the per-ride attribution view for THIS service interval. */}
-      <TouchableOpacity
-        onPress={onViewHistory}
-        disabled={snoozing || snoozeSuccess}
-        style={styles.viewRidesButton}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
-        <Text style={styles.viewRidesText}>View full history</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-      </TouchableOpacity>
+      {onViewHistory && (
+        <TouchableOpacity
+          onPress={onViewHistory}
+          disabled={snoozing || snoozeSuccess}
+          style={styles.viewRidesButton}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.viewRidesText}>View full history</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+      )}
 
       {/* Actions */}
       <View style={styles.actions}>
