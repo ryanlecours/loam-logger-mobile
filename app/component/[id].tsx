@@ -59,7 +59,7 @@ export default function ComponentHistoryScreen() {
   const componentId = String(params.id);
   const { distanceUnit } = useDistanceUnit();
   const { isPro } = useUserTier();
-  const [window, setWindow] = useState<'lifetime' | 'sinceService'>('lifetime');
+  const [range, setRange] = useState<'lifetime' | 'sinceService'>('lifetime');
 
   const { data, loading, error } = useComponentHistoryQuery({
     variables: { componentId },
@@ -124,7 +124,7 @@ export default function ComponentHistoryScreen() {
             (t) => !t.removedAt && t.bike?.id === payload.component.bikeId
           );
           return current
-            ? `On ${current.bike?.nickname ?? current.bike?.model ?? 'bike'} since ${fmtDate(
+            ? `On ${current.bike?.nickname || current.bike?.model || 'bike'} since ${fmtDate(
                 current.installedAt
               )}`
             : 'Currently installed';
@@ -134,12 +134,15 @@ export default function ComponentHistoryScreen() {
   // pre-Loam hours, which the ride-summed totals cannot know about. The API
   // already returns sinceService that way. Rides, distance and elevation are
   // summed from the rides in either window.
-  const shownTotals = window === 'lifetime' ? payload.lifetime : payload.sinceService;
+  const shownTotals = range === 'lifetime' ? payload.lifetime : payload.sinceService;
   const shownSeconds =
-    window === 'lifetime'
+    range === 'lifetime'
       ? Math.round(payload.component.lifetimeHours * 3600)
       : payload.sinceService.durationSeconds;
   const shownRides = shownTotals.rideCount;
+
+  // Only the ride-derived sections need tenures; the logbook does not.
+  const hasTenures = payload.coverage !== 'NO_TENURE_DATA';
 
   return (
     <>
@@ -158,26 +161,36 @@ export default function ComponentHistoryScreen() {
             to the numbers and above the fold. */}
         <GarminDerivedNote style={styles.attribution} />
 
-        {payload.coverage === 'NO_TENURE_DATA' ? (
-          <View style={styles.notice}>
-            <Text style={styles.noticeText}>
-              This component has no recorded time on a bike yet, so there is nothing to
-              total up. Install it on a bike and its rides will start accruing here.
-            </Text>
-          </View>
+        {!hasTenures ? (
+          <>
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>
+                This component has no recorded time on a bike yet, so there is nothing to
+                total up. Install it on a bike and its rides will start accruing here.
+              </Text>
+            </View>
+            {/* Declared hours live on the component, not on any tenure, so a
+                spare can carry them before it has ever been installed. */}
+            {payload.component.priorHours > 0 && (
+              <Text style={styles.caption}>
+                {Math.round(payload.component.priorHours)}h declared before this component
+                was tracked in Loam Logger.
+              </Text>
+            )}
+          </>
         ) : (
           <>
             {/* Window toggle */}
             <View style={styles.toggleRow}>
               <Toggle
                 label="Lifetime"
-                active={window === 'lifetime'}
-                onPress={() => setWindow('lifetime')}
+                active={range === 'lifetime'}
+                onPress={() => setRange('lifetime')}
               />
               <Toggle
                 label="Since last service"
-                active={window === 'sinceService'}
-                onPress={() => setWindow('sinceService')}
+                active={range === 'sinceService'}
+                onPress={() => setRange('sinceService')}
               />
             </View>
 
@@ -195,7 +208,7 @@ export default function ComponentHistoryScreen() {
             </View>
 
             <Text style={styles.caption}>
-              {window === 'lifetime'
+              {range === 'lifetime'
                 ? payload.lifetime.firstRideAt
                   ? `First recorded ride ${fmtDate(payload.lifetime.firstRideAt)}.`
                   : 'No rides recorded against this component yet.'
@@ -207,7 +220,7 @@ export default function ComponentHistoryScreen() {
             {/* Since a service, the hours are measured from that service's
                 reading, so declared pre-Loam hours only remain in them while
                 none is logged. */}
-            {payload.component.priorHours > 0 && (window === 'lifetime' || !payload.anchor) && (
+            {payload.component.priorHours > 0 && (range === 'lifetime' || !payload.anchor) && (
               <Text style={styles.caption}>
                 Includes {Math.round(payload.component.priorHours)}h declared before this
                 component was tracked in Loam Logger.
@@ -223,13 +236,11 @@ export default function ComponentHistoryScreen() {
 
             {payload.historyIncomplete && (
               <View style={styles.notice}>
-                {payload.historyIncomplete && (
-                  <Text style={styles.noticeText}>
-                    Part of this component's install history is missing, so these totals
-                    may understate its real life. Deleting a bike removes the records
-                    linking its rides to the parts that were on it.
-                  </Text>
-                )}
+                <Text style={styles.noticeText}>
+                  Part of this component's install history is missing, so these totals
+                  may understate its real life. Deleting a bike removes the records
+                  linking its rides to the parts that were on it.
+                </Text>
               </View>
             )}
 
@@ -252,7 +263,7 @@ export default function ComponentHistoryScreen() {
                 )}
                 <View style={styles.tenureInfo}>
                   <Text style={styles.tenureName} numberOfLines={1}>
-                    {t.bike?.nickname ??
+                    {t.bike?.nickname ||
                       (t.bike ? `${t.bike.manufacturer} ${t.bike.model}` : 'Deleted bike')}
                   </Text>
                   <Text style={styles.tenureDates}>
@@ -323,51 +334,55 @@ export default function ComponentHistoryScreen() {
                 </View>
               ))
             )}
-
-            {/* Logbook: work performed and inspections carried out */}
-            <Text style={styles.sectionTitle}>LOGBOOK</Text>
-            {logEntries.length === 0 ? (
-              <Text style={styles.emptyText}>Nothing logged yet.</Text>
-            ) : (
-              logEntries.map((s) => (
-                <View key={s.id} style={styles.serviceRow}>
-                  <Ionicons
-                    name={s.kind === 'INSPECTION' ? 'eye-outline' : 'build-outline'}
-                    size={15}
-                    color={colors.textMuted}
-                  />
-                  <View style={styles.serviceInfo}>
-                    <Text style={styles.serviceDate}>
-                      {fmtDate(s.performedAt)}
-                      <Text style={styles.serviceKind}>
-                        {s.kind === 'INSPECTION' ? ' · Inspected' : ' · Serviced'}
-                      </Text>
-                    </Text>
-                    {!!s.notes && <Text style={styles.serviceNotes}>{s.notes}</Text>}
-                  </View>
-                  {/* A lifetime reading, as a mechanic would write it. */}
-                  <Text style={styles.serviceHours}>at {Math.round(s.hoursAtService)}h</Text>
-                </View>
-              ))
-            )}
-
-            <TouchableOpacity
-              style={styles.linkRow}
-              onPress={() =>
-                // String href + `as Href` matches the app's router.push
-                // convention; the typedRoutes union is regenerated by the
-                // Expo CLI on start.
-                router.push(
-                  (`/component-rides/${componentId}` +
-                    `?componentLabel=${encodeURIComponent(title)}` +
-                    `&bikeId=${encodeURIComponent(payload.component.bikeId ?? '')}`) as Href
-                )
-              }
-            >
-              <Text style={styles.linkText}>View the individual rides</Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-            </TouchableOpacity>
           </>
+        )}
+
+        {/* Logbook: work performed and inspections carried out. Outside the
+            coverage gate because a spare with no tenures can still have been
+            serviced or inspected. */}
+        <Text style={styles.sectionTitle}>LOGBOOK</Text>
+        {logEntries.length === 0 ? (
+          <Text style={styles.emptyText}>Nothing logged yet.</Text>
+        ) : (
+          logEntries.map((s) => (
+            <View key={s.id} style={styles.serviceRow}>
+              <Ionicons
+                name={s.kind === 'INSPECTION' ? 'eye-outline' : 'build-outline'}
+                size={15}
+                color={colors.textMuted}
+              />
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceDate}>
+                  {fmtDate(s.performedAt)}
+                  <Text style={styles.serviceKind}>
+                    {s.kind === 'INSPECTION' ? ' · Inspected' : ' · Serviced'}
+                  </Text>
+                </Text>
+                {!!s.notes && <Text style={styles.serviceNotes}>{s.notes}</Text>}
+              </View>
+              {/* A lifetime reading, as a mechanic would write it. */}
+              <Text style={styles.serviceHours}>at {Math.round(s.hoursAtService)}h</Text>
+            </View>
+          ))
+        )}
+
+        {hasTenures && (
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() =>
+              // String href + `as Href` matches the app's router.push
+              // convention; the typedRoutes union is regenerated by the
+              // Expo CLI on start.
+              router.push(
+                (`/component-rides/${componentId}` +
+                  `?componentLabel=${encodeURIComponent(title)}` +
+                  `&bikeId=${encodeURIComponent(payload.component.bikeId ?? '')}`) as Href
+              )
+            }
+          >
+            <Text style={styles.linkText}>View the individual rides</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          </TouchableOpacity>
         )}
       </ScrollView>
     </>
@@ -492,7 +507,9 @@ const styles = StyleSheet.create({
 
   conditionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
   conditionIcon: { width: 18 },
-  conditionLabel: { color: colors.textSecondary, fontSize: 13, width: 72 },
+  // minWidth rather than width so labels and counts grow under Dynamic Type
+  // instead of clipping; the bar's flex: 1 absorbs the difference.
+  conditionLabel: { color: colors.textSecondary, fontSize: 13, minWidth: 72 },
   barTrack: {
     flex: 1,
     height: 8,
@@ -501,7 +518,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   barFill: { height: '100%', borderRadius: radius.full },
-  conditionCount: { color: colors.textMuted, fontSize: 12, width: 28, textAlign: 'right' },
+  conditionCount: { color: colors.textMuted, fontSize: 12, minWidth: 28, textAlign: 'right' },
 
   serviceRow: {
     flexDirection: 'row',
