@@ -297,8 +297,14 @@ export default function ComponentHistoryScreen() {
               <TouchableOpacity
                 style={styles.proRow}
                 onPress={() => router.push('/settings-detail/pricing' as Href)}
+                accessibilityRole="button"
+                accessibilityLabel="Ride conditions are included with Pro, see plans"
               >
-                <Text style={styles.proText}>Ride conditions are recorded with Pro.</Text>
+                {/* Weather is recorded on every ride regardless of tier; Pro
+                    unlocks viewing it, so the copy must not claim otherwise. */}
+                <Text style={styles.proText}>
+                  See the conditions this component has ridden in with Pro.
+                </Text>
                 <View style={styles.proChip}>
                   <Text style={styles.proChipText}>PRO</Text>
                 </View>
@@ -542,8 +548,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 44,
     marginTop: 4,
+    gap: 12,
   },
-  proText: { color: colors.textSecondary, fontSize: 13 },
+  proText: { color: colors.textSecondary, fontSize: 13, flexShrink: 1 },
   proChip: {
     borderWidth: 1,
     borderColor: colors.primaryBorder,
