@@ -26,10 +26,11 @@ import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  // Tag every event with the build SHA so Sentry can group errors by release.
-  // EAS injects EXPO_PUBLIC_SENTRY_RELEASE at build time; local dev falls back
-  // to 'unknown' (inert since enabled: !__DEV__).
-  release: process.env.EXPO_PUBLIC_SENTRY_RELEASE || 'unknown',
+  // No `release` on purpose. Left unset, the SDK reads it from the native
+  // build as `bundleId@version+build`, which is also the release the EAS
+  // build phase uploads source maps and debug symbols under. A release from
+  // the environment never arrived: `eas build` runs on Expo's servers, which
+  // do not see the GitHub runner's env, so every event was tagged 'unknown'.
   tracesSampleRate: __DEV__ ? 1.0 : 0.2,
   enabled: !__DEV__,
   // Strip secret-looking keys (password, token, cookie, etc.) from every
