@@ -56,6 +56,19 @@ export function ComponentShareSheet({
   const [to, setTo] = useState(() => new Date());
   const [picking, setPicking] = useState<'from' | 'to' | null>(null);
 
+  // Start every open from the part's current first install and today. The
+  // sheet stays mounted between opens, so dates seeded once go stale: after a
+  // midnight, or after the history refetches with a different install date.
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) {
+      setFrom(earliestDay);
+      setTo(new Date());
+      setPicking(null);
+    }
+  }
+
   const { data, loading } = useComponentSharesQuery({
     variables: { componentId },
     skip: !visible,
@@ -71,15 +84,16 @@ export function ComponentShareSheet({
 
   const today = new Date();
   const isRange = scope === ComponentShareScope.Range;
-  const rangeInvalid = isRange && !isRangeValid(from, to, earliestDay, today);
+  // If the install date moves later while the sheet is open, a start picked
+  // before it would silently disable Create. Never start before the install.
+  const start = from.getTime() < earliestDay.getTime() ? earliestDay : from;
+  const rangeInvalid = isRange && !isRangeValid(start, to, earliestDay, today);
 
   const handleClose = useCallback(() => {
     setScope(ComponentShareScope.Lifetime);
-    setFrom(earliestDay);
-    setTo(new Date());
     setPicking(null);
     onClose();
-  }, [earliestDay, onClose]);
+  }, [onClose]);
 
   const shareUrl = async (url: string) => {
     try {
@@ -97,7 +111,7 @@ export function ComponentShareSheet({
           input: {
             componentId,
             scope,
-            ...(isRange ? { rangeStart: rangeStartIso(from), rangeEnd: rangeEndIso(to) } : {}),
+            ...(isRange ? { rangeStart: rangeStartIso(start), rangeEnd: rangeEndIso(to) } : {}),
           },
         },
       });
@@ -122,9 +136,13 @@ export function ComponentShareSheet({
           onPress: async () => {
             try {
               await revokeShare({ variables: { id } });
-            } catch (err) {
-              const { title, body } = describeSaveError(err, 'link change');
-              Alert.alert(title, body);
+            } catch {
+              // describeSaveError speaks of saving, which reads oddly for a
+              // removal, and whether the revoke landed is unknown here.
+              Alert.alert(
+                "Couldn't revoke the link",
+                'It may still work. Check your signal and try again.'
+              );
             }
           },
         },
@@ -132,10 +150,11 @@ export function ComponentShareSheet({
     );
   };
 
-  const onPickDate = (_event: DateTimePickerEvent, date?: Date) => {
+  const onPickDate = (event: DateTimePickerEvent, date?: Date) => {
     const which = picking;
+    // The Android dialog closes on any outcome; only a 'set' picked a date.
     if (Platform.OS === 'android') setPicking(null);
-    if (!date) return;
+    if (event.type !== 'set' || !date) return;
     if (which === 'from') setFrom(date);
     if (which === 'to') setTo(date);
   };
@@ -193,13 +212,13 @@ export function ComponentShareSheet({
           <View style={styles.rangeBlock}>
             <DateRow
               label="From"
-              date={from}
+              date={start}
               active={picking === 'from'}
               onPress={() => setPicking(picking === 'from' ? null : 'from')}
             />
             {picking === 'from' && (
               <DateTimePicker
-                value={from}
+                value={start}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
                 minimumDate={earliestDay}
@@ -219,11 +238,16 @@ export function ComponentShareSheet({
                 value={to}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                minimumDate={from}
+                minimumDate={start}
                 maximumDate={today}
                 onChange={onPickDate}
                 themeVariant="dark"
               />
+            )}
+            {rangeInvalid && (
+              <Text style={styles.hint} accessibilityRole="alert">
+                Pick dates between {fmtDay(earliestDay)} and today, with From on or before To.
+              </Text>
             )}
             <Text style={styles.hint}>
               A date range is fixed: it shows those days and nothing after them.

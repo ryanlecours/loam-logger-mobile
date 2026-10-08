@@ -31,12 +31,16 @@ const METRICS: Metrics = {
 
 const EARLIEST = new Date(2026, 0, 10, 14);
 
-function renderSheet() {
-  return render(
+function sheet(earliestDay: Date = EARLIEST) {
+  return (
     <SafeAreaProvider initialMetrics={METRICS}>
-      <ComponentShareSheet visible componentId="c1" earliestDay={EARLIEST} onClose={jest.fn()} />
+      <ComponentShareSheet visible componentId="c1" earliestDay={earliestDay} onClose={jest.fn()} />
     </SafeAreaProvider>
   );
+}
+
+function renderSheet(earliestDay?: Date) {
+  return render(sheet(earliestDay));
 }
 
 beforeEach(() => {
@@ -100,4 +104,63 @@ it('revokes a link only after the rider confirms', async () => {
     await confirm?.onPress?.();
   });
   expect(mockRevokeShare).toHaveBeenCalledWith({ variables: { id: 's1' } });
+});
+
+// The history refetches while the sheet can be open. A start picked before a
+// later install date would silently disable Create, so the start follows it.
+it('never starts a range before the install, even if it moves later while open', async () => {
+  const later = new Date(2026, 2, 5, 9);
+  const view = await renderSheet();
+  await fireEvent.press(screen.getByText('Date range'));
+  await view.rerender(sheet(later));
+  await fireEvent.press(screen.getByText('Create and share link'));
+
+  expect(mockCreateShare).toHaveBeenCalledWith({
+    variables: {
+      input: {
+        componentId: 'c1',
+        scope: ComponentShareScope.Range,
+        rangeStart: rangeStartIso(later),
+        rangeEnd: rangeEndIso(new Date()),
+      },
+    },
+  });
+});
+
+it('says why Create is off when no valid range exists', async () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  await renderSheet(tomorrow);
+  await fireEvent.press(screen.getByText('Date range'));
+
+  expect(screen.getByText(/Pick dates between/)).toBeTruthy();
+  await fireEvent.press(screen.getByText('Create and share link'));
+  expect(mockCreateShare).not.toHaveBeenCalled();
+});
+
+it('names a failed revoke as a revoke, not a save', async () => {
+  mockShares = [
+    {
+      id: 's1',
+      scope: ComponentShareScope.Lifetime,
+      rangeStart: null,
+      rangeEnd: null,
+      url: 'https://loamlogger.app/c/s1',
+      createdAt: new Date(2026, 5, 1).toISOString(),
+    },
+  ];
+  mockRevokeShare.mockRejectedValue(new Error('Network request failed'));
+  const alert = jest.spyOn(Alert, 'alert');
+  await renderSheet();
+
+  await fireEvent.press(screen.getByLabelText('Revoke the Lifetime link'));
+  const confirm = (alert.mock.calls[0][2] ?? []).find((b) => b.style === 'destructive');
+  await act(async () => {
+    await confirm?.onPress?.();
+  });
+
+  expect(alert).toHaveBeenLastCalledWith(
+    "Couldn't revoke the link",
+    'It may still work. Check your signal and try again.'
+  );
 });
