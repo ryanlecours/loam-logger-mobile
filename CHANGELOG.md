@@ -11,6 +11,44 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## Unreleased
+
+### App Store "What's New"
+
+Improved
+- Looks Good now logs an inspection. Pick how many more hours the part is good
+  for (half its service interval is suggested), and the next service you log
+  ends the extension
+- Undo after Looks Good now removes the inspection completely
+- A part's logbook shows how many more hours each inspection gave it
+
+### Internal
+
+Inspection copy and undo
+- The API turned `snoozeComponent` into "log an inspection" (loam-logger #332):
+  it writes an `INSPECTION` service log instead of raising `serviceDueAtHours`.
+  `ComponentActionSheet`, `ComponentDetailSheet` and the calibration sheet now
+  say so ("Good for Nh more", "Inspection logged").
+- The suggested hours come from the prediction's `recommendedExtensionHours`,
+  falling back to half of `serviceIntervalHours`. Previously the action sheet
+  offered the full interval and the detail sheet offered the interval or 50h.
+  Custom hours are limited to 1 to 400, the range the server keeps.
+- Undo deleted nothing: it wrote `serviceDueAtHours` back, which left the
+  inspection in place and, from the action sheet, saved the predicted interval
+  as a custom override. Undo now calls `deleteServiceLog` on the new inspection,
+  whose id comes back in the `snoozeComponent` response.
+- The component history logbook appends ", good for Nh more" to inspections,
+  from `serviceEvents.serviceExtensionHours`, as the web logbook does. The
+  "Inspection: Nh since last check, every Nh" caption is gone: it keyed off
+  `Component.inspectionDueAtHours`, which is always null now.
+- The Gear and calibration queries no longer request `inspectionStatus`,
+  `inspectionIntervalHours`, `hoursSinceInspection`, `inspectionHoursRemaining`
+  or `limitingClock`, and the history query no longer requests
+  `inspectionDueAtHours` or `hoursSinceInspection`. Nothing read them.
+  loam-logger #333 removes the prediction fields and `inspectionDueAtHours`,
+  but builds up to 1.3.0 still request them, so the API must keep them until
+  those builds age out.
+
 ## 1.3.0 - 2026-10-07
 
 ### App Store "What's New"

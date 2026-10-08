@@ -64,6 +64,8 @@ export function CalibrationComponentRow({
           onPress={onAcknowledge}
           style={styles.actionButton}
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={`${label}: hours are correct`}
         >
           <Ionicons name="checkmark" size={18} color={colors.primary} />
         </TouchableOpacity>
@@ -71,6 +73,8 @@ export function CalibrationComponentRow({
           onPress={onSnooze}
           style={styles.actionButton}
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={`${label}: looks good, log an inspection`}
         >
           <Ionicons name="time-outline" size={18} color={colors.primary} />
         </TouchableOpacity>

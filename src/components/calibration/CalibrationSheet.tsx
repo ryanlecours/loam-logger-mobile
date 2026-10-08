@@ -133,13 +133,15 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
     setCalibratedIds((prev) => new Set([...prev, componentId]));
   }, []);
 
+  // Logs an inspection: the part was checked and is still good, so the next
+  // service is due half its service interval from now.
   const handleSnooze = useCallback(
     async (componentId: string) => {
       try {
         await snoozeComponent({ variables: { id: componentId } });
         setCalibratedIds((prev) => new Set([...prev, componentId]));
       } catch {
-        Alert.alert('Error', 'Failed to snooze component. Please try again.');
+        Alert.alert('Error', 'Failed to log the inspection. Please try again.');
       }
     },
     [snoozeComponent]
@@ -230,8 +232,8 @@ export function CalibrationSheet({ visible, onClose }: CalibrationSheetProps) {
                   Set service dates so wear predictions are accurate. Tap{' '}
                   <Ionicons name="checkmark" size={13} color={colors.primary} /> to acknowledge
                   hours are correct, or{' '}
-                  <Ionicons name="time-outline" size={13} color={colors.primary} /> to extend the
-                  interval.
+                  <Ionicons name="time-outline" size={13} color={colors.primary} /> if you checked it
+                  and it looks good, so the next service is due in half the interval.
                 </Text>
               </View>
 
