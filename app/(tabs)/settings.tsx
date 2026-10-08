@@ -15,6 +15,7 @@ import { SubscriptionSection } from '../../src/components/settings/SubscriptionS
 import { WeatherBackfillSection } from '../../src/components/settings/WeatherBackfillSection';
 import { GarminWeatherRepairSection } from '../../src/components/settings/GarminWeatherRepairSection';
 import { BiometricUnlockSection } from '../../src/components/settings/BiometricUnlockSection';
+import { AnalyticsPrivacySection } from '../../src/components/settings/AnalyticsPrivacySection';
 import { ProChip } from '../../src/components/common/UpgradePrompt';
 import { ImportRidesSheet } from '../../src/components/import/ImportRidesSheet';
 import { CalibrationSheet } from '../../src/components/calibration/CalibrationSheet';
@@ -456,6 +457,8 @@ export default function SettingsScreen() {
       </View>
 
       <BiometricUnlockSection />
+
+      <AnalyticsPrivacySection />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Legal</Text>

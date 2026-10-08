@@ -170,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // this query and this type rather than carried as a dead field.
         rideSyncNotificationMode: viewer.rideSyncNotificationMode,
         weeklyDigestEnabled: viewer.weeklyDigestEnabled,
+        analyticsOptOut: viewer.analyticsOptOut,
         createdAt: viewer.createdAt,
       };
       setUser(mappedUser);

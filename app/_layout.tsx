@@ -23,6 +23,9 @@ import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelec
 import { OfflineBanner } from '../src/components/common/OfflineBanner';
 import { LockScreen } from '../src/components/LockScreen';
 import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
+import { PostHogProvider } from 'posthog-react-native';
+import { posthog, posthogAutocapture, screenNameFromSegments } from '../src/lib/posthog';
+import { usePostHogScreens, usePostHogUser } from '../src/hooks/usePostHogUser';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -53,6 +56,7 @@ function LoadingScreen() {
 
 function RootLayoutNav() {
   const {
+    user,
     loading,
     isAuthenticated,
     locked,
@@ -62,6 +66,9 @@ function RootLayoutNav() {
   const { needsDowngradeSelection } = useUserTier();
   const segments = useSegments() as string[];
   const router = useRouter();
+
+  usePostHogUser(user);
+  usePostHogScreens(screenNameFromSegments(segments));
 
   // Status only, not the full snapshot. See useRecorderStatus for why.
   const recorderStatus = useRecorderStatus();
@@ -321,11 +328,13 @@ function RootLayout() {
   }
 
   return (
-    <ApolloProvider client={client}>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </ApolloProvider>
+    <PostHogProvider client={posthog} autocapture={posthogAutocapture}>
+      <ApolloProvider client={client}>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </ApolloProvider>
+    </PostHogProvider>
   );
 }
 

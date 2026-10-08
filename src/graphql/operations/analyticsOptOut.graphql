@@ -1,0 +1,6 @@
+mutation UpdateAnalyticsOptOut($optOut: Boolean!) {
+  updateAnalyticsOptOut(optOut: $optOut) {
+    id
+    analyticsOptOut
+  }
+}
