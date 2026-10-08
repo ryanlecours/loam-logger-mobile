@@ -103,6 +103,20 @@ describe('describeSaveError', () => {
     expect(copy.body).not.toContain('Nothing has been lost');
   });
 
+  it('tells an unconfirmed account how to turn share links on', () => {
+    const error = new ApolloError({
+      graphQLErrors: [
+        new GraphQLError('Confirm your email address to turn on share links.', {
+          extensions: { code: 'EMAIL_NOT_VERIFIED' },
+        }),
+      ],
+    });
+    const copy = describeSaveError(error, 'share link');
+    expect(copy.title).toBe('Confirm your email first');
+    expect(copy.body).toContain('Dashboard');
+    expect(copy.resync).toBe(false);
+  });
+
   it('turns a rate limit into the wait the server asked for', () => {
     const copy = describeSaveError(rateLimitError(42), SUBJECT);
     expect(copy.title).toBe('Too many changes');

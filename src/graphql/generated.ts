@@ -1846,6 +1846,7 @@ export type User = {
   mustChangePassword: Scalars['Boolean']['output'];
   name?: Maybe<Scalars['String']['output']>;
   needsDowngradeSelection: Scalars['Boolean']['output'];
+  needsEmailVerification: Scalars['Boolean']['output'];
   needsReauthForSensitiveActions: Scalars['Boolean']['output'];
   notifyOnRideUpload: Scalars['Boolean']['output'];
   onboardingCompleted: Scalars['Boolean']['output'];
@@ -2124,6 +2125,11 @@ export type DeleteRideMutationVariables = Exact<{
 
 
 export type DeleteRideMutation = { __typename?: 'Mutation', deleteRide: { __typename?: 'DeleteRideResult', ok: boolean, id: string } };
+
+export type EmailVerificationStatusQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type EmailVerificationStatusQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, needsEmailVerification: boolean } | null };
 
 export type ComponentFieldsFragment = { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> };
 
@@ -3832,6 +3838,50 @@ export function useDeleteRideMutation(baseOptions?: Apollo.MutationHookOptions<D
 export type DeleteRideMutationHookResult = ReturnType<typeof useDeleteRideMutation>;
 export type DeleteRideMutationResult = Apollo.MutationResult<DeleteRideMutation>;
 export type DeleteRideMutationOptions = Apollo.BaseMutationOptions<DeleteRideMutation, DeleteRideMutationVariables>;
+export const EmailVerificationStatusDocument = gql`
+    query EmailVerificationStatus {
+  me {
+    id
+    email
+    needsEmailVerification
+  }
+}
+    `;
+
+/**
+ * __useEmailVerificationStatusQuery__
+ *
+ * To run a query within a React component, call `useEmailVerificationStatusQuery` and pass it any options that fit your needs.
+ * When your component renders, `useEmailVerificationStatusQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useEmailVerificationStatusQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useEmailVerificationStatusQuery(baseOptions?: Apollo.QueryHookOptions<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>(EmailVerificationStatusDocument, options);
+      }
+export function useEmailVerificationStatusLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>(EmailVerificationStatusDocument, options);
+        }
+// @ts-ignore
+export function useEmailVerificationStatusSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>): Apollo.UseSuspenseQueryResult<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>;
+export function useEmailVerificationStatusSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>): Apollo.UseSuspenseQueryResult<EmailVerificationStatusQuery | undefined, EmailVerificationStatusQueryVariables>;
+export function useEmailVerificationStatusSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>(EmailVerificationStatusDocument, options);
+        }
+export type EmailVerificationStatusQueryHookResult = ReturnType<typeof useEmailVerificationStatusQuery>;
+export type EmailVerificationStatusLazyQueryHookResult = ReturnType<typeof useEmailVerificationStatusLazyQuery>;
+export type EmailVerificationStatusSuspenseQueryHookResult = ReturnType<typeof useEmailVerificationStatusSuspenseQuery>;
+export type EmailVerificationStatusQueryResult = Apollo.QueryResult<EmailVerificationStatusQuery, EmailVerificationStatusQueryVariables>;
 export const GearLightDocument = gql`
     query GearLight {
   bikes {
