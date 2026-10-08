@@ -11,8 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {
   ComponentPrediction,
+  useDeleteServiceLogMutation,
   useSnoozeComponentMutation,
-  useUpdateComponentMutation,
 } from '../../graphql/generated';
 import { ComponentHealthBadge } from '../gear/ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
@@ -21,6 +21,11 @@ import { BottomSheet } from '../common/BottomSheet';
 import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
 import { formatComponentType } from '../../utils/formatComponentType';
 import { successTick, warningTick } from '../../lib/haptics';
+import {
+  isValidInspectionHours,
+  newestInspectionId,
+  suggestedInspectionHours,
+} from '../../utils/inspection';
 
 /** Unique per surface: sibling sheets stay mounted and would collide on a shared id. */
 const DONE_ACCESSORY = 'component-action-done';
@@ -46,13 +51,14 @@ export function ComponentActionSheet({
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
   const [snoozeSuccess, setSnoozeSuccess] = useState(false);
-  const [preSnoozeInterval, setPreSnoozeInterval] = useState<number | null>(null);
+  const [loggedHours, setLoggedHours] = useState<number | null>(null);
+  const [loggedInspectionId, setLoggedInspectionId] = useState<string | null>(null);
   const [snoozeError, setSnoozeError] = useState<string | null>(null);
 
   const [snoozeComponent, { loading: snoozing }] = useSnoozeComponentMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
-  const [updateComponent, { loading: undoing }] = useUpdateComponentMutation({
+  const [deleteServiceLog, { loading: undoing }] = useDeleteServiceLogMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
 
@@ -61,64 +67,65 @@ export function ComponentActionSheet({
     setShowCustomInput(false);
     setCustomHours('');
     setSnoozeSuccess(false);
-    setPreSnoozeInterval(null);
+    setLoggedHours(null);
+    setLoggedInspectionId(null);
     setSnoozeError(null);
     onClose();
   }, [onClose]);
 
+  // "Looks good" logs an inspection that stands in for the due service (the
+  // mutation keeps its old snooze name for released builds).
   const handleSnooze = useCallback(async (hours: number) => {
     if (!prediction) return;
     setSnoozeError(null);
     try {
-      // Remember the interval we are about to overwrite, so Undo has something
-      // to restore. Captured before the mutation, not read back after it.
-      setPreSnoozeInterval(prediction.serviceIntervalHours ?? null);
-      await snoozeComponent({
+      const { data } = await snoozeComponent({
         variables: { id: prediction.componentId, hours },
       });
+      setLoggedHours(hours);
+      setLoggedInspectionId(newestInspectionId(data?.snoozeComponent.serviceLogs ?? []));
       setSnoozeSuccess(true);
       successTick();
-      // Deliberately no auto-close. Snoozing pushes a service date out; that is
-      // the kind of change a rider should get to take back, and a 1000ms timer
-      // closing the sheet gave them no chance to.
+      // Deliberately no auto-close. An inspection pushes the next service out;
+      // that is the kind of change a rider should get to take back, and a
+      // 1000ms timer closing the sheet gave them no chance to.
       onActionComplete();
     } catch (err) {
-      console.error('Failed to snooze component:', err);
+      console.error('Failed to log inspection:', err);
       warningTick();
       setSnoozeError('That did not save. Check your signal and try again.');
     }
   }, [prediction, snoozeComponent, onActionComplete]);
 
+  // Undo deletes the inspection, which puts the service clock back where it was.
   const handleUndoSnooze = useCallback(async () => {
-    if (!prediction || preSnoozeInterval === null) return;
+    if (!loggedInspectionId) return;
     setSnoozeError(null);
     try {
-      await updateComponent({
-        variables: {
-          id: prediction.componentId,
-          input: { serviceDueAtHours: preSnoozeInterval },
-        },
-      });
+      await deleteServiceLog({ variables: { id: loggedInspectionId } });
       setSnoozeSuccess(false);
       setShowSnoozeOptions(false);
-      setPreSnoozeInterval(null);
+      setLoggedHours(null);
+      setLoggedInspectionId(null);
       onActionComplete();
     } catch (err) {
-      console.error('Failed to undo snooze:', err);
+      console.error('Failed to undo inspection:', err);
       setSnoozeError('Could not undo that. Try again.');
     }
-  }, [prediction, preSnoozeInterval, updateComponent, onActionComplete]);
+  }, [loggedInspectionId, deleteServiceLog, onActionComplete]);
 
   if (!prediction) return null;
 
   const typeName = formatComponentType(prediction.componentType);
   const location = formatComponentType(prediction.location ?? '');
   const brandModel = [prediction.brand, prediction.model].filter(Boolean).join(' ');
-  // No invented fallback. A component with no service interval has no
-  // "recommended" snooze, and presenting one (this used to read "Snooze 50h")
-  // is invented precision in a product whose whole claim is that its numbers
-  // are explainable. Without an interval the rider gets the custom field only.
-  const recommendedHours = prediction.serviceIntervalHours ?? null;
+  // Without a service interval there is nothing to take half of, so the rider
+  // gets the custom field only rather than an invented number.
+  const recommendedHours = suggestedInspectionHours(
+    prediction.recommendedExtensionHours,
+    prediction.serviceIntervalHours
+  );
+  const customValid = !!customHours && isValidInspectionHours(Number(customHours));
   // Pro-only prediction fields come back null for free-tier users.
   const hoursRemaining = prediction.hoursRemaining;
   const ridesRemaining = prediction.ridesRemainingEstimate;
@@ -210,14 +217,14 @@ export function ComponentActionSheet({
           )}
         </View>
 
-        {/* Snooze Options (shown after tapping Looks Good) */}
+        {/* Inspection options (shown after tapping Looks Good) */}
         {showSnoozeOptions && !snoozeSuccess && (
           <View style={styles.snoozeSection}>
-            <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
+            <Text style={styles.snoozeTitle}>Good for how much longer?</Text>
             {recommendedHours === null && (
               <Text style={styles.snoozeHint}>
                 This component has no service interval set, so there is nothing to
-                recommend. Enter the hours you want to add.
+                suggest. Enter the hours of riding until it needs service.
               </Text>
             )}
             <View style={styles.snoozeOptions}>
@@ -227,14 +234,14 @@ export function ComponentActionSheet({
                   onPress={() => handleSnooze(recommendedHours)}
                   disabled={snoozing}
                   accessibilityRole="button"
-                  accessibilityLabel={`Snooze for ${recommendedHours} hours`}
+                  accessibilityLabel={`Good for ${recommendedHours} more hours`}
                   accessibilityState={{ disabled: snoozing }}
                 >
                   {snoozing && !showCustomInput ? (
                     <ActivityIndicator size="small" color={colors.onPrimary} />
                   ) : (
                     <Text style={styles.snoozePresetText}>
-                      Snooze {recommendedHours}h
+                      Good for {recommendedHours}h more
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -246,7 +253,7 @@ export function ComponentActionSheet({
                   disabled={snoozing}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel="Enter a custom snooze length"
+                  accessibilityLabel="Enter custom hours"
                 >
                   <Text style={styles.customLink}>Custom</Text>
                 </TouchableOpacity>
@@ -266,13 +273,13 @@ export function ComponentActionSheet({
                   <TouchableOpacity
                     style={[
                       styles.customApplyButton,
-                      (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
+                      !customValid && styles.buttonDisabled,
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel={`Snooze for ${customHours || 0} hours`}
-                    accessibilityState={{ disabled: snoozing || !customHours || Number(customHours) < 1 }}
+                    accessibilityLabel={`Good for ${customHours || 0} more hours`}
+                    accessibilityState={{ disabled: snoozing || !customValid }}
                     onPress={() => handleSnooze(Number(customHours))}
-                    disabled={snoozing || !customHours || Number(customHours) < 1}
+                    disabled={snoozing || !customValid}
                   >
                     {snoozing ? (
                       <ActivityIndicator size="small" color={colors.onPrimary} />
@@ -298,7 +305,7 @@ export function ComponentActionSheet({
           </View>
         )}
 
-        {/* Snooze confirmation, with a way back out of it. */}
+        {/* Inspection confirmation, with a way back out of it. */}
         {snoozeSuccess && (
           <View style={styles.snoozeSuccess}>
             <Ionicons
@@ -308,18 +315,20 @@ export function ComponentActionSheet({
               accessibilityElementsHidden
             />
             <View style={styles.snoozeSuccessCopy}>
-              <Text style={styles.snoozeSuccessText}>Service pushed back</Text>
+              <Text style={styles.snoozeSuccessText}>Inspection logged</Text>
               <Text style={styles.snoozeSuccessSub}>
-                We&apos;ll stop flagging this component until then.
+                {loggedHours !== null
+                  ? `Next service due in ${loggedHours}h of riding. Logging a service ends this.`
+                  : 'Logging a service ends this.'}
               </Text>
             </View>
-            {preSnoozeInterval !== null && (
+            {loggedInspectionId !== null && (
               <TouchableOpacity
                 style={styles.undoButton}
                 onPress={handleUndoSnooze}
                 disabled={undoing}
                 accessibilityRole="button"
-                accessibilityLabel="Undo snooze"
+                accessibilityLabel="Undo inspection"
                 accessibilityState={{ disabled: undoing }}
               >
                 {undoing ? (
@@ -344,12 +353,12 @@ export function ComponentActionSheet({
           onPress={() => setShowSnoozeOptions(true)}
           disabled={snoozing || snoozeSuccess}
           accessibilityRole="button"
-          accessibilityLabel="Looks good, snooze this service"
+          accessibilityLabel="Looks good: log an inspection instead of a service"
           accessibilityState={{ disabled: snoozing || snoozeSuccess }}
         >
           <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
           <Text style={styles.actionButtonTextPrimary}>
-            {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
+            {snoozeSuccess ? 'Logged' : 'Looks Good'}
           </Text>
         </TouchableOpacity>
 

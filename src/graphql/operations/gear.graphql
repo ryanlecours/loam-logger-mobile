@@ -46,14 +46,10 @@ fragment PredictionFields on BikePredictionSummary {
     ridesSinceService
     # Lifetime hours across every bike, including declared pre-Loam hours.
     lifetimeHours
-    # The service and inspection clocks separately; `status` stays the
-    # headline (the worse of the two) so a part shows one health state.
     serviceStatus
-    inspectionStatus
-    inspectionIntervalHours
-    hoursSinceInspection
-    inspectionHoursRemaining
-    limitingClock
+    # Hours "Looks good" suggests: an inspection that stands in for the due
+    # service pushes it this far out (half the service interval).
+    recommendedExtensionHours
   }
   components {
     componentId
@@ -71,14 +67,10 @@ fragment PredictionFields on BikePredictionSummary {
     ridesSinceService
     # Lifetime hours across every bike, including declared pre-Loam hours.
     lifetimeHours
-    # The service and inspection clocks separately; `status` stays the
-    # headline (the worse of the two) so a part shows one health state.
     serviceStatus
-    inspectionStatus
-    inspectionIntervalHours
-    hoursSinceInspection
-    inspectionHoursRemaining
-    limitingClock
+    # Hours "Looks good" suggests: an inspection that stands in for the due
+    # service pushes it this far out (half the service interval).
+    recommendedExtensionHours
   }
 }
 
@@ -258,9 +250,14 @@ mutation InstallComponent($input: InstallComponentInput!) {
 }
 
 mutation SnoozeComponent($id: ID!, $hours: Float) {
+  # Logs an inspection (the name predates that). The new inspection is the
+  # newest INSPECTION log, which is what Undo deletes.
   snoozeComponent(id: $id, hours: $hours) {
     id
-    serviceDueAtHours
+    serviceLogs {
+      id
+      kind
+    }
   }
 }
 

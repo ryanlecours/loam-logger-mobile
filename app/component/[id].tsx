@@ -227,13 +227,6 @@ export default function ComponentHistoryScreen() {
               </Text>
             )}
 
-            {payload.component.inspectionDueAtHours != null && (
-              <Text style={styles.caption}>
-                Inspection: {Math.round(payload.component.hoursSinceInspection)}h since last
-                check, every {Math.round(payload.component.inspectionDueAtHours)}h.
-              </Text>
-            )}
-
             {payload.historyIncomplete && (
               <View style={styles.notice}>
                 <Text style={styles.noticeText}>
@@ -362,6 +355,8 @@ export default function ComponentHistoryScreen() {
                   {fmtDate(s.performedAt)}
                   <Text style={styles.serviceKind}>
                     {s.kind === 'INSPECTION' ? ' · Inspected' : ' · Serviced'}
+                    {s.kind === 'INSPECTION' && s.serviceExtensionHours != null &&
+                      `, good for ${Math.round(s.serviceExtensionHours)}h more`}
                   </Text>
                 </Text>
                 {!!s.notes && <Text style={styles.serviceNotes}>{s.notes}</Text>}

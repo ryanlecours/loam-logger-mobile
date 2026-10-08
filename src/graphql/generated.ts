@@ -410,7 +410,9 @@ export type Component = {
   replacedById?: Maybe<Scalars['ID']['output']>;
   retiredAt?: Maybe<Scalars['String']['output']>;
   serviceDueAtHours?: Maybe<Scalars['Float']['output']>;
+  serviceExtensionHours?: Maybe<Scalars['Float']['output']>;
   serviceLogs: Array<ServiceLog>;
+  shares: Array<ComponentShare>;
   status: ComponentStatus;
   type: ComponentType;
   updatedAt: Scalars['String']['output'];
@@ -502,8 +504,10 @@ export type ComponentPrediction = {
   limitingClock?: Maybe<Scalars['String']['output']>;
   location: ComponentLocation;
   model: Scalars['String']['output'];
+  recommendedExtensionHours: Scalars['Float']['output'];
   ridesRemainingEstimate?: Maybe<Scalars['Int']['output']>;
   ridesSinceService: Scalars['Int']['output'];
+  serviceExtensionHours?: Maybe<Scalars['Float']['output']>;
   serviceIntervalHours: Scalars['Float']['output'];
   serviceStatus?: Maybe<PredictionStatus>;
   status?: Maybe<PredictionStatus>;
@@ -540,6 +544,22 @@ export type ComponentRidesPayload = {
   hasMore: Scalars['Boolean']['output'];
   hoursUsed: Scalars['Float']['output'];
 };
+
+export type ComponentShare = {
+  __typename?: 'ComponentShare';
+  createdAt: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  rangeEnd?: Maybe<Scalars['String']['output']>;
+  rangeStart?: Maybe<Scalars['String']['output']>;
+  scope: ComponentShareScope;
+  url: Scalars['String']['output'];
+};
+
+export enum ComponentShareScope {
+  Lifetime = 'LIFETIME',
+  Range = 'RANGE',
+  SinceService = 'SINCE_SERVICE'
+}
 
 export type ComponentSnapshot = {
   __typename?: 'ComponentSnapshot';
@@ -627,6 +647,13 @@ export type ConnectedAccount = {
   provider: Scalars['String']['output'];
 };
 
+export type CreateComponentShareInput = {
+  componentId: Scalars['ID']['input'];
+  rangeEnd?: InputMaybe<Scalars['String']['input']>;
+  rangeStart?: InputMaybe<Scalars['String']['input']>;
+  scope: ComponentShareScope;
+};
+
 export type CreateStravaGearMappingInput = {
   bikeId: Scalars['ID']['input'];
   stravaGearId: Scalars['String']['input'];
@@ -682,6 +709,7 @@ export type LogServiceInput = {
   kind?: InputMaybe<ServiceLogKind>;
   notes?: InputMaybe<Scalars['String']['input']>;
   performedAt?: InputMaybe<Scalars['String']['input']>;
+  serviceExtensionHours?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type MigratePairedComponentsResult = {
@@ -707,6 +735,7 @@ export type Mutation = {
   completeCalibration: User;
   createBillingPortalSession: BillingPortalResult;
   createCheckoutSession: CheckoutSessionResult;
+  createComponentShare: ComponentShare;
   createStravaGearMapping: StravaGearMapping;
   deleteBike: DeleteResult;
   deleteBikeComponentInstall: Scalars['Boolean']['output'];
@@ -730,6 +759,7 @@ export type Mutation = {
   requestRideTrack: RideTrack;
   resetCalibration: User;
   retireBike: Bike;
+  revokeComponentShare: Scalars['Boolean']['output'];
   selectBikeForDowngrade: Bike;
   setComponentRideAdjustment: ComponentRideAdjustmentResult;
   snoozeComponent: Component;
@@ -830,6 +860,11 @@ export type MutationCreateCheckoutSessionArgs = {
 };
 
 
+export type MutationCreateComponentShareArgs = {
+  input: CreateComponentShareInput;
+};
+
+
 export type MutationCreateStravaGearMappingArgs = {
   input: CreateStravaGearMappingInput;
 };
@@ -919,6 +954,11 @@ export type MutationRequestRideTrackArgs = {
 export type MutationRetireBikeArgs = {
   id: Scalars['ID']['input'];
   status: BikeStatus;
+};
+
+
+export type MutationRevokeComponentShareArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -1072,6 +1112,7 @@ export type Query = {
   rides: Array<Ride>;
   servicePreferenceDefaults: Array<ServicePreferenceDefault>;
   sharedBikeHistory?: Maybe<SharedBikeHistory>;
+  sharedComponentHistory?: Maybe<SharedComponentHistory>;
   stravaGearMappings: Array<StravaGearMapping>;
   unassignedRideCount: Scalars['Int']['output'];
   unassignedRideSummary: UnassignedRideSummary;
@@ -1144,6 +1185,11 @@ export type QueryRidesArgs = {
 
 
 export type QuerySharedBikeHistoryArgs = {
+  slug: Scalars['String']['input'];
+};
+
+
+export type QuerySharedComponentHistoryArgs = {
   slug: Scalars['String']['input'];
 };
 
@@ -1341,6 +1387,7 @@ export type ServiceLog = {
   kind: ServiceLogKind;
   notes?: Maybe<Scalars['String']['output']>;
   performedAt: Scalars['String']['output'];
+  serviceExtensionHours?: Maybe<Scalars['Float']['output']>;
 };
 
 export enum ServiceLogKind {
@@ -1415,6 +1462,53 @@ export type SharedComponent = {
   location: ComponentLocation;
   model: Scalars['String']['output'];
   type: ComponentType;
+};
+
+export type SharedComponentBike = {
+  __typename?: 'SharedComponentBike';
+  manufacturer: Scalars['String']['output'];
+  model: Scalars['String']['output'];
+  thumbnailUrl?: Maybe<Scalars['String']['output']>;
+  year?: Maybe<Scalars['Int']['output']>;
+};
+
+export type SharedComponentHistory = {
+  __typename?: 'SharedComponentHistory';
+  bikes: Array<SharedComponentTenure>;
+  component: SharedComponentInfo;
+  contributingSources: Array<Scalars['String']['output']>;
+  cumulative: Array<ComponentCumulativePoint>;
+  declaredPriorHours: Scalars['Float']['output'];
+  logbook: Array<SharedComponentLogEntry>;
+  scope: ComponentShareScope;
+  totals: ComponentUsageTotals;
+  windowEnd?: Maybe<Scalars['String']['output']>;
+  windowStart?: Maybe<Scalars['String']['output']>;
+};
+
+export type SharedComponentInfo = {
+  __typename?: 'SharedComponentInfo';
+  brand: Scalars['String']['output'];
+  isStock: Scalars['Boolean']['output'];
+  location: ComponentLocation;
+  model: Scalars['String']['output'];
+  type: ComponentType;
+};
+
+export type SharedComponentLogEntry = {
+  __typename?: 'SharedComponentLogEntry';
+  hoursAtService: Scalars['Float']['output'];
+  kind: ServiceLogKind;
+  performedAt: Scalars['String']['output'];
+  serviceExtensionHours?: Maybe<Scalars['Float']['output']>;
+};
+
+export type SharedComponentTenure = {
+  __typename?: 'SharedComponentTenure';
+  bike?: Maybe<SharedComponentBike>;
+  installedAt: Scalars['String']['output'];
+  removedAt?: Maybe<Scalars['String']['output']>;
+  totals: ComponentUsageTotals;
 };
 
 export type SharedInstallEvent = {
@@ -1712,6 +1806,7 @@ export type UpdateServiceLogInput = {
   hoursAtService?: InputMaybe<Scalars['Float']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   performedAt?: InputMaybe<Scalars['String']['input']>;
+  serviceExtensionHours?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type UpdateServicePreferencesInput = {
@@ -1933,7 +2028,7 @@ export type CreateBillingPortalSessionMutation = { __typename?: 'Mutation', crea
 export type CalibrationStateQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type CalibrationStateQuery = { __typename?: 'Query', calibrationState?: { __typename?: 'CalibrationState', showOverlay: boolean, overdueCount: number, totalComponentCount: number, bikes: Array<{ __typename?: 'BikeCalibrationInfo', bikeId: string, bikeName: string, thumbnailUrl?: string | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> }> } | null };
+export type CalibrationStateQuery = { __typename?: 'Query', calibrationState?: { __typename?: 'CalibrationState', showOverlay: boolean, overdueCount: number, totalComponentCount: number, bikes: Array<{ __typename?: 'BikeCalibrationInfo', bikeId: string, bikeName: string, thumbnailUrl?: string | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> }> } | null };
 
 export type LogBulkComponentServiceMutationVariables = Exact<{
   input: BulkServiceLogInput;
@@ -1957,7 +2052,7 @@ export type ComponentHistoryQueryVariables = Exact<{
 }>;
 
 
-export type ComponentHistoryQuery = { __typename?: 'Query', componentHistory: { __typename?: 'ComponentHistoryPayload', anchor?: string | null, coverage: ComponentHistoryCoverage, historyIncomplete: boolean, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, status: ComponentStatus, hoursUsed: number, serviceDueAtHours?: number | null, priorHours: number, lifetimeHours: number, hoursSinceService: number, hoursSinceInspection: number, inspectionDueAtHours?: number | null, lastInspectedAt?: string | null, installedAt?: string | null, lastServicedAt?: string | null, retiredAt?: string | null, replacedById?: string | null }, lifetime: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, firstRideAt?: string | null, lastRideAt?: string | null }, sinceService: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number }, tenures: Array<{ __typename?: 'ComponentTenure', id: string, slotKey: string, installedAt: string, removedAt?: string | null, synthetic: boolean, bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, thumbnailUrl?: string | null } | null, totals: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number } }>, serviceEvents: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number }>, conditions: Array<{ __typename?: 'ComponentConditionBucket', condition: WeatherCondition, rideCount: number, durationSeconds: number }> } };
+export type ComponentHistoryQuery = { __typename?: 'Query', componentHistory: { __typename?: 'ComponentHistoryPayload', anchor?: string | null, coverage: ComponentHistoryCoverage, historyIncomplete: boolean, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, status: ComponentStatus, hoursUsed: number, serviceDueAtHours?: number | null, priorHours: number, lifetimeHours: number, hoursSinceService: number, lastInspectedAt?: string | null, installedAt?: string | null, lastServicedAt?: string | null, retiredAt?: string | null, replacedById?: string | null }, lifetime: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, firstRideAt?: string | null, lastRideAt?: string | null }, sinceService: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number }, tenures: Array<{ __typename?: 'ComponentTenure', id: string, slotKey: string, installedAt: string, removedAt?: string | null, synthetic: boolean, bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, thumbnailUrl?: string | null } | null, totals: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number } }>, serviceEvents: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number, serviceExtensionHours?: number | null }>, conditions: Array<{ __typename?: 'ComponentConditionBucket', condition: WeatherCondition, rideCount: number, durationSeconds: number }> } };
 
 export type UpdateBikeComponentInstallMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2009,13 +2104,13 @@ export type DeleteRideMutation = { __typename?: 'Mutation', deleteRide: { __type
 
 export type ComponentFieldsFragment = { __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> };
 
-export type PredictionFieldsFragment = { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> };
+export type PredictionFieldsFragment = { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> };
 
 export type BikeFieldsLightFragment = { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }> };
 
 export type BikeNotificationPreferenceFieldsFragment = { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number };
 
-export type BikeFieldsFragment = { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null };
+export type BikeFieldsFragment = { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null };
 
 export type GearLightQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2025,21 +2120,21 @@ export type GearLightQuery = { __typename?: 'Query', bikes: Array<{ __typename?:
 export type GearQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GearQuery = { __typename?: 'Query', bikes: Array<{ __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null }>, spareComponents: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }> };
+export type GearQuery = { __typename?: 'Query', bikes: Array<{ __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null }>, spareComponents: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }> };
 
 export type BikeQueryVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type BikeQuery = { __typename?: 'Query', bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } | null };
+export type BikeQuery = { __typename?: 'Query', bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } | null };
 
 export type AddBikeMutationVariables = Exact<{
   input: AddBikeInput;
 }>;
 
 
-export type AddBikeMutation = { __typename?: 'Mutation', addBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
+export type AddBikeMutation = { __typename?: 'Mutation', addBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
 
 export type UpdateBikeMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2047,7 +2142,7 @@ export type UpdateBikeMutationVariables = Exact<{
 }>;
 
 
-export type UpdateBikeMutation = { __typename?: 'Mutation', updateBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
+export type UpdateBikeMutation = { __typename?: 'Mutation', updateBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
 
 export type DeleteBikeMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2062,14 +2157,14 @@ export type RetireBikeMutationVariables = Exact<{
 }>;
 
 
-export type RetireBikeMutation = { __typename?: 'Mutation', retireBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
+export type RetireBikeMutation = { __typename?: 'Mutation', retireBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
 
 export type ReactivateBikeMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
 
 
-export type ReactivateBikeMutation = { __typename?: 'Mutation', reactivateBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, inspectionStatus?: PredictionStatus | null, inspectionIntervalHours?: number | null, hoursSinceInspection?: number | null, inspectionHoursRemaining?: number | null, limitingClock?: string | null }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
+export type ReactivateBikeMutation = { __typename?: 'Mutation', reactivateBike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, travelForkMm?: number | null, travelShockMm?: number | null, notes?: string | null, spokesId?: string | null, spokesUrl?: string | null, thumbnailUrl?: string | null, family?: string | null, category?: string | null, subcategory?: string | null, buildKind?: string | null, isFrameset?: boolean | null, isEbike?: boolean | null, gender?: string | null, frameMaterial?: string | null, hangerStandard?: string | null, motorMaker?: string | null, motorModel?: string | null, motorPowerW?: number | null, motorTorqueNm?: number | null, batteryWh?: number | null, acquisitionCondition?: AcquisitionCondition | null, acquisitionDate?: string | null, status: BikeStatus, retiredAt?: string | null, contributingSources: Array<string>, createdAt: string, updatedAt: string, components: Array<{ __typename?: 'Component', id: string, type: ComponentType, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, hoursUsed: number, serviceDueAtHours?: number | null, baselineWearPercent?: number | null, baselineMethod: BaselineMethod, baselineConfidence: BaselineConfidence, baselineSetAt?: string | null, lastServicedAt?: string | null, location: ComponentLocation, status: ComponentStatus, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number }> }>, predictions?: { __typename?: 'BikePredictionSummary', bikeId: string, bikeName: string, overallStatus?: PredictionStatus | null, dueNowCount?: number | null, dueSoonCount?: number | null, generatedAt: string, priorityComponent?: { __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number } | null, components: Array<{ __typename?: 'ComponentPrediction', componentId: string, componentType: ComponentType, location: ComponentLocation, brand: string, model: string, status?: PredictionStatus | null, hoursRemaining?: number | null, ridesRemainingEstimate?: number | null, confidence?: ConfidenceLevel | null, currentHours: number, serviceIntervalHours: number, hoursSinceService: number, ridesSinceService: number, lifetimeHours: number, serviceStatus?: PredictionStatus | null, recommendedExtensionHours: number }> } | null, notificationPreference?: { __typename?: 'BikeNotificationPreference', bikeId: string, serviceNotificationsEnabled: boolean, serviceNotificationMode: ServiceNotificationMode, serviceNotificationThreshold: number } | null } };
 
 export type UpdateComponentMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2100,7 +2195,7 @@ export type SnoozeComponentMutationVariables = Exact<{
 }>;
 
 
-export type SnoozeComponentMutation = { __typename?: 'Mutation', snoozeComponent: { __typename?: 'Component', id: string, serviceDueAtHours?: number | null } };
+export type SnoozeComponentMutation = { __typename?: 'Mutation', snoozeComponent: { __typename?: 'Component', id: string, serviceLogs: Array<{ __typename?: 'ServiceLog', id: string, kind: ServiceLogKind }> } };
 
 export type UpdateBikeNotificationPreferenceMutationVariables = Exact<{
   input: UpdateBikeNotificationPreferenceInput;
@@ -2312,11 +2407,7 @@ export const PredictionFieldsFragmentDoc = gql`
     ridesSinceService
     lifetimeHours
     serviceStatus
-    inspectionStatus
-    inspectionIntervalHours
-    hoursSinceInspection
-    inspectionHoursRemaining
-    limitingClock
+    recommendedExtensionHours
   }
   components {
     componentId
@@ -2334,11 +2425,7 @@ export const PredictionFieldsFragmentDoc = gql`
     ridesSinceService
     lifetimeHours
     serviceStatus
-    inspectionStatus
-    inspectionIntervalHours
-    hoursSinceInspection
-    inspectionHoursRemaining
-    limitingClock
+    recommendedExtensionHours
   }
 }
     `;
@@ -3081,11 +3168,7 @@ export const CalibrationStateDocument = gql`
         ridesSinceService
         lifetimeHours
         serviceStatus
-        inspectionStatus
-        inspectionIntervalHours
-        hoursSinceInspection
-        inspectionHoursRemaining
-        limitingClock
+        recommendedExtensionHours
       }
     }
   }
@@ -3245,8 +3328,6 @@ export const ComponentHistoryDocument = gql`
       priorHours
       lifetimeHours
       hoursSinceService
-      hoursSinceInspection
-      inspectionDueAtHours
       lastInspectedAt
       installedAt
       lastServicedAt
@@ -3294,6 +3375,7 @@ export const ComponentHistoryDocument = gql`
       notes
       kind
       hoursAtService
+      serviceExtensionHours
     }
     conditions {
       condition
@@ -4023,7 +4105,10 @@ export const SnoozeComponentDocument = gql`
     mutation SnoozeComponent($id: ID!, $hours: Float) {
   snoozeComponent(id: $id, hours: $hours) {
     id
-    serviceDueAtHours
+    serviceLogs {
+      id
+      kind
+    }
   }
 }
     `;

@@ -13,10 +13,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius } from '../../constants/theme';
 import { BottomSheet } from '../common/BottomSheet';
 import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
-import { ComponentFieldsFragment, ComponentPrediction, useSnoozeComponentMutation, useUpdateComponentMutation } from '../../graphql/generated';
+import {
+  ComponentFieldsFragment,
+  ComponentPrediction,
+  useDeleteServiceLogMutation,
+  useSnoozeComponentMutation,
+  useUpdateComponentMutation,
+} from '../../graphql/generated';
 import { ComponentHealthBadge } from './ComponentHealthBadge';
 import { ProChip } from '../common/UpgradePrompt';
 import { formatComponentType } from '../../utils/formatComponentType';
+import {
+  isValidInspectionHours,
+  newestInspectionId,
+  suggestedInspectionHours,
+} from '../../utils/inspection';
 import type { EditableServiceLog } from './EditServiceSheet';
 
 /** Unique per surface: sibling sheets stay mounted and would collide on a shared id. */
@@ -91,7 +102,7 @@ export function ComponentDetailSheet({
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customHours, setCustomHours] = useState('');
   const [snoozeSuccess, setSnoozeSuccess] = useState(false);
-  const [preSnoozeInterval, setPreSnoozeInterval] = useState<number | null>(null);
+  const [loggedInspectionId, setLoggedInspectionId] = useState<string | null>(null);
   const [savingInterval, setSavingInterval] = useState(false);
   const [optimisticInterval, setOptimisticInterval] = useState<number | null>(null);
   const [editingInterval, setEditingInterval] = useState(false);
@@ -102,7 +113,10 @@ export function ComponentDetailSheet({
   const [snoozeComponent, { loading: snoozing }] = useSnoozeComponentMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
-  const [updateComponent, { loading: undoing }] = useUpdateComponentMutation({
+  const [updateComponent] = useUpdateComponentMutation({
+    refetchQueries: ['Gear', 'GearLight'],
+  });
+  const [deleteServiceLog, { loading: undoing }] = useDeleteServiceLogMutation({
     refetchQueries: ['Gear', 'GearLight'],
   });
 
@@ -111,7 +125,7 @@ export function ComponentDetailSheet({
     setShowCustomInput(false);
     setCustomHours('');
     setSnoozeSuccess(false);
-    setPreSnoozeInterval(null);
+    setLoggedInspectionId(null);
     setShowConfidenceInfo(false);
     setShowRidesInfo(false);
     setOptimisticInterval(null);
@@ -120,16 +134,19 @@ export function ComponentDetailSheet({
     onClose();
   }, [onClose]);
 
+  // "Looks good" logs an inspection that stands in for the due service (the
+  // mutation keeps its old snooze name for released builds).
   const handleSnooze = useCallback(async (hours: number) => {
     if (!component) return;
     try {
-      setPreSnoozeInterval(component.serviceDueAtHours ?? null);
-      await snoozeComponent({
+      const { data } = await snoozeComponent({
         variables: { id: component.id, hours },
       });
+      setLoggedInspectionId(newestInspectionId(data?.snoozeComponent.serviceLogs ?? []));
       setSnoozeSuccess(true);
     } catch (err) {
-      console.error('Failed to snooze component:', err);
+      console.error('Failed to log inspection:', err);
+      Alert.alert('Error', 'Failed to log the inspection. Please try again.');
     }
   }, [component, snoozeComponent]);
 
@@ -165,19 +182,19 @@ export function ComponentDetailSheet({
     });
   }, [component, intervalInput, updateComponent]);
 
+  // Undo deletes the inspection, which puts the service clock back where it was.
   const handleUndoSnooze = useCallback(async () => {
-    if (!component || preSnoozeInterval === null) return;
+    if (!loggedInspectionId) return;
     try {
-      await updateComponent({
-        variables: { id: component.id, input: { serviceDueAtHours: preSnoozeInterval } },
-      });
+      await deleteServiceLog({ variables: { id: loggedInspectionId } });
       setSnoozeSuccess(false);
       setShowSnoozeOptions(false);
-      setPreSnoozeInterval(null);
+      setLoggedInspectionId(null);
     } catch (err) {
-      console.error('Failed to undo snooze:', err);
+      console.error('Failed to undo inspection:', err);
+      Alert.alert('Error', 'Could not undo that. Try again.');
     }
-  }, [component, preSnoozeInterval, updateComponent]);
+  }, [loggedInspectionId, deleteServiceLog]);
 
   if (!component) return null;
 
@@ -195,7 +212,11 @@ export function ComponentDetailSheet({
   const hoursSinceService = prediction?.hoursSinceService;
   const ridesRemaining = prediction?.ridesRemainingEstimate;
   const lastServiced = component.lastServicedAt;
-  const recommendedHours = serviceInterval ?? 50;
+  const recommendedHours = suggestedInspectionHours(
+    prediction?.recommendedExtensionHours,
+    serviceInterval
+  );
+  const customValid = !!customHours && isValidInspectionHours(Number(customHours));
 
   return (
     <BottomSheet visible={visible} onClose={handleClose} maxHeight="80%">
@@ -485,29 +506,41 @@ export function ComponentDetailSheet({
           </View>
         )}
 
-        {/* Snooze Options (shown after tapping Looks Good) */}
+        {/* Inspection options (shown after tapping Looks Good) */}
         {showSnoozeOptions && !snoozeSuccess && (
           <View style={styles.snoozeSection}>
-            <Text style={styles.snoozeTitle}>Snooze for how long?</Text>
+            <Text style={styles.snoozeTitle}>Good for how much longer?</Text>
+            {recommendedHours === null && (
+              <Text style={styles.snoozeHint}>
+                This component has no service interval set, so there is nothing to
+                suggest. Enter the hours of riding until it needs service.
+              </Text>
+            )}
             <View style={styles.snoozeOptions}>
-              <TouchableOpacity
-                style={styles.snoozePresetButton}
-                onPress={() => handleSnooze(recommendedHours)}
-                disabled={snoozing}
-              >
-                {snoozing && !showCustomInput ? (
-                  <ActivityIndicator size="small" color={colors.onPrimary} />
-                ) : (
-                  <Text style={styles.snoozePresetText}>
-                    Snooze {recommendedHours}h
-                  </Text>
-                )}
-              </TouchableOpacity>
+              {recommendedHours !== null && (
+                <TouchableOpacity
+                  style={styles.snoozePresetButton}
+                  onPress={() => handleSnooze(recommendedHours)}
+                  disabled={snoozing}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Good for ${recommendedHours} more hours`}
+                >
+                  {snoozing && !showCustomInput ? (
+                    <ActivityIndicator size="small" color={colors.onPrimary} />
+                  ) : (
+                    <Text style={styles.snoozePresetText}>
+                      Good for {recommendedHours}h more
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
 
-              {!showCustomInput ? (
+              {!showCustomInput && recommendedHours !== null ? (
                 <TouchableOpacity
                   onPress={() => setShowCustomInput(true)}
                   disabled={snoozing}
+                  accessibilityRole="button"
+                  accessibilityLabel="Enter custom hours"
                 >
                   <Text style={styles.customLink}>Custom</Text>
                 </TouchableOpacity>
@@ -527,10 +560,12 @@ export function ComponentDetailSheet({
                   <TouchableOpacity
                     style={[
                       styles.customApplyButton,
-                      (!customHours || Number(customHours) < 1) && styles.buttonDisabled,
+                      !customValid && styles.buttonDisabled,
                     ]}
                     onPress={() => handleSnooze(Number(customHours))}
-                    disabled={snoozing || !customHours || Number(customHours) < 1}
+                    disabled={snoozing || !customValid}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Good for ${customHours || 0} more hours`}
                   >
                     {snoozing ? (
                       <ActivityIndicator size="small" color={colors.onPrimary} />
@@ -544,13 +579,18 @@ export function ComponentDetailSheet({
           </View>
         )}
 
-        {/* Snooze success feedback with undo */}
+        {/* Inspection logged, with undo */}
         {snoozeSuccess && (
           <View style={styles.snoozeSuccess}>
             <Ionicons name="checkmark-circle" size={24} color={colors.positiveOn} />
-            <Text style={styles.snoozeSuccessText}>Snoozed!</Text>
-            {preSnoozeInterval !== null && (
-              <TouchableOpacity onPress={handleUndoSnooze} disabled={undoing}>
+            <Text style={styles.snoozeSuccessText}>Inspection logged</Text>
+            {loggedInspectionId !== null && (
+              <TouchableOpacity
+                onPress={handleUndoSnooze}
+                disabled={undoing}
+                accessibilityRole="button"
+                accessibilityLabel="Undo inspection"
+              >
                 {undoing ? (
                   <ActivityIndicator size="small" color={colors.textMuted} />
                 ) : (
@@ -603,7 +643,7 @@ export function ComponentDetailSheet({
         >
           <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
           <Text style={styles.actionButtonText}>
-            {snoozeSuccess ? 'Snoozed!' : 'Looks Good'}
+            {snoozeSuccess ? 'Logged' : 'Looks Good'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -765,6 +805,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
+    marginBottom: 12,
+  },
+  snoozeHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   snoozeOptions: {
