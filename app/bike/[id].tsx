@@ -244,6 +244,17 @@ export default function BikeDetailScreen() {
     }, 300);
   };
 
+  const handleViewHistoryFromDetail = () => {
+    const component = selectedComponent;
+    if (!component) return;
+    // Same close-then-navigate dance as handleViewRidesFromDetail: navigating
+    // out from under an open Modal glitches the transition.
+    setSelectedComponent(null);
+    setTimeout(() => {
+      router.push(`/component/${component.id}` as Href);
+    }, 300);
+  };
+
   const handleReplaceComplete = () => {
     setShowReplaceSheet(false);
     setSelectedComponent(null);
@@ -644,6 +655,7 @@ export default function BikeDetailScreen() {
         onLogService={handleLogServiceFromDetail}
         onReplace={handleReplaceFromDetail}
         onViewRides={handleViewRidesFromDetail}
+        onViewHistory={handleViewHistoryFromDetail}
         onEditServiceLog={(log) => {
           if (!selectedComponent) return;
           // Kept here rather than recomputed inside EditServiceSheet so the
