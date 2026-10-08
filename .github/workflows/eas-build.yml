@@ -55,10 +55,11 @@ jobs:
 
       - name: Run EAS Build
         env:
-          # SENTRY_AUTH_TOKEN enables the @sentry/react-native/expo plugin
-          # to upload debug symbols. The Sentry release comes from the native
-          # build (bundleId@version+build), not from this env: see Sentry.init
-          # in app/_layout.tsx.
+          # `eas build` runs on Expo's servers, which do not see this runner's
+          # env. The symbol upload uses the SENTRY_AUTH_TOKEN secret stored in
+          # the EAS production environment (`eas env:list`), not this copy.
+          # The Sentry release comes from the native build
+          # (bundleId@version+build): see Sentry.init in app/_layout.tsx.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           # Only production builds auto-submit to TestFlight. Preview builds use
