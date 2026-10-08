@@ -2095,6 +2095,29 @@ export type ClearComponentRideAdjustmentMutationVariables = Exact<{
 
 export type ClearComponentRideAdjustmentMutation = { __typename?: 'Mutation', clearComponentRideAdjustment: { __typename?: 'ComponentRideAdjustmentResult', rideId: string, counted: boolean, component: { __typename?: 'Component', id: string, hoursUsed: number } } };
 
+export type ComponentShareFieldsFragment = { __typename?: 'ComponentShare', id: string, scope: ComponentShareScope, rangeStart?: string | null, rangeEnd?: string | null, url: string, createdAt: string };
+
+export type ComponentSharesQueryVariables = Exact<{
+  componentId: Scalars['ID']['input'];
+}>;
+
+
+export type ComponentSharesQuery = { __typename?: 'Query', component?: { __typename?: 'Component', id: string, shares: Array<{ __typename?: 'ComponentShare', id: string, scope: ComponentShareScope, rangeStart?: string | null, rangeEnd?: string | null, url: string, createdAt: string }> } | null };
+
+export type CreateComponentShareMutationVariables = Exact<{
+  input: CreateComponentShareInput;
+}>;
+
+
+export type CreateComponentShareMutation = { __typename?: 'Mutation', createComponentShare: { __typename?: 'ComponentShare', id: string, scope: ComponentShareScope, rangeStart?: string | null, rangeEnd?: string | null, url: string, createdAt: string } };
+
+export type RevokeComponentShareMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type RevokeComponentShareMutation = { __typename?: 'Mutation', revokeComponentShare: boolean };
+
 export type DeleteRideMutationVariables = Exact<{
   id: Scalars['ID']['input'];
 }>;
@@ -2319,6 +2342,16 @@ export type WeatherBreakdownQueryVariables = Exact<{
 
 export type WeatherBreakdownQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, weatherBreakdown: { __typename?: 'WeatherBreakdown', sunny: number, cloudy: number, rainy: number, snowy: number, windy: number, foggy: number, unknown: number, pending: number, totalRides: number } } | null };
 
+export const ComponentShareFieldsFragmentDoc = gql`
+    fragment ComponentShareFields on ComponentShare {
+  id
+  scope
+  rangeStart
+  rangeEnd
+  url
+  createdAt
+}
+    `;
 export const ComponentFieldsFragmentDoc = gql`
     fragment ComponentFields on Component {
   id
@@ -3655,6 +3688,116 @@ export function useClearComponentRideAdjustmentMutation(baseOptions?: Apollo.Mut
 export type ClearComponentRideAdjustmentMutationHookResult = ReturnType<typeof useClearComponentRideAdjustmentMutation>;
 export type ClearComponentRideAdjustmentMutationResult = Apollo.MutationResult<ClearComponentRideAdjustmentMutation>;
 export type ClearComponentRideAdjustmentMutationOptions = Apollo.BaseMutationOptions<ClearComponentRideAdjustmentMutation, ClearComponentRideAdjustmentMutationVariables>;
+export const ComponentSharesDocument = gql`
+    query ComponentShares($componentId: ID!) {
+  component(id: $componentId) {
+    id
+    shares {
+      ...ComponentShareFields
+    }
+  }
+}
+    ${ComponentShareFieldsFragmentDoc}`;
+
+/**
+ * __useComponentSharesQuery__
+ *
+ * To run a query within a React component, call `useComponentSharesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useComponentSharesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useComponentSharesQuery({
+ *   variables: {
+ *      componentId: // value for 'componentId'
+ *   },
+ * });
+ */
+export function useComponentSharesQuery(baseOptions: Apollo.QueryHookOptions<ComponentSharesQuery, ComponentSharesQueryVariables> & ({ variables: ComponentSharesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ComponentSharesQuery, ComponentSharesQueryVariables>(ComponentSharesDocument, options);
+      }
+export function useComponentSharesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ComponentSharesQuery, ComponentSharesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ComponentSharesQuery, ComponentSharesQueryVariables>(ComponentSharesDocument, options);
+        }
+// @ts-ignore
+export function useComponentSharesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ComponentSharesQuery, ComponentSharesQueryVariables>): Apollo.UseSuspenseQueryResult<ComponentSharesQuery, ComponentSharesQueryVariables>;
+export function useComponentSharesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ComponentSharesQuery, ComponentSharesQueryVariables>): Apollo.UseSuspenseQueryResult<ComponentSharesQuery | undefined, ComponentSharesQueryVariables>;
+export function useComponentSharesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ComponentSharesQuery, ComponentSharesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ComponentSharesQuery, ComponentSharesQueryVariables>(ComponentSharesDocument, options);
+        }
+export type ComponentSharesQueryHookResult = ReturnType<typeof useComponentSharesQuery>;
+export type ComponentSharesLazyQueryHookResult = ReturnType<typeof useComponentSharesLazyQuery>;
+export type ComponentSharesSuspenseQueryHookResult = ReturnType<typeof useComponentSharesSuspenseQuery>;
+export type ComponentSharesQueryResult = Apollo.QueryResult<ComponentSharesQuery, ComponentSharesQueryVariables>;
+export const CreateComponentShareDocument = gql`
+    mutation CreateComponentShare($input: CreateComponentShareInput!) {
+  createComponentShare(input: $input) {
+    ...ComponentShareFields
+  }
+}
+    ${ComponentShareFieldsFragmentDoc}`;
+export type CreateComponentShareMutationFn = Apollo.MutationFunction<CreateComponentShareMutation, CreateComponentShareMutationVariables>;
+
+/**
+ * __useCreateComponentShareMutation__
+ *
+ * To run a mutation, you first call `useCreateComponentShareMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateComponentShareMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createComponentShareMutation, { data, loading, error }] = useCreateComponentShareMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateComponentShareMutation(baseOptions?: Apollo.MutationHookOptions<CreateComponentShareMutation, CreateComponentShareMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateComponentShareMutation, CreateComponentShareMutationVariables>(CreateComponentShareDocument, options);
+      }
+export type CreateComponentShareMutationHookResult = ReturnType<typeof useCreateComponentShareMutation>;
+export type CreateComponentShareMutationResult = Apollo.MutationResult<CreateComponentShareMutation>;
+export type CreateComponentShareMutationOptions = Apollo.BaseMutationOptions<CreateComponentShareMutation, CreateComponentShareMutationVariables>;
+export const RevokeComponentShareDocument = gql`
+    mutation RevokeComponentShare($id: ID!) {
+  revokeComponentShare(id: $id)
+}
+    `;
+export type RevokeComponentShareMutationFn = Apollo.MutationFunction<RevokeComponentShareMutation, RevokeComponentShareMutationVariables>;
+
+/**
+ * __useRevokeComponentShareMutation__
+ *
+ * To run a mutation, you first call `useRevokeComponentShareMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRevokeComponentShareMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [revokeComponentShareMutation, { data, loading, error }] = useRevokeComponentShareMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useRevokeComponentShareMutation(baseOptions?: Apollo.MutationHookOptions<RevokeComponentShareMutation, RevokeComponentShareMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RevokeComponentShareMutation, RevokeComponentShareMutationVariables>(RevokeComponentShareDocument, options);
+      }
+export type RevokeComponentShareMutationHookResult = ReturnType<typeof useRevokeComponentShareMutation>;
+export type RevokeComponentShareMutationResult = Apollo.MutationResult<RevokeComponentShareMutation>;
+export type RevokeComponentShareMutationOptions = Apollo.BaseMutationOptions<RevokeComponentShareMutation, RevokeComponentShareMutationVariables>;
 export const DeleteRideDocument = gql`
     mutation DeleteRide($id: ID!) {
   deleteRide(id: $id) {

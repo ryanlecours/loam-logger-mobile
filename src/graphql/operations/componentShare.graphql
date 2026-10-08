@@ -1,0 +1,34 @@
+# Share links for one window of a component's history. Each link is locked to
+# the window it was made for, so sharing "since last service" does not also
+# hand over the part's lifetime. The page a link opens is web-only.
+
+fragment ComponentShareFields on ComponentShare {
+  id
+  scope
+  # RANGE only: the window, as [rangeStart, rangeEnd).
+  rangeStart
+  rangeEnd
+  url
+  createdAt
+}
+
+# The owner's links, newest first.
+query ComponentShares($componentId: ID!) {
+  component(id: $componentId) {
+    id
+    shares {
+      ...ComponentShareFields
+    }
+  }
+}
+
+# Asking again for a scope (or range) that already has a link returns that link.
+mutation CreateComponentShare($input: CreateComponentShareInput!) {
+  createComponentShare(input: $input) {
+    ...ComponentShareFields
+  }
+}
+
+mutation RevokeComponentShare($id: ID!) {
+  revokeComponentShare(id: $id)
+}
