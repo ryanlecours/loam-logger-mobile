@@ -29,6 +29,7 @@ import {
   type TimelineItem,
 } from '../../../src/lib/bikeHistory';
 import { exportBikeHistoryPdf } from '../../../src/lib/bikeHistoryPdf';
+import { describeSaveError } from '../../../src/utils/errorCopy';
 import { formatDistance, formatDuration, formatElevation } from '../../../src/utils/greetingMessages';
 import { EditServiceSheet, type EditableServiceLog } from '../../../src/components/gear/EditServiceSheet';
 import { EditInstallSheet, type EditableInstallEvent } from '../../../src/components/gear/EditInstallSheet';
@@ -161,7 +162,8 @@ export default function BikeHistoryScreen() {
         await Share.share({ message: url });
       }
     } catch (err) {
-      Alert.alert('Sharing failed', err instanceof Error ? err.message : 'Unknown error');
+      const { title, body } = describeSaveError(err, 'share link');
+      Alert.alert(title, body);
     }
   };
 

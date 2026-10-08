@@ -79,6 +79,17 @@ interface GraphQLErrorLike {
  * correctly after "your", and never placed in the sentence-subject slot.
  */
 export function describeSaveError(error: unknown, subject: string): SaveErrorCopy {
+  // A refusal the rider can fix, so it gets its own words rather than
+  // "something went wrong on our end". New accounts make share links only
+  // once their email is confirmed.
+  if (hasErrorCode(error, 'EMAIL_NOT_VERIFIED')) {
+    return {
+      title: 'Confirm your email first',
+      body: 'Share links turn on once you tap the link in the email we sent you. You can resend it from the Dashboard.',
+      resync: false,
+    };
+  }
+
   const retryAfter = rateLimitRetryAfter(error);
   if (retryAfter !== null) {
     const wait =
@@ -128,6 +139,12 @@ function rateLimitRetryAfter(error: unknown): number | null {
   return typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0
     ? Math.ceil(seconds)
     : 0;
+}
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  const graphQLErrors = (error as { graphQLErrors?: readonly GraphQLErrorLike[] } | null)
+    ?.graphQLErrors;
+  return !!graphQLErrors?.some((e) => e.extensions?.code === code);
 }
 
 /** Narrow an unknown throw to the shape isNetworkError can read. */
