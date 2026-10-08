@@ -11,7 +11,7 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
-## Unreleased
+## 1.3.1 - 2026-10-08
 
 ### App Store "What's New"
 
