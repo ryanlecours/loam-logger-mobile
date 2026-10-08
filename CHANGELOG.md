@@ -11,7 +11,7 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
-## 1.3.1 - 2026-10-08
+## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"
 
@@ -20,6 +20,24 @@ New
   make a link to its lifetime, its time since the last service, or a date
   range you pick. Anyone with the link sees that window and nothing wider, and
   you can revoke a link at any time
+
+### Internal
+
+Component share links (PR #88)
+- `feat(component)`: `ComponentShareSheet`, opened from a link icon in the
+  header of `app/component/[id].tsx`. The mobile side of loam-logger #336: the
+  owner creates, shares (native share sheet) and revokes links through
+  `componentShares`, `createComponentShare` and `revokeComponentShare`. The
+  page a link opens is web-only. Hidden, as on the web, when the component has
+  no tenure data.
+- A date range is sent as `[rangeStart, rangeEnd)`: local midnight of the
+  first day to local midnight after the last. The pickers are bounded by the
+  part's first install and today, the same bounds the API checks. The start
+  never falls before the first install, and both dates reset on every open.
+
+## 1.3.1 - 2026-10-08
+
+### App Store "What's New"
 
 Improved
 - Looks Good now logs an inspection. Pick how many more hours the part is good
@@ -30,18 +48,7 @@ Improved
 
 ### Internal
 
-Component share links
-- `feat(component)`: `ComponentShareSheet`, opened from a link icon in the
-  header of `app/component/[id].tsx`. The mobile side of loam-logger #336: the
-  owner creates, shares (native share sheet) and revokes links through
-  `componentShares`, `createComponentShare` and `revokeComponentShare`. The
-  page a link opens is web-only. Hidden, as on the web, when the component has
-  no tenure data.
-- A date range is sent as `[rangeStart, rangeEnd)`: local midnight of the
-  first day to local midnight after the last. The pickers are bounded by the
-  part's first install and today, the same bounds the API checks.
-
-Inspection copy and undo
+Inspection copy and undo (PR #87)
 - The API turned `snoozeComponent` into "log an inspection" (loam-logger #332):
   it writes an `INSPECTION` service log instead of raising `serviceDueAtHours`.
   `ComponentActionSheet`, `ComponentDetailSheet` and the calibration sheet now
