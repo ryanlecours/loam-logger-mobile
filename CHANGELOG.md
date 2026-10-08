@@ -11,6 +11,62 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.0 - 2026-10-07
+
+### App Store "What's New"
+
+New
+- See the whole life of any part. Tap View full history on a component to see
+  every bike it has been on, and the hours, rides and distance it picked up on
+  each one
+- Flip between a part's lifetime totals and its totals since the last service:
+  hours, rides, distance and climbing
+- Every part gets a logbook of its services and inspections, with the hours it
+  had on it at the time
+- Pro members can see the weather a part has been ridden in. Conditions are
+  shown for the record only and do not change service intervals
+- Hours you entered for a part that came to you used are counted in its
+  lifetime total, and the history says how many of them there are
+
+### Internal
+
+Component history (PR #85)
+- `feat(component)`: a pushed route, `app/component/[id].tsx`, reached from a
+  "View full history" row on `ComponentDetailSheet`. `onViewHistory` is
+  optional and the row is hidden without it. Backed by the `componentHistory`
+  query, which is aggregate-only, so the response stays constant-size for any
+  length of history. Depends on the API change (loam-logger #321) being in
+  production; the generated types reference `componentHistory`, `priorHours`,
+  `lifetimeHours` and `ServiceLogKind`.
+- `feat(component)`: hours come from the API's stored counters rather than
+  ride-summed tenure totals, because `lifetimeHours` includes `priorHours`
+  (hours declared for a part that arrived used), which no ride data can
+  reconstruct. Rides, distance and elevation stay ride-derived. The since-
+  service tab follows the counter rule: `sinceService` is totalled from
+  tenure-bounded rides since the latest service and its hours are the counter,
+  so a part that has moved bikes no longer contradicts itself.
+  `consistencyWarning` and its banner are gone with the schema field.
+- `feat(component)`: conditions are descriptive only, and the screen says so,
+  since the service engine is hours-only and a conditions panel beside a
+  health badge implies causation by adjacency. The Pro gate is enforced by the
+  API, which returns zeroed buckets to free users. The upsell copy says Pro
+  unlocks viewing, not recording, because weather is recorded on every ride
+  regardless of tier. Bars use a lightness ramp from the neutral and sage
+  families, never the health ramp, and are hand-rolled `View`s: mobile has no
+  chart library, and adding one is a native dependency and an EAS rebuild.
+- `feat(component)`: the logbook labels SERVICE and INSPECTION entries. The
+  zero-hour service logs the old model wrote on every install are gone
+  server-side, so this screen drops the `hoursAtService > 0` filter that also
+  hid a genuine service on a part with no hours. The logbook renders even when
+  coverage is `NO_TENURE_DATA`, since a spare can be serviced or inspected
+  before it is ever installed.
+- `fix(component)`: dates use the device locale, and the condition label and
+  count use `minWidth` so they grow under Dynamic Type instead of clipping.
+- `chore(graphql)`: prediction selections in `gear.graphql` and
+  `calibration.graphql` grew by the two-clock fields, because the generated
+  query result is assigned to the full schema type and new required fields
+  have to be selected.
+
 ## 1.2.0 - 2026-08-29
 
 ### App Store "What's New"
