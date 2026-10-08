@@ -203,10 +203,23 @@ export async function refreshAccessToken(): Promise<RefreshResult> {
   }
 }
 
+/**
+ * A Google or Apple sign-in that matched an existing password account whose
+ * email was never confirmed. The API holds the link until the rider enters
+ * that account's password (completeProviderLink below).
+ */
+export interface PendingProviderLink {
+  linkToken: string;
+  email: string;
+  provider: 'google' | 'apple';
+}
+
 export interface AuthResult {
   success: boolean;
   error?: string;
-  errorCode?: 'INVALID_CREDENTIALS' | 'NETWORK_ERROR';
+  errorCode?: 'INVALID_CREDENTIALS' | 'NETWORK_ERROR' | 'LINK_NEEDS_PASSWORD';
+  /** Set with errorCode LINK_NEEDS_PASSWORD. */
+  providerLink?: PendingProviderLink;
   /**
    * The backend's x-request-id header, when available. Surface this in user-facing
    * error messages so a bug report ties to an exact log line in Railway.
@@ -220,12 +233,17 @@ export interface AuthResult {
 // failures behind a misleading "Network error" alert.
 async function parseErrorResponse(
   response: Response
-): Promise<{ message: string; code?: string; requestId?: string }> {
+): Promise<{ message: string; code?: string; requestId?: string; details?: Record<string, unknown> }> {
   const requestId = response.headers.get('x-request-id') ?? undefined;
   const text = await response.text();
   try {
-    const json = JSON.parse(text) as { error?: string; message?: string; code?: string };
-    return { message: json.error ?? json.message ?? text, code: json.code, requestId };
+    const json = JSON.parse(text) as {
+      error?: string;
+      message?: string;
+      code?: string;
+      details?: Record<string, unknown>;
+    };
+    return { message: json.error ?? json.message ?? text, code: json.code, requestId, details: json.details };
   } catch {
     return { message: text || `HTTP ${response.status}`, requestId };
   }
@@ -300,7 +318,10 @@ export async function loginWithGoogle(
     });
 
     if (!response.ok) {
-      const { message, requestId } = await parseErrorResponse(response);
+      const parsed = await parseErrorResponse(response);
+      const held = heldLink(parsed);
+      if (held) return held;
+      const { message, requestId } = parsed;
 
       recordAuthFailure('google', 'INVALID_CREDENTIALS', requestId, response.status);
       return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
@@ -331,7 +352,10 @@ export async function loginWithApple(
     });
 
     if (!response.ok) {
-      const { message, requestId } = await parseErrorResponse(response);
+      const parsed = await parseErrorResponse(response);
+      const held = heldLink(parsed);
+      if (held) return held;
+      const { message, requestId } = parsed;
 
       recordAuthFailure('apple', 'INVALID_CREDENTIALS', requestId, response.status);
       return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
@@ -342,6 +366,57 @@ export async function loginWithApple(
     return { success: true };
   } catch (_error) {
     recordAuthFailure('apple', 'NETWORK_ERROR');
+    return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
+  }
+}
+
+/** Turn a 409 LINK_NEEDS_PASSWORD answer into a result the screen can prompt from. */
+function heldLink(parsed: {
+  message: string;
+  code?: string;
+  requestId?: string;
+  details?: Record<string, unknown>;
+}): AuthResult | null {
+  const { code, details } = parsed;
+  if (code !== 'LINK_NEEDS_PASSWORD' || typeof details?.linkToken !== 'string') return null;
+  return {
+    success: false,
+    error: parsed.message,
+    errorCode: 'LINK_NEEDS_PASSWORD',
+    requestId: parsed.requestId,
+    providerLink: {
+      linkToken: details.linkToken,
+      email: typeof details.email === 'string' ? details.email : '',
+      provider: details.provider === 'apple' ? 'apple' : 'google',
+    },
+  };
+}
+
+/**
+ * Finish a held Google or Apple sign-in by proving the account password.
+ * On success the account is linked and the rider is signed in.
+ */
+export async function completeProviderLink(linkToken: string, password: string): Promise<AuthResult> {
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+
+  try {
+    const response = await fetch(`${apiUrl}/auth/mobile/link-provider`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ linkToken, password }),
+    });
+
+    if (!response.ok) {
+      const { message, requestId } = await parseErrorResponse(response);
+      return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };
+    }
+
+    const data = await response.json();
+    await storeTokens(data.accessToken, data.refreshToken, data.user);
+    return { success: true };
+  } catch (_error) {
     return { success: false, error: 'Network error', errorCode: 'NETWORK_ERROR' };
   }
 }
