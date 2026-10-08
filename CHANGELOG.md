@@ -15,6 +15,12 @@ dev-facing changes that don't belong in store copy.
 
 ### App Store "What's New"
 
+New
+- Share a part's history. Tap the link icon on a component's full history to
+  make a link to its lifetime, its time since the last service, or a date
+  range you pick. Anyone with the link sees that window and nothing wider, and
+  you can revoke a link at any time
+
 Improved
 - Looks Good now logs an inspection. Pick how many more hours the part is good
   for (half its service interval is suggested), and the next service you log
@@ -23,6 +29,17 @@ Improved
 - A part's logbook shows how many more hours each inspection gave it
 
 ### Internal
+
+Component share links
+- `feat(component)`: `ComponentShareSheet`, opened from a link icon in the
+  header of `app/component/[id].tsx`. The mobile side of loam-logger #336: the
+  owner creates, shares (native share sheet) and revokes links through
+  `componentShares`, `createComponentShare` and `revokeComponentShare`. The
+  page a link opens is web-only. Hidden, as on the web, when the component has
+  no tenure data.
+- A date range is sent as `[rangeStart, rangeEnd)`: local midnight of the
+  first day to local midnight after the last. The pickers are bounded by the
+  part's first install and today, the same bounds the API checks.
 
 Inspection copy and undo
 - The API turned `snoozeComponent` into "log an inspection" (loam-logger #332):

@@ -23,6 +23,8 @@ import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { GarminDerivedNote } from '../../src/components/attribution/GarminAttribution';
 import { conditionIcon, conditionLabel, type WeatherCondition } from '../../src/lib/weather';
+import { ComponentShareSheet } from '../../src/components/gear/ComponentShareSheet';
+import { earliestShareDay } from '../../src/utils/componentShare';
 
 /**
  * Conditions bar tints, per the Data Visualization section of DESIGN.md.
@@ -60,6 +62,7 @@ export default function ComponentHistoryScreen() {
   const { distanceUnit } = useDistanceUnit();
   const { isPro } = useUserTier();
   const [range, setRange] = useState<'lifetime' | 'sinceService'>('lifetime');
+  const [shareOpen, setShareOpen] = useState(false);
 
   const { data, loading, error } = useComponentHistoryQuery({
     variables: { componentId },
@@ -82,6 +85,12 @@ export default function ComponentHistoryScreen() {
     [payload?.conditions]
   );
   const maxConditionRides = conditions[0]?.rideCount ?? 1;
+
+  // A date-range share can start no earlier than the part's first install.
+  const shareEarliestDay = useMemo(
+    () => earliestShareDay(payload?.tenures ?? [], payload?.component.installedAt),
+    [payload?.tenures, payload?.component.installedAt]
+  );
 
   const title = payload
     ? [payload.component.brand, payload.component.model].filter(Boolean).join(' ') ||
@@ -146,7 +155,32 @@ export default function ComponentHistoryScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'History' }} />
+      <Stack.Screen
+        options={{
+          title: 'History',
+          // A part with no time on a bike has nothing to share, as on the web.
+          headerRight: hasTenures
+            ? () => (
+                <TouchableOpacity
+                  onPress={() => setShareOpen(true)}
+                  style={styles.headerButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share this component's history"
+                >
+                  <Ionicons name="link-outline" size={22} color={colors.primary} />
+                </TouchableOpacity>
+              )
+            : undefined,
+        }}
+      />
+      {hasTenures && (
+        <ComponentShareSheet
+          visible={shareOpen}
+          componentId={payload.component.id}
+          earliestDay={shareEarliestDay}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.content}
@@ -423,6 +457,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 48 },
+  headerButton: { paddingHorizontal: 8, paddingVertical: 4 },
   centered: {
     flex: 1,
     alignItems: 'center',
