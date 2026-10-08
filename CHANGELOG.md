@@ -11,51 +11,7 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
-## Unreleased
-
-### App Store "What's New"
-
-Fixes
-- Typing an hours value or a service note no longer leaves the keyboard sitting
-  on top of the field. Number pads now get a Done button, so entering a custom
-  snooze or editing a note is not a dead end
-
-### Internal
-
-Keyboard handling
-- `fix(ui)`: extracted the bottom-sheet scaffold every sheet was hand-rolling
-  (scrim, slide-up card, handle, safe-area padding) into
-  `src/components/common/BottomSheet.tsx`, and wrapped it in a
-  `KeyboardAvoidingView`. A sheet is bottom-anchored by definition, so the
-  keypad rose into exactly the band holding the inputs and the action footer.
-  An inner ScrollView cannot rescue a footer that is its sibling, so Save,
-  Apply and Delete were unreachable. Adopted by `ComponentDetailSheet`,
-  `ComponentActionSheet`, `EditServiceSheet` and `ReplaceComponentSheet`, which
-  are the four sheets carrying text fields. The extraction is pixel-preserving:
-  the scrim value and the off-scale 20pt corner radius were carried over as-is
-  rather than moved onto `colors.scrim` and the radius scale, which is a design
-  decision and not part of a bug fix.
-- `fix(ui)`: a scrim tap while a field is focused now dismisses the keyboard
-  instead of closing the sheet. It used to close and discard whatever had been
-  typed, which mattered because it was also the only dismissal gesture
-  available to a numeric field.
-- `fix(ui)`: added `src/components/common/KeyboardDoneAccessory.tsx`, an iOS
-  `InputAccessoryView` carrying a Done button. iOS renders `number-pad` and
-  `decimal-pad` as a bare 10-key with no return key, so the
-  `returnKeyType="done"` on the service-interval field was silently inert.
-  Wired into every field on the sheets above plus the ride add/edit,
-  save-recording, add-bike, onboarding bike and age, service-reminder and
-  component-rides screens. Renders nothing on Android, where the system back
-  gesture already dismisses.
-- `fix(ui)`: the full-screen forms had no keyboard handling at all. Ride
-  add/edit, save-recording and service reminders now set
-  `automaticallyAdjustKeyboardInsets` (iOS pads the scroll insets and scrolls
-  the focused field into view; Android's `adjustResize` already covers it),
-  plus `keyboardShouldPersistTaps="handled"` and an interactive dismiss.
-  Add-bike and the onboarding steps already had a `KeyboardAvoidingView` and
-  only needed the persist-taps and the Done bar.
-
-## 1.2.0 - 2026-08-19
+## 1.2.0 - 2026-08-29
 
 ### App Store "What's New"
 
@@ -63,22 +19,44 @@ New
 - Record a ride right in the app. Start it at the trailhead, lock your phone,
   and it keeps tracking: distance, climbing and time, with a live map of where
   you have been
+- Start a recording straight from the dashboard, or jump back into one that is
+  already running
 - Your route is saved with the ride, so you can look back at where you actually
   went
 - Recording pauses itself when you stop moving and picks back up when you ride
   on, so a long stop at the top does not count as ride time
 - Climbing is measured with your phone's barometer, the same kind of sensor a
   bike computer uses, instead of GPS altitude alone
+- Riding Insights now shows your totals for whichever timeframe you pick: rides,
+  time, distance and climbing, plus how your time splits across your bikes
+- Assign a batch of unassigned rides to a bike in one pass, chosen by provider
+  and date range. You see how many rides and how many hours it will credit
+  before you confirm
 - E-bikes now track motor and battery hours alongside the rest of your parts
 - Choose whether Loam can use AI to write your maintenance summaries, in
   Settings
 
 Improvements
+- Bike search shows a photo of each model, so four trim levels of the same bike
+  are no longer four identical rows
+- The dashboard names your bikes when everything is in good shape, instead of
+  leaving the space under the headline empty
 - Rides you log without signal are saved on your phone and upload themselves
   once you are back in range
+- Stats you share now sit on a panel that keeps them readable over a bright
+  photo
 - A dropped connection mid-ride no longer signs you out
 - Signing out now ends the session on our side too, not just on your phone
 - A fresh look for the app icon, splash and sign-in screen
+
+Fixes
+- Typing an hours value or a service note no longer leaves the keyboard sitting
+  on top of the field. Number pads now get a Done button, so entering a custom
+  snooze or editing a note is not a dead end
+- Screens no longer draw under the status bar or the home indicator, so a title
+  is not hidden behind the clock
+- Changing a notification or sync setting no longer reports a failure over a
+  change that actually saved
 
 ### Internal
 
@@ -125,6 +103,17 @@ Recording (PRs #69, #70, #72, #73, #77)
   hardware back is intercepted on the record and save screens, keep-awake is
   held only while a session is live, and Android location permissions the
   recorder needs are unblocked.
+- `fix(recording)`: the barometric path was the only altitude path with no
+  smoothing on it, and a deadband in front of a one-sided sum has a cliff
+  rather than a slope: at 0.3 m of input noise it books nothing, at 0.75 m it
+  books hundreds of feet across one descent. The noise is not sensor error,
+  which is why the accuracy gates never saw it: airflow over a jersey pocket
+  is worth ~3 m of apparent altitude at 8 m/s, hidden inside a climb total
+  that is mostly real and fully exposed on a descent where the right answer
+  is zero. A ride alongside a Garmin read 2,555 ft against its 1,736 ft, the
+  entire difference booked descending. The fused series is now low-passed at
+  a ~10 s time constant before the deadband, since buffeting lives at seconds
+  and terrain a rider would call a climb lives at tens of seconds.
 
 Offline and auth (PRs #67, #71)
 - `feat(offline)`: a durable AddRide outbox and a persisted Apollo cache, both
@@ -153,6 +142,148 @@ E-bike (PR #75)
 - `feat(gear)`: MOTOR and BATTERY render in their own E-bike group on bike
   detail rather than falling through to Other. Both are hours-only on the API
   side, so they show hours and no health status, and no service interval.
+
+Dashboard and first run (PR #84, plus `685ace8`)
+- `feat(dashboard)`: a rider who finishes onboarding used to meet a headline
+  over empty space, because triage sorts an unflagged bike into `healthy`,
+  healthy bikes get no row, and the "good to go" summary is skipped when the
+  headline already says it. All three are right at 300 rides and wrong on day
+  one. The all-clear case now renders identity (photo, name, parts under watch)
+  instead of silence, a first-run card carries the actions that start the
+  clocks, and the Pro card is demoted below them for a rider with no hours to
+  sell against.
+- `feat(dashboard)`: ride recording is now reachable from the dashboard, which
+  is the screen riders open first. It was previously only behind the Rides
+  tab's floating button, inside an alert offering two choices, which is three
+  taps and a guess away. It appears in the first-run card as a real button
+  between connecting an account and typing a ride in by hand, in the
+  recent-rides empty state in that same order, and in the recent-rides header
+  for everyone else. Connecting stays primary because it backfills a whole
+  history at once, where recording only produces the ride about to happen. All
+  three flip to "Back to your ride" when a session is live, since the root
+  layout re-surfaces the record screen once per liveness and a rider who backed
+  out of it lands here mid-ride.
+
+Insights and sharing (PRs #81, #82)
+- `feat(insights)`: Riding Insights answered "how consistently, and where" but
+  never "how much". `useRideStats` already returned totalRides, totalDistance,
+  totalElevation, totalHours and bikeTime for every timeframe; the screen never
+  rendered them. No hook, GraphQL or API change. Time by bike waits for a
+  second bike, since one bike at 100% is not a breakdown. These four numbers
+  appear on the dashboard too, deliberately: two screens each showing its own
+  timeframe control right above its own answer is not the two-controls-on-one-
+  scroll hazard `RideStatsCard` warns about.
+- `fix(share)`: the exported stats overlay was white text on full transparency
+  leaning on a text shadow, which outlines letterforms without putting anything
+  behind them. Over a white photo it measured 1.06:1, which is not hard to read
+  but invisible. It now sits on a forest-tinted obsidian panel at 65% alpha
+  with a mint edge-light, the frosted-glass surface DESIGN.md specifies
+  elsewhere, taking the worst case to 5.82:1 and a mid-grey photo to 11.52:1.
+  The border and radius are doubled from their on-screen values because the
+  export renders at roughly 2x phone scale.
+
+Bulk ride assignment (PR #83)
+- `feat`: an assign-rides screen for the case a Garmin backfill creates, where
+  fixing unassigned rides one row at a time is the wrong shape of work. It
+  picks a bike, a provider and a date window and lets the server decide which
+  rides that selects, because the list is paginated 20 at a time and anything
+  filtering the loaded page would mean "some of my Garmin rides" while looking
+  like it meant all of them. The count, the hours credited and the date span
+  are previewed and confirmed with both numbers named, since this is not one
+  tap reversible and those hours can push components past a service threshold
+  in a single move.
+- `fix`: `useBulkBikeAssignment` reads ride ids at submit time rather than
+  reusing the preview's, writes in bounded chunks, and returns a typed outcome
+  (assigned, nothing, partial, failed) so the screen reports what actually
+  landed. A server refusal caused by a webhook assigning a bike mid-flight
+  retries once against a fresh id list, but only while nothing has committed,
+  since re-reading after a chunk lands would double-count progress the rider
+  has already seen.
+
+Bike search (PR #84)
+- `feat(bike-search)`: search results carry the 99spokes product shot, because
+  "Evil Offering" returns four rows separated only by a trim code a secondhand
+  buyer may not know, and colorway is the fastest way to tell them apart. The
+  API was already fetching the thumbnail and discarding it, so this costs no
+  extra call. `BikeThumbnail` gains a `fit` prop: the default crop is right for
+  a rider's own bike, but a center crop of a wide catalog shot shows nothing
+  but a shock. Results now arrive newest model year first.
+- `feat(bike-search)`: onboarding stops offering frame-only listings. A
+  frameset carries no fork, drivetrain, brakes or tires from 99spokes, so the
+  flow ended on a bike with nothing to track while the next step asked whether
+  its nonexistent components were stock. Add Bike keeps them, for a rider who
+  really did build one up.
+- `fix(bike-search)`: a search result's year is typed as nullable, following
+  the API.
+
+Layout and keyboard (PRs #78, #84)
+- `fix(ui)`: added `src/components/common/Screen.tsx`, the root element for any
+  screen the navigator renders without a native header. Every stack runs
+  `headerShown: false` and Android runs `edgeToEdgeEnabled`, so nothing
+  reserved the status bar, the notch or the home indicator: onboarding drew its
+  title behind the clock, and screens that coped did it with a hard-coded
+  `marginTop: 76` that is a guess at one device. `Screen` reads the real OS
+  insets and applies them on top of the caller's own padding, with an `edges`
+  prop for where something else owns an edge (the tab bar, an autofocused
+  keyboard). The two hand-rolled implementations and their magic numbers fold
+  into it.
+- `fix(ui)`: dropped the background five screens were painting underneath the
+  one `Screen` already paints.
+
+- `fix(ui)`: extracted the bottom-sheet scaffold every sheet was hand-rolling
+  (scrim, slide-up card, handle, safe-area padding) into
+  `src/components/common/BottomSheet.tsx`, and wrapped it in a
+  `KeyboardAvoidingView`. A sheet is bottom-anchored by definition, so the
+  keypad rose into exactly the band holding the inputs and the action footer.
+  An inner ScrollView cannot rescue a footer that is its sibling, so Save,
+  Apply and Delete were unreachable. Adopted by `ComponentDetailSheet`,
+  `ComponentActionSheet`, `EditServiceSheet` and `ReplaceComponentSheet`, which
+  are the four sheets carrying text fields. The extraction is pixel-preserving:
+  the scrim value and the off-scale 20pt corner radius were carried over as-is
+  rather than moved onto `colors.scrim` and the radius scale, which is a design
+  decision and not part of a bug fix.
+- `fix(ui)`: a scrim tap while a field is focused now dismisses the keyboard
+  instead of closing the sheet. It used to close and discard whatever had been
+  typed, which mattered because it was also the only dismissal gesture
+  available to a numeric field.
+- `fix(ui)`: added `src/components/common/KeyboardDoneAccessory.tsx`, an iOS
+  `InputAccessoryView` carrying a Done button. iOS renders `number-pad` and
+  `decimal-pad` as a bare 10-key with no return key, so the
+  `returnKeyType="done"` on the service-interval field was silently inert.
+  Wired into every field on the sheets above plus the ride add/edit,
+  save-recording, add-bike, onboarding bike and age, service-reminder and
+  component-rides screens. Renders nothing on Android, where the system back
+  gesture already dismisses.
+- `fix(ui)`: the full-screen forms had no keyboard handling at all. Ride
+  add/edit, save-recording and service reminders now set
+  `automaticallyAdjustKeyboardInsets` (iOS pads the scroll insets and scrolls
+  the focused field into view; Android's `adjustResize` already covers it),
+  plus `keyboardShouldPersistTaps="handled"` and an interactive dismiss.
+  Add-bike and the onboarding steps already had a `KeyboardAvoidingView` and
+  only needed the persist-taps and the Done bar.
+
+Settings (PR #80)
+- `fix(settings)`: toggling Weekend Bike Check raised "Failed to update
+  notification preferences" over a write the API had already committed. PostHog
+  has the server-side `user_preferences_updated` event and Sentry has no
+  matching error, so the mutation succeeded and only the response was lost
+  coming back, leaving the switch disagreeing with the server until next
+  launch. `describeSaveError` is the write-side counterpart to `describeError`
+  and splits the three outcomes that need different words: a RATE_LIMITED
+  rejection reports the server's own `retryAfter` (the limiter caps
+  `updateUserPreferences` at 20 a minute, and NODE-7 held one account over that
+  cap for four months), a transport failure says the change is uncertain rather
+  than failed and sets `resync` so the control settles on what the server
+  stored, and anything else is a refusal where nothing changed. Applied to all
+  four preference writes.
+
+Release tooling
+- `ci(eas)`: the EAS Build workflow runs on Node 22. `eas-version: latest`
+  reached eas-cli 23.0.0, whose `@oclif/plugin-autocomplete` requires Node
+  >= 22, so installing the CLI on the pinned 20.18.0 runner failed and the job
+  died before dispatching a build. The Node the app is compiled with is
+  `build.base.node` in eas.json, still 20.18.0 on the EAS worker and
+  deliberately unchanged.
 
 ## 1.1.4 - 2026-08-05
 
