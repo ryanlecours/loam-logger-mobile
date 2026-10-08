@@ -67,6 +67,17 @@ Component history (PR #85)
   query result is assigned to the full schema type and new required fields
   have to be selected.
 
+Crash reporting (PR #86)
+- `fix(sentry)`: production events, including iOS watchdog terminations,
+  arrived with release `unknown`, so no crash could be tied to a build or
+  symbolicated. The EAS workflow set `EXPO_PUBLIC_SENTRY_RELEASE` on the
+  GitHub runner, but `eas build` runs on Expo's servers, which never see the
+  runner's environment, so `Sentry.init` always fell back to the literal
+  `'unknown'`, overriding the SDK's own default. `release` is now left unset,
+  and the SDK reads `bundleId@version+build` from the native build, the same
+  release the build phase uploads source maps and debug symbols under using
+  the `SENTRY_AUTH_TOKEN` stored in the EAS production environment.
+
 ## 1.2.0 - 2026-08-29
 
 ### App Store "What's New"
