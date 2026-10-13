@@ -22,7 +22,11 @@ export function usePostHogUser(user: User | null): void {
   //    another device is never treated as opted in by default.
   useEffect(() => {
     if (!user) return;
-    void (user.analyticsOptOut ? posthog.optOut() : posthog.optIn());
+    if (user.analyticsOptOut) {
+      void posthog.optOut();
+    } else {
+      void posthog.optIn();
+    }
     // Only the two fields read here, not the whole user object, so unrelated
     // profile changes don't re-run it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,10 +89,12 @@ export function usePostHogUser(user: User | null): void {
 /**
  * Record a `$screen` event whenever the route changes. Takes the screen name
  * rather than reading the router itself so the root layout, which already
- * holds the segments, stays the one place that subscribes to them.
+ * holds the segments, stays the one place that subscribes to them. Pass null
+ * while the route isn't settled (auth still loading) to record nothing.
  */
-export function usePostHogScreens(screenName: string): void {
+export function usePostHogScreens(screenName: string | null): void {
   useEffect(() => {
+    if (screenName === null) return;
     void posthog.screen(screenName);
   }, [screenName]);
 }

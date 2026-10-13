@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, View, Text, Switch, StyleSheet } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { useUpdateAnalyticsOptOutMutation } from '../../graphql/generated';
@@ -15,6 +15,14 @@ export function AnalyticsPrivacySection() {
   const { user } = useAuth();
   const [updateOptOut, { loading }] = useUpdateAnalyticsOptOutMutation();
   const [pendingShare, setPendingShare] = useState<boolean | null>(null);
+  const optedOut = user?.analyticsOptOut;
+
+  // Hold the optimistic value until the user catches up. useAuth copies the
+  // updated viewer into `user` in an effect, a render after the mutation
+  // resolves, so clearing on resolve would flick the switch back for a frame.
+  useEffect(() => {
+    if (pendingShare !== null && pendingShare === !optedOut) setPendingShare(null);
+  }, [pendingShare, optedOut]);
 
   if (!user) return null;
 
@@ -26,13 +34,12 @@ export function AnalyticsPrivacySection() {
     try {
       await updateOptOut({ variables: { optOut: !next } });
     } catch (err) {
+      setPendingShare(null);
       console.error('[AnalyticsPrivacySection] updateAnalyticsOptOut failed', err);
       Alert.alert(
         'Unable to save setting',
         `We couldn't ${next ? 'turn on' : 'turn off'} analytics sharing. Please try again.`,
       );
-    } finally {
-      setPendingShare(null);
     }
   }
 

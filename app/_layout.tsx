@@ -68,7 +68,8 @@ function RootLayoutNav() {
   const router = useRouter();
 
   usePostHogUser(user);
-  usePostHogScreens(screenNameFromSegments(segments));
+  // Skip the launch route while auth loads; the redirect picks the real screen.
+  usePostHogScreens(loading ? null : screenNameFromSegments(segments));
 
   // Status only, not the full snapshot. See useRecorderStatus for why.
   const recorderStatus = useRecorderStatus();

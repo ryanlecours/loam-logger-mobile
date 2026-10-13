@@ -22,9 +22,10 @@ describe('screenNameFromSegments', () => {
 });
 
 describe('posthogAutocapture', () => {
-  it('never captures element text or styles from touches', () => {
-    expect(posthogAutocapture.propsToCapture).not.toContain('children');
-    expect(posthogAutocapture.propsToCapture).not.toContain('style');
+  it('captures only fixed identifiers from touches', () => {
+    // children and accessibilityLabel can both carry rider data (a bike's
+    // name, a ride's title), and style is noise.
+    expect(posthogAutocapture.propsToCapture).toEqual(['testID', 'ph-label']);
   });
 });
 

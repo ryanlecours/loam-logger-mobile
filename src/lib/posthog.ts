@@ -29,10 +29,12 @@ export const posthogAutocapture: PostHogAutocaptureOptions = {
   captureScreens: false,
   captureTouches: true,
   // The SDK's default list includes `children`, which records the text inside
-  // whatever was tapped: a bike name, an email on the profile card. Capture
-  // only labels a developer wrote, matching the web app's decision to drop
-  // `$el_text`. `style` is noise for analysis, so it goes too.
-  propsToCapture: ['testID', 'accessibilityLabel', 'ph-label'],
+  // whatever was tapped: a bike name, an email on the profile card.
+  // `accessibilityLabel` leaks the same way, because many labels are built
+  // from rider data (a ride's title, a bike's name). Capture only fixed
+  // identifiers, matching the web app's decision to drop `$el_text`; add
+  // `ph-label` to a tap that needs a readable name. `style` is noise.
+  propsToCapture: ['testID', 'ph-label'],
 };
 
 /**
