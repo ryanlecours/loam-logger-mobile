@@ -17,6 +17,7 @@ query Me {
     rideSyncNotificationMode
     weeklyDigestEnabled
     aiFeaturesEnabled
+    analyticsOptOut
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource

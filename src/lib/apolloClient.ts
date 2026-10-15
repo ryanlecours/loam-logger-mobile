@@ -12,6 +12,7 @@ import { onError } from '@apollo/client/link/error';
 import { CachePersistor } from 'apollo3-cache-persist';
 import Storage from 'expo-sqlite/kv-store';
 import { getAccessToken, refreshAccessToken, type RefreshResult } from './auth';
+import { CLIENT_HEADER, clientHeaderValue } from './clientHeader';
 
 // Dedupe concurrent refresh attempts. When multiple queries land at once and
 // all 401, we want one /refresh round-trip — not N parallel refreshes that
@@ -33,6 +34,9 @@ const httpLink = new HttpLink({
   credentials: 'include',
 });
 
+// Constant for the life of the process, so computed once.
+const clientHeader = clientHeaderValue();
+
 const authLink = setContext(async (_, { headers }) => {
   const token = await getAccessToken();
 
@@ -40,6 +44,7 @@ const authLink = setContext(async (_, { headers }) => {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : '',
+      ...(clientHeader ? { [CLIENT_HEADER]: clientHeader } : {}),
     },
   };
 });

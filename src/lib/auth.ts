@@ -27,6 +27,7 @@ export interface User {
   distanceUnit?: string | null;
   rideSyncNotificationMode?: RideSyncNotificationMode;
   weeklyDigestEnabled?: boolean;
+  analyticsOptOut?: boolean;
   createdAt: string;
 }
 
