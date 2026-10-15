@@ -54,7 +54,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/splash-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#0C0C0E"
       },
       "package": "com.loamlabs.loamlogger",
@@ -85,10 +86,21 @@
               "scheme": "https",
               "host": "loamlogger.app",
               "pathPrefix": "/signup"
+            },
+            {
+              "scheme": "https",
+              "host": "loamlogger.app",
+              "pathPrefix": "/reset-password"
             }
           ],
           "autoVerify": true
         }
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
