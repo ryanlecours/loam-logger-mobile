@@ -4,6 +4,7 @@ export { HealthyBikeList } from './HealthyBikeList';
 export { FirstRideSetupCard } from './FirstRideSetupCard';
 export { RecentRidesList } from './RecentRidesList';
 export { UnassignedRidesBanner } from './UnassignedRidesBanner';
+export { EmailVerificationBanner } from './EmailVerificationBanner';
 export { RideStatsCard } from './RideStatsCard';
 export { BikeTriageGroup } from './BikeTriageGroup';
 export { ComponentActionSheet } from './ComponentActionSheet';

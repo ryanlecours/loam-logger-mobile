@@ -23,6 +23,7 @@ import {
   RecentRidesList,
   RideStatsCard,
   UnassignedRidesBanner,
+  EmailVerificationBanner,
 } from '../../src/components/dashboard';
 import { LogServiceSheet } from '../../src/components/gear/LogServiceSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
@@ -267,6 +268,7 @@ export default function DashboardScreen() {
     return (
       <Screen edges={['top']}>
         <BrandHeader />
+        <EmailVerificationBanner />
         <EmptyBikeState />
       </Screen>
     );
@@ -314,6 +316,10 @@ export default function DashboardScreen() {
         }
       >
         <BrandHeader />
+
+        {/* New accounts only, until they confirm. First so the reason share
+            links are off is on screen before the rider goes looking. */}
+        <EmailVerificationBanner />
 
         {/* Predictions are the whole answer, and the light query carries none of
             them. Until phase 2 lands there is nothing to say, so this must read

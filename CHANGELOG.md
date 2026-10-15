@@ -11,6 +11,28 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## Unreleased
+
+### App Store "What's New"
+
+New
+- New accounts confirm their email address before making share links. If
+  yours needs confirming, the Dashboard says so and can resend the email
+
+### Internal
+
+Email verification banner (pairs with loam-logger #339)
+- `feat(dashboard)`: `EmailVerificationBanner` on the Dashboard, driven by
+  the new `User.needsEmailVerification` through its own
+  `EmailVerificationStatus` query. Resend calls `POST
+  /auth/resend-verification` with the bearer token. It rechecks when the app
+  returns to the foreground, since the link itself opens in the browser.
+  Against an API without the field the query errors and the banner hides.
+- `describeSaveError` maps `EMAIL_NOT_VERIFIED` to copy that says how to fix
+  it. Bike history's share alert now goes through `describeSaveError` too,
+  rather than showing the raw error message.
+- Accounts created before #339 never see the banner or the gate.
+
 ## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"

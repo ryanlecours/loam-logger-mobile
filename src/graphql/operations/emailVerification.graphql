@@ -1,0 +1,9 @@
+# Separate from Me on purpose: against an API without this field only the
+# banner fails (and hides), not every screen that reads Me.
+query EmailVerificationStatus {
+  me {
+    id
+    email
+    needsEmailVerification
+  }
+}
