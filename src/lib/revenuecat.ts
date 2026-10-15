@@ -1,7 +1,17 @@
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import { Platform } from 'react-native';
 
-const RC_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || '';
+// Each store has its own RevenueCat app and public SDK key (appl_ for the App
+// Store, goog_ for Google Play). Both env reads stay literal so Expo inlines
+// them at build time.
+const RC_API_KEY_ENV =
+  Platform.OS === 'android'
+    ? 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY'
+    : 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY';
+const RC_API_KEY =
+  (Platform.OS === 'android'
+    ? process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY
+    : process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY) || '';
 
 const ENTITLEMENT_ID = 'Loam Logger Pro';
 
@@ -16,7 +26,7 @@ let initializedUserId: string | null = null;
 export async function initializeRevenueCat(userId: string): Promise<void> {
   if (Platform.OS === 'web' || initializedUserId === userId) return;
   if (!RC_API_KEY) {
-    console.error('[RevenueCat] Missing EXPO_PUBLIC_REVENUECAT_API_KEY');
+    console.error(`[RevenueCat] Missing ${RC_API_KEY_ENV}`);
     return;
   }
 
