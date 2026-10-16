@@ -37,7 +37,12 @@ Android Google Maps key (PR #94)
 - `canDrawNativeMap()` reads that flag. `RouteMapView` and `LiveTrackMap` show
   a placeholder instead of mounting a map when it is off, so a build without
   a key degrades instead of crashing; the live map says the ride is still
-  recording.
+  recording. In development builds the placeholder also names the missing
+  variable.
+- A production Android build on EAS without the key fails in
+  `app.config.ts`, with the `eas env:create` command in the error, so a
+  release can't quietly ship without maps. iOS, preview and local builds are
+  unaffected.
 - The Jest `MapView` mock exposes no-op camera methods so a live map can mount
   in tests.
 

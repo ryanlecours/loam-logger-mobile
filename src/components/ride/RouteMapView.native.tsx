@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../constants/theme';
 import MapView, { Polyline, type Region } from 'react-native-maps';
-import { canDrawNativeMap } from '../../lib/maps';
+import { canDrawNativeMap, mapUnavailableText } from '../../lib/maps';
 
 /**
  * Route map, native build. Draws a stored ride track on Apple Maps (iOS) or
@@ -75,7 +75,7 @@ export default function RouteMapView({
   if (!canDrawNativeMap()) {
     return (
       <View style={[styles.container, styles.unavailable]} testID="route-map-unavailable">
-        <Text style={styles.unavailableText}>Route map unavailable</Text>
+        <Text style={styles.unavailableText}>{mapUnavailableText('Route map unavailable')}</Text>
       </View>
     );
   }

@@ -3,7 +3,10 @@ import RouteMapView from './RouteMapView.native';
 import LiveTrackMap from './LiveTrackMap.native';
 import { canDrawNativeMap } from '../../lib/maps';
 
-jest.mock('../../lib/maps', () => ({ canDrawNativeMap: jest.fn() }));
+jest.mock('../../lib/maps', () => ({
+  canDrawNativeMap: jest.fn(),
+  mapUnavailableText: (base: string) => base,
+}));
 const mockCanDraw = canDrawNativeMap as jest.Mock;
 
 /**

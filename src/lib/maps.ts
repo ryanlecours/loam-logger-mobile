@@ -16,3 +16,11 @@ export function canDrawNativeMap(
   if (os !== 'android') return true;
   return extra?.androidMapsEnabled === true;
 }
+
+/**
+ * Placeholder copy for a build that can't draw a map. Development builds also
+ * name the missing setting, since that's the only reason it happens.
+ */
+export function mapUnavailableText(base: string, isDev: boolean = __DEV__): string {
+  return isDev ? `${base}\nGOOGLE_MAPS_ANDROID_API_KEY is not set` : base;
+}

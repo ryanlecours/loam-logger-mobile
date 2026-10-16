@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { colors, radius } from '../../constants/theme';
 import { buildChunks, type LatLngPoint } from './liveTrackChunks';
-import { canDrawNativeMap } from '../../lib/maps';
+import { canDrawNativeMap, mapUnavailableText } from '../../lib/maps';
 
 /**
  * Live map for an in-progress recording: the route so far plus a position
@@ -77,7 +77,9 @@ export default function LiveTrackMap({ track, trackLength, lastFix }: LiveTrackM
   if (!canDrawNativeMap()) {
     return (
       <View style={[styles.container, styles.placeholder, styles.unavailable]} testID="live-map-unavailable">
-        <Text style={styles.unavailableText}>Map unavailable. Your ride is still recording.</Text>
+        <Text style={styles.unavailableText}>
+          {mapUnavailableText('Map unavailable. Your ride is still recording.')}
+        </Text>
       </View>
     );
   }
