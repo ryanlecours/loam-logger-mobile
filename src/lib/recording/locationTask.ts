@@ -69,13 +69,40 @@ const UPDATE_OPTIONS: Location.LocationTaskOptions = {
   },
 };
 
-let foregroundFallback: Location.LocationSubscription | null = null;
+let locationWatch: Location.LocationSubscription | null = null;
+
+/** Feed the recorder from a watch in this JS runtime, replacing any earlier one. */
+async function startWatch(): Promise<void> {
+  locationWatch?.remove();
+  locationWatch = null;
+  locationWatch = await Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
+      distanceInterval: 3,
+      // With Google Location Accuracy off, Android would otherwise prompt to
+      // turn it on, and declining rejects the watch outright. GPS alone is
+      // enough for a ride track, and the background task never prompts.
+      mayShowUserSettingsDialog: false,
+    },
+    (location) => rideRecorder.ingest(toUpdate(location)),
+  );
+}
 
 /**
  * Production controller. Prefers the background task; if starting it is
  * rejected (OS edge cases, stripped entitlements in some build flavor), falls
  * back to the phase-1 foreground watch so recording still works with the
  * screen on rather than not at all.
+ *
+ * ANDROID: the task alone is not enough. expo-task-manager on the new
+ * architecture can stop handing the task's fixes to JS: they queue natively
+ * behind a job that never finishes and arrive in one burst on the next
+ * reload, by which point the restored session is paused and drops them
+ * (expo/expo#50060). So Android also runs a watch, which delivers in this
+ * runtime. The task stays: its foreground service is what keeps the process
+ * and GPS alive with the screen off, and the watch rides on that. When both
+ * do deliver, the recorder counts each fix once (RideRecorder.ingest).
  */
 export const rideLocationController: LocationController = {
   async start() {
@@ -86,19 +113,20 @@ export const rideLocationController: LocationController = {
         '[recording] background location unavailable, falling back to foreground watch',
         error,
       );
-      foregroundFallback = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,
-          distanceInterval: 3,
-        },
-        (location) => rideRecorder.ingest(toUpdate(location)),
-      );
+      await startWatch();
+      return;
+    }
+    if (Platform.OS === 'android') {
+      // The task is already running, so a failed watch should not fail the
+      // start and leave the ride paused.
+      await startWatch().catch((error) => {
+        console.warn('[recording] location watch unavailable, relying on the background task', error);
+      });
     }
   },
   async stop() {
-    foregroundFallback?.remove();
-    foregroundFallback = null;
+    locationWatch?.remove();
+    locationWatch = null;
     const started = await Location.hasStartedLocationUpdatesAsync(RIDE_RECORDING_TASK).catch(
       () => false,
     );
