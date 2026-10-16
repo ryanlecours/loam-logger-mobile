@@ -22,7 +22,7 @@ Fixes
 
 ### Internal
 
-Notification permission status (PR #TBD)
+Notification permission status (PR #95)
 - On Android 13+, expo-notifications reports `denied` for a permission that
   was never requested, because the app's notifications count as disabled
   until it is granted. It also reports `denied` after a first refusal, when
