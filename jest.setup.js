@@ -11,9 +11,16 @@ jest.mock('react-native-maps', () => {
   const React = require('react');
   const { View } = require('react-native');
 
-  const MockMapView = React.forwardRef((props, ref) =>
-    React.createElement(View, { ...props, ref, testID: props.testID ?? 'map-view' }, props.children)
-  );
+  // The ref exposes the camera methods the app calls (LiveTrackMap follows the
+  // rider with animateCamera), as no-ops, so a live map can mount in a test.
+  const MockMapView = React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      animateCamera: () => {},
+      animateToRegion: () => {},
+      fitToCoordinates: () => {},
+    }));
+    return React.createElement(View, { ...props, testID: props.testID ?? 'map-view' }, props.children);
+  });
   MockMapView.displayName = 'MapView';
 
   const MockPolyline = (props) =>

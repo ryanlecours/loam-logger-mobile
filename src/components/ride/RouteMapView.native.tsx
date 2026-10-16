@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../constants/theme';
 import MapView, { Polyline, type Region } from 'react-native-maps';
+import { canDrawNativeMap } from '../../lib/maps';
 
 /**
  * Route map, native build. Draws a stored ride track on Apple Maps (iOS) or
@@ -11,10 +12,11 @@ import MapView, { Polyline, type Region } from 'react-native-maps';
  * The plain file is the web/TypeScript fallback and must stay importable; see
  * its comment for why both exist.
  *
- * ANDROID: renders blank until an `androidGoogleMapsApiKey` is added to the
- * react-native-maps config plugin in app.json. Deferred deliberately, since
- * Android is not shipping yet. iOS needs no key: it uses Apple Maps by
- * default, and MapKit draws its own legal attribution.
+ * ANDROID: needs a Google Maps key, injected by app.config.ts from
+ * GOOGLE_MAPS_ANDROID_API_KEY. Without one the SDK throws on mount and takes
+ * the ride screen down, so a build without a key shows a placeholder instead
+ * (canDrawNativeMap). iOS needs no key: it uses Apple Maps by default, and
+ * MapKit draws its own legal attribution.
  *
  * We never set `showsUserLocation`. This view draws a track the server
  * already stored; the device's position is irrelevant to it. (The app DOES
@@ -70,6 +72,14 @@ export default function RouteMapView({
 
   if (!region) return null;
 
+  if (!canDrawNativeMap()) {
+    return (
+      <View style={[styles.container, styles.unavailable]} testID="route-map-unavailable">
+        <Text style={styles.unavailableText}>Route map unavailable</Text>
+      </View>
+    );
+  }
+
   return (
     // pointerEvents="none" is load-bearing, not defensive. The ride detail
     // screen is a ScrollView, and this map sits inside a tap-anywhere-to-edit
@@ -120,5 +130,14 @@ const styles = StyleSheet.create({
     height: 224,
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  unavailable: {
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unavailableText: {
+    fontSize: 13,
+    color: colors.textMuted,
   },
 });
