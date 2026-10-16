@@ -21,6 +21,8 @@ Fixes
   notifications on yet. Tap it and Android asks for permission right there
 - On Android, recording a ride or opening a ride's map no longer closes the
   app. The map shows your route as it does on iPhone
+- On Android, a recorded ride now captures your route, including with the
+  screen off. Before, the timer ran but no GPS points were saved
 
 ### Internal
 
@@ -58,6 +60,28 @@ Notification permission status (PR #95)
   for permission, so onboarding's "Enable" did nothing on simulators and
   emulators. The check now runs after the request and only skips the push
   token fetch.
+
+Android ride recording location feed (PR #96)
+- On the new architecture, expo-task-manager can stop handing the background
+  location task's fixes to JS (expo/expo#50060). They queue natively and
+  arrive in one burst on the next reload, when the restored session is paused
+  and drops them, so an Android ride recorded no points.
+- Android now also runs a `watchPositionAsync` subscription that feeds the
+  recorder directly. The background task stays: its location foreground
+  service keeps the process and GPS alive with the screen off. iOS is
+  unchanged and still uses the task alone.
+- `RideRecorder.ingest` drops a fix that repeats the last one (same timestamp
+  and position) or is older than it, so a fix delivered by both sources, or a
+  late batch from the task, is counted once.
+- The watch passes `mayShowUserSettingsDialog: false`. Otherwise, with Google
+  Location Accuracy off, Android prompts to turn it on and declining rejects
+  the watch, which left a resumed ride paused. A watch that still fails on
+  Android is logged and the start carries on with the task.
+- A stop that lands while the controller is still starting (Finish or
+  Discard right after Start) no longer leaks the stream. Before, the watch
+  resolved after the stop and kept the GPS on, and the task could be left
+  running with its notification up. A generation counter lets the late
+  start undo what it started, unless a newer start owns the stream.
 
 ## 1.3.2 - 2026-10-08
 
