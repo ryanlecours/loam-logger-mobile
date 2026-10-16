@@ -65,23 +65,26 @@ async function fetchExpoPushToken(): Promise<string | null> {
  * Returns null if permissions are denied or if not on a physical device.
  */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  // Push notifications only work on physical devices
-  if (!Device.isDevice) {
-    console.warn('[notifications] Push notifications require a physical device');
-    return null;
-  }
-
   // Check existing permissions
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
-  // Request if not already granted
+  // Request if not already granted. This runs on simulators and emulators
+  // too: the permission is real there, only the push token isn't, and
+  // skipping the request left the Settings switch off after onboarding's
+  // "Enable" button had done nothing at all.
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
 
   if (finalStatus !== 'granted') {
+    return null;
+  }
+
+  // Push tokens only work on physical devices
+  if (!Device.isDevice) {
+    console.warn('[notifications] Push notifications require a physical device');
     return null;
   }
 
@@ -104,12 +107,20 @@ export async function getCurrentPushTokenIfGranted(): Promise<string | null> {
 }
 
 /**
- * Get the current notification permission status.
+ * Get the current notification permission status. 'denied' means the app
+ * can no longer show the OS prompt, so the only way forward is system
+ * settings; anything still promptable reads as 'undetermined'.
+ *
+ * The raw status can't be used for that on its own: on Android 13+ expo
+ * reports 'denied' for a permission that was never requested (the app's
+ * notifications count as disabled until it is granted), and also after a
+ * first refusal, when Android still allows one more prompt. canAskAgain is
+ * what separates those from a final refusal.
  */
 export async function getNotificationPermissionStatus(): Promise<'undetermined' | 'granted' | 'denied'> {
-  const { status } = await Notifications.getPermissionsAsync();
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
   if (status === 'granted') return 'granted';
-  if (status === 'denied') return 'denied';
+  if (status === 'denied' && !canAskAgain) return 'denied';
   return 'undetermined';
 }
 
