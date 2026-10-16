@@ -11,6 +11,30 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.3 - 2026-10-16
+
+### App Store "What's New"
+
+Fixes
+- On Android, the Push Notifications switch in Settings no longer sits greyed
+  out and pointing you to system settings when you haven't turned
+  notifications on yet. Tap it and Android asks for permission right there
+
+### Internal
+
+Notification permission status (PR #95)
+- On Android 13+, expo-notifications reports `denied` for a permission that
+  was never requested, because the app's notifications count as disabled
+  until it is granted. It also reports `denied` after a first refusal, when
+  Android still allows one more prompt. `getNotificationPermissionStatus` now
+  returns `denied` only when `canAskAgain` is false, so the Settings switch
+  stays tappable while the OS prompt is still available. iOS is unaffected:
+  its `denied` always comes with `canAskAgain: false`.
+- `registerForPushNotificationsAsync` checked `Device.isDevice` before asking
+  for permission, so onboarding's "Enable" did nothing on simulators and
+  emulators. The check now runs after the request and only skips the push
+  token fetch.
+
 ## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"
