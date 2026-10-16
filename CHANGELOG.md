@@ -77,6 +77,11 @@ Android ride recording location feed (PR #96)
   Location Accuracy off, Android prompts to turn it on and declining rejects
   the watch, which left a resumed ride paused. A watch that still fails on
   Android is logged and the start carries on with the task.
+- A stop that lands while the controller is still starting (Finish or
+  Discard right after Start) no longer leaks the stream. Before, the watch
+  resolved after the stop and kept the GPS on, and the task could be left
+  running with its notification up. A generation counter lets the late
+  start undo what it started, unless a newer start owns the stream.
 
 ## 1.3.2 - 2026-10-08
 

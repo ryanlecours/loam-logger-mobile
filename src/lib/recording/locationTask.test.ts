@@ -123,4 +123,69 @@ describe('rideLocationController', () => {
     expect(removeWatch).toHaveBeenCalledTimes(1);
     expect(mockStopTask).toHaveBeenCalledWith(RIDE_RECORDING_TASK);
   });
+
+  describe('a stop that lands while start is still pending', () => {
+    it('removes a watch that resolves after the stop', async () => {
+      setOS('android');
+      const watch = deferred<{ remove: jest.Mock }>();
+      mockWatch.mockReturnValue(watch.promise);
+
+      const starting = rideLocationController.start();
+      await flush();
+      expect(mockWatch).toHaveBeenCalledTimes(1);
+
+      await rideLocationController.stop();
+      expect(removeWatch).not.toHaveBeenCalled();
+
+      watch.resolve({ remove: removeWatch });
+      await starting;
+      expect(removeWatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops a task that finishes starting after the stop, and starts no watch', async () => {
+      setOS('android');
+      const task = deferred<void>();
+      mockStartTask.mockReturnValue(task.promise);
+      mockHasStarted.mockResolvedValue(false);
+
+      const starting = rideLocationController.start();
+      await rideLocationController.stop();
+      expect(mockStopTask).not.toHaveBeenCalled();
+
+      task.resolve();
+      await starting;
+      expect(mockStopTask).toHaveBeenCalledWith(RIDE_RECORDING_TASK);
+      expect(mockWatch).not.toHaveBeenCalled();
+    });
+
+    it('leaves the task to a newer start that followed the stop', async () => {
+      setOS('android');
+      const firstTask = deferred<void>();
+      mockStartTask.mockReturnValueOnce(firstTask.promise);
+
+      const first = rideLocationController.start();
+      await rideLocationController.stop();
+      expect(mockStopTask).toHaveBeenCalledTimes(1);
+
+      await rideLocationController.start();
+      firstTask.resolve();
+      await first;
+
+      expect(mockStopTask).toHaveBeenCalledTimes(1);
+      expect(mockWatch).toHaveBeenCalledTimes(1);
+      expect(removeWatch).not.toHaveBeenCalled();
+    });
+  });
 });
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
+function flush() {
+  return new Promise((resolve) => setImmediate(resolve));
+}

@@ -71,11 +71,18 @@ const UPDATE_OPTIONS: Location.LocationTaskOptions = {
 
 let locationWatch: Location.LocationSubscription | null = null;
 
+// Both platform calls are async, so stop() can run while start() is still
+// awaiting one of them, and would find nothing to stop. Each start() and
+// stop() bumps the generation; a start() that resumes to find it moved on
+// undoes what it just started, unless a newer start() now owns the stream.
+let generation = 0;
+let running = false;
+
 /** Feed the recorder from a watch in this JS runtime, replacing any earlier one. */
-async function startWatch(): Promise<void> {
+async function startWatch(gen: number): Promise<void> {
   locationWatch?.remove();
   locationWatch = null;
-  locationWatch = await Location.watchPositionAsync(
+  const watch = await Location.watchPositionAsync(
     {
       accuracy: Location.Accuracy.BestForNavigation,
       timeInterval: 1000,
@@ -87,6 +94,11 @@ async function startWatch(): Promise<void> {
     },
     (location) => rideRecorder.ingest(toUpdate(location)),
   );
+  if (gen !== generation) {
+    watch.remove();
+    return;
+  }
+  locationWatch = watch;
 }
 
 /**
@@ -106,6 +118,8 @@ async function startWatch(): Promise<void> {
  */
 export const rideLocationController: LocationController = {
   async start() {
+    const gen = ++generation;
+    running = true;
     try {
       await Location.startLocationUpdatesAsync(RIDE_RECORDING_TASK, UPDATE_OPTIONS);
     } catch (error) {
@@ -113,18 +127,28 @@ export const rideLocationController: LocationController = {
         '[recording] background location unavailable, falling back to foreground watch',
         error,
       );
-      await startWatch();
+      await startWatch(gen);
+      return;
+    }
+    if (gen !== generation) {
+      // Superseded mid-start. After a stop(), the task it could not see yet
+      // is running and must go; after a newer start(), that start owns it.
+      if (!running) {
+        await Location.stopLocationUpdatesAsync(RIDE_RECORDING_TASK).catch(() => {});
+      }
       return;
     }
     if (Platform.OS === 'android') {
       // The task is already running, so a failed watch should not fail the
       // start and leave the ride paused.
-      await startWatch().catch((error) => {
+      await startWatch(gen).catch((error) => {
         console.warn('[recording] location watch unavailable, relying on the background task', error);
       });
     }
   },
   async stop() {
+    generation++;
+    running = false;
     locationWatch?.remove();
     locationWatch = null;
     const started = await Location.hasStartedLocationUpdatesAsync(RIDE_RECORDING_TASK).catch(
