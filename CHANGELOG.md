@@ -61,7 +61,7 @@ Notification permission status (PR #95)
   emulators. The check now runs after the request and only skips the push
   token fetch.
 
-Android ride recording location feed (PR #TBD)
+Android ride recording location feed (PR #96)
 - On the new architecture, expo-task-manager can stop handing the background
   location task's fixes to JS (expo/expo#50060). They queue natively and
   arrive in one burst on the next reload, when the restored session is paused
