@@ -19,8 +19,27 @@ Fixes
 - On Android, the Push Notifications switch in Settings no longer sits greyed
   out and pointing you to system settings when you haven't turned
   notifications on yet. Tap it and Android asks for permission right there
+- On Android, recording a ride or opening a ride's map no longer closes the
+  app. The map shows your route as it does on iPhone
 
 ### Internal
+
+Android Google Maps key (PR #94)
+- react-native-maps draws with the Google Maps SDK on Android, which throws
+  "API key not found" when a map mounts without a key. That crashed the record
+  screen mid-ride and the ride detail map. iOS was unaffected: Apple Maps
+  needs no key.
+- `app.config.ts` now extends `app.json` and injects
+  `android.config.googleMaps.apiKey` from `GOOGLE_MAPS_ANDROID_API_KEY` (the
+  EAS environment for cloud builds, `.env` for local ones), so the key stays
+  out of this public repo. It also sets `extra.androidMapsEnabled`, because
+  Expo keeps the key itself out of the config bundled into the app.
+- `canDrawNativeMap()` reads that flag. `RouteMapView` and `LiveTrackMap` show
+  a placeholder instead of mounting a map when it is off, so a build without
+  a key degrades instead of crashing; the live map says the ride is still
+  recording.
+- The Jest `MapView` mock exposes no-op camera methods so a live map can mount
+  in tests.
 
 Notification permission status (PR #95)
 - On Android 13+, expo-notifications reports `denied` for a permission that
