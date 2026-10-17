@@ -100,6 +100,21 @@ Signup with an existing email (PR #97, API loam-logger#361)
   rider sees the API's own message ("An account with this email already
   exists. Please log in.") rather than the alert.
 
+Android purchases through RevenueCat (PR #TBD)
+- `eas.json` sets `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (the `goog_` key
+  of the new Loam Logger (Play Store) app in RevenueCat) for production
+  builds. Before this, Android builds logged "Missing
+  EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY" and skipped RevenueCat, so Pro
+  could not be bought or restored there.
+- Play subscription `loam_logger_pro` with base plans `monthly` ($4.99) and
+  `annual` ($39.99), priced in 174 countries, no free trial (matching iOS).
+  Both are attached to the `Loam Logger Pro` entitlement and to the
+  `$rc_monthly` and `$rc_annual` packages of the default offering, so the
+  existing paywall shows them. A `yearly` base plan created with a monthly
+  billing period by mistake is deactivated in Play and archived in
+  RevenueCat; never reactivate it.
+- `.env.example` documents both RevenueCat keys.
+
 ## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"
