@@ -37,20 +37,24 @@ function authFailureMessage(error?: string, requestId?: string): string {
 }
 
 export default function LoginScreen() {
+  const router = useRouter();
   // Filled in when signup finds the email already has an account. Signup
   // returns to this screen rather than mounting a new one, so the param can
-  // arrive after the first render.
+  // arrive after the first render. It is cleared once used: a later trip
+  // back with the same email then still counts as a change and refills the
+  // field, and a stale email does not linger on the route.
   const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
   const [email, setEmail] = useState(emailParam ?? '');
   useEffect(() => {
-    if (emailParam) setEmail(emailParam);
-  }, [emailParam]);
+    if (!emailParam) return;
+    setEmail(emailParam);
+    router.setParams({ email: undefined });
+  }, [emailParam, router]);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
-  const router = useRouter();
   const { setAuthenticated } = useAuth();
 
   const isLoading = loading || googleLoading || appleLoading;

@@ -93,7 +93,9 @@ Signup with an existing email (PR #97, API loam-logger#361)
   `error` first and recognises the 409 `EMAIL_EXISTS` code.
 - On `EMAIL_EXISTS` an alert offers "Log in" (back to the login screen via
   `dismissTo`, email filled in) or "Reset password" (forgot-password, email
-  filled in). Both screens take an optional `email` param.
+  filled in). Both screens take an optional `email` param. Login clears it
+  once it has filled the field, so a second trip back with the same email
+  still refills it rather than keeping whatever the rider typed since.
 - Needs loam-logger#361 deployed for the code. Against an API without it, the
   rider sees the API's own message ("An account with this email already
   exists. Please log in.") rather than the alert.
