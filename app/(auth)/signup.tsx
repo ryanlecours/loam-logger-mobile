@@ -11,8 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
+import { describeSignupFailure } from '../../src/lib/signupFailure';
 import {
   PasswordRequirements,
   checkPasswordRequirements,
@@ -42,6 +43,35 @@ export default function SignupScreen() {
       password === confirmPassword
     );
   }, [name, email, password, confirmPassword, passwordCheck.isValid]);
+
+  /** The email already has an account: point the rider at it, not a dead end. */
+  function offerExistingAccount(existingEmail: string) {
+    Alert.alert(
+      'You already have an account',
+      `${existingEmail} is already signed up for Loam Logger. Log in, or reset your password if you have forgotten it.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset password',
+          onPress: () =>
+            router.replace({
+              pathname: '/(auth)/forgot-password',
+              params: { email: existingEmail },
+            } as Href),
+        },
+        {
+          text: 'Log in',
+          // Signup is pushed from login, so go back to it rather than
+          // stacking a second login screen.
+          onPress: () =>
+            router.dismissTo({
+              pathname: '/(auth)/login',
+              params: { email: existingEmail },
+            } as Href),
+        },
+      ],
+    );
+  }
 
   async function handleSignup() {
     if (!name || !email || !password || !confirmPassword) {
@@ -80,10 +110,16 @@ export default function SignupScreen() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Signup failed');
+        const failure = describeSignupFailure(response.status, data);
+        if (failure.kind === 'email-exists') {
+          setLoading(false);
+          offerExistingAccount(email.trim());
+          return;
+        }
+        throw new Error(failure.message);
       }
 
       // Signup always creates an active account and returns tokens.

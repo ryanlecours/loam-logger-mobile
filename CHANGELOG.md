@@ -23,6 +23,9 @@ Fixes
   app. The map shows your route as it does on iPhone
 - On Android, a recorded ride now captures your route, including with the
   screen off. Before, the timer ran but no GPS points were saved
+- Signing up with an email that already has an account now offers to log you
+  in with that email filled in, or to reset your password, instead of saying
+  "Signup failed"
 
 ### Internal
 
@@ -82,6 +85,20 @@ Android ride recording location feed (PR #96)
   resolved after the stop and kept the GPS on, and the task could be left
   running with its notification up. A generation counter lets the late
   start undo what it started, unless a newer start owns the stream.
+
+Signup with an existing email (PR #97, API loam-logger#361)
+- The signup screen read `data.message`, but the API puts its text in
+  `error`, so every signup failure said "Signup failed". Failures now go
+  through `describeSignupFailure` (`src/lib/signupFailure.ts`), which reads
+  `error` first and recognises the 409 `EMAIL_EXISTS` code.
+- On `EMAIL_EXISTS` an alert offers "Log in" (back to the login screen via
+  `dismissTo`, email filled in) or "Reset password" (forgot-password, email
+  filled in). Both screens take an optional `email` param. Login clears it
+  once it has filled the field, so a second trip back with the same email
+  still refills it rather than keeping whatever the rider typed since.
+- Needs loam-logger#361 deployed for the code. Against an API without it, the
+  rider sees the API's own message ("An account with this email already
+  exists. Please log in.") rather than the alert.
 
 ## 1.3.2 - 2026-10-08
 
