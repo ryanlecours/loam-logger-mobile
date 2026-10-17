@@ -100,7 +100,7 @@ Signup with an existing email (PR #97, API loam-logger#361)
   rider sees the API's own message ("An account with this email already
   exists. Please log in.") rather than the alert.
 
-Android purchases through RevenueCat (PR #TBD)
+Android purchases through RevenueCat (PR #98)
 - `eas.json` sets `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (the `goog_` key
   of the new Loam Logger (Play Store) app in RevenueCat) for production
   builds. Before this, Android builds logged "Missing
