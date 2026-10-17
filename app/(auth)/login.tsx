@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { useRouter, Href } from 'expo-router';
+import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import { loginWithApple, loginWithEmail, loginWithGoogle } from '../../src/lib/auth';
 import { useAuth } from '../../src/hooks/useAuth';
 import { GoogleSignInButton } from '../../src/components/GoogleSignInButton';
@@ -37,7 +37,14 @@ function authFailureMessage(error?: string, requestId?: string): string {
 }
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  // Filled in when signup finds the email already has an account. Signup
+  // returns to this screen rather than mounting a new one, so the param can
+  // arrive after the first render.
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(emailParam ?? '');
+  useEffect(() => {
+    if (emailParam) setEmail(emailParam);
+  }, [emailParam]);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
