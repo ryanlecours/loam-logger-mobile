@@ -86,7 +86,7 @@ Android ride recording location feed (PR #96)
   running with its notification up. A generation counter lets the late
   start undo what it started, unless a newer start owns the stream.
 
-Signup with an existing email (PR #TBD, API loam-logger#361)
+Signup with an existing email (PR #97, API loam-logger#361)
 - The signup screen read `data.message`, but the API puts its text in
   `error`, so every signup failure said "Signup failed". Failures now go
   through `describeSignupFailure` (`src/lib/signupFailure.ts`), which reads
