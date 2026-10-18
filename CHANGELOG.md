@@ -115,7 +115,7 @@ Android purchases through RevenueCat (PR #98)
   RevenueCat; never reactivate it.
 - `.env.example` documents both RevenueCat keys.
 
-Android push through Firebase (PR #TBD)
+Android push through Firebase (PR #99)
 - Android push tokens come from Firebase Cloud Messaging, and
   expo-notifications cannot get one without the app's google-services.json.
   `app.config.ts` now sets `android.googleServicesFile` from the EAS file
