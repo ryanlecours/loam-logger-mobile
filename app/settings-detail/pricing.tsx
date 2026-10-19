@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  BackHandler,
 } from 'react-native';
 import { Stack, useRouter, Href, Link } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -24,6 +25,26 @@ export default function PricingScreen() {
   const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
   const [managingStripe, setManagingStripe] = useState(false);
   const [activatingPro, setActivatingPro] = useState(false);
+  // A ref, not the state, so a second completion event in the same frame
+  // still sees the first wait in progress.
+  const activatingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // While Pro is activating, Android's back button would leave the screen
+  // mid-wait; swallow it until the wait ends. iOS swipe-back is turned off
+  // on the paywall's Stack.Screen for the same window.
+  useEffect(() => {
+    if (!activatingPro) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => subscription.remove();
+  }, [activatingPro]);
 
   const handleManage = async () => {
     if (subscriptionProvider === 'APPLE' || subscriptionProvider === 'GOOGLE') {
@@ -94,7 +115,9 @@ export default function PricingScreen() {
   // The renewal note names the store the rider actually pays through.
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Upgrade to Pro', headerShown: false }} />
+      <Stack.Screen
+        options={{ title: 'Upgrade to Pro', headerShown: false, gestureEnabled: !activatingPro }}
+      />
       <View style={styles.paywallContainer}>
         <RevenueCatUI.Paywall
           onPurchaseCompleted={async () => {
@@ -102,11 +125,21 @@ export default function PricingScreen() {
             // RevenueCat's webhook a moment later. Wait for it, so the rider
             // doesn't land on the Free state they just paid to leave, then
             // take them home.
+            if (activatingRef.current) return;
+            activatingRef.current = true;
             setActivatingPro(true);
-            const proActive = await waitForPro(
-              async () => (await refetch()).data?.me?.subscriptionTier,
-            );
-            setActivatingPro(false);
+            let proActive = false;
+            try {
+              proActive = await waitForPro(
+                async () => (await refetch()).data?.me?.subscriptionTier,
+              );
+            } finally {
+              activatingRef.current = false;
+              if (mountedRef.current) setActivatingPro(false);
+            }
+            // Back is blocked during the wait, but if the screen went away
+            // anyway, don't pull the rider somewhere they didn't ask to go.
+            if (!mountedRef.current) return;
             if (router.canDismiss()) router.dismissAll();
             router.navigate('/(tabs)');
             if (!proActive) {

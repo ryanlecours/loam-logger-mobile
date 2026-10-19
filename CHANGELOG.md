@@ -142,6 +142,10 @@ Paywall footer and post-purchase state (PR #100)
   up to 10 reads 1.5 s apart) behind a "Turning on Pro" overlay, then goes to
   the Dashboard. If Pro hasn't arrived by then, it still goes to the Dashboard
   and says Pro is on its way.
+- During that wait, Android's back button is swallowed and iOS swipe-back
+  is off, a second completion event is ignored while the first wait runs,
+  the overlay resets in a `finally`, and if the screen is gone by the end
+  the rider is not pulled to the Dashboard.
 
 ## 1.3.2 - 2026-10-08
 
