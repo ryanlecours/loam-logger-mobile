@@ -30,6 +30,9 @@ Fixes
   "Signup failed"
 - Continue with Google now asks which Google account to use every time, so
   you can switch accounts after logging out
+- If you sign in with Google or Apple and already have a Loam Logger password
+  for the same email, the app now asks for that password once to connect
+  them, instead of signing you out everywhere
 - After upgrading to Pro, the app waits for your upgrade to take effect and
   takes you to the Dashboard, instead of returning to Settings still showing
   "Upgrade to Pro"
@@ -206,6 +209,21 @@ Stale first fix at ride start (PR #105)
   weather, and the gap to the first live fix was booked as distance.
 - `RideRecorder.ingest` now drops any fix timestamped before the ride's
   `startedAt`. Live fixes are always taken after start.
+
+Password to connect Google or Apple (PR #91, API loam-logger#341)
+- Accounts with a password but an unconfirmed email (every account from
+  before email verification) used to be wiped when Google or Apple sign-in
+  matched them: the API cleared the password, signed out every device and
+  deleted every share link before linking. The API now holds the link and
+  answers 409 `LINK_NEEDS_PASSWORD` with a 10-minute link token.
+- `loginWithGoogle` and `loginWithApple` return that as
+  `errorCode: 'LINK_NEEDS_PASSWORD'` with `providerLink` (token, email,
+  provider); `parseErrorResponse` also returns the response's `details`.
+- New `completeProviderLink` posts the token and password to
+  `/auth/mobile/link-provider` and stores the session like the other sign-in
+  helpers. New `ProviderLinkSheet` on the login screen asks for the
+  password, stays open on a wrong one, and hands off to forgot-password.
+- Against an API without #341 the 409 never comes, so the sheet never opens.
 
 ## 1.3.2 - 2026-10-08
 
