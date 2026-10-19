@@ -23,6 +23,8 @@ Fixes
   app. The map shows your route as it does on iPhone
 - On Android, a recorded ride now captures your route, including with the
   screen off. Before, the timer ran but no GPS points were saved
+- A new ride no longer starts with extra distance from wherever your phone
+  last had a location, such as the end of your previous ride
 - Signing up with an email that already has an account now offers to log you
   in with that email filled in, or to reset your password, instead of saying
   "Signup failed"
@@ -172,6 +174,15 @@ Dashboard Pro badge (PR #102)
   (amber-400 on amber-500 at 20%), the one value DESIGN.md's Open Gate Rule
   sanctions outside the earth palette, for earned status only. Gated features
   keep the sage Pro chip. Pill radius per the mobile radius rule.
+
+Stale first fix at ride start (PR #105)
+- When location updates start, Android delivers its cached last-known
+  location first, timestamped when it was taken: often where the previous
+  ride ended, or home. The recorder accepted it (clamping its negative `t`
+  to 0), so it became the ride's start coordinate, sent to the API for
+  weather, and the gap to the first live fix was booked as distance.
+- `RideRecorder.ingest` now drops any fix timestamped before the ride's
+  `startedAt`. Live fixes are always taken after start.
 
 ## 1.3.2 - 2026-10-08
 

@@ -432,6 +432,14 @@ class RideRecorder {
     // backstop.
     if (update.latitude === 0 && update.longitude === 0) return;
 
+    // A fix timestamped before the ride began is the platform's cached
+    // last-known location, which Android hands over the moment updates start:
+    // wherever the phone last had a fix, such as the end of the previous ride
+    // or home before the drive to the trailhead. As the first point it would
+    // make the ride start there and book the gap to the real position as
+    // distance. Every live fix is taken after start.
+    if (update.timestamp < this.startedAt) return;
+
     // One fix, one sample. Older than the last fix ingested means a late
     // batch whose fixes already arrived by the other route; the same time and
     // place means the same fix twice. Two different fixes can share a
