@@ -254,6 +254,32 @@ describe('rideRecorder', () => {
     });
   });
 
+  // Android hands over its cached last-known location when updates start,
+  // timestamped when it was taken: often the end of the previous ride.
+  describe('a fix from before the ride started', () => {
+    it('is dropped, so it neither starts the ride nor adds distance', async () => {
+      await rideRecorder.start(makeController());
+      const startedAt = Date.now();
+
+      // Where the last ride ended, a couple of km away, ten minutes ago.
+      emit({ latitude: 47.62, longitude: -122.36, timestamp: startedAt - 10 * 60_000 });
+      emit({ timestamp: startedAt + 1000 });
+
+      const summary = await rideRecorder.stop();
+      expect(rideRecorder.getSnapshot().pointCount).toBe(1);
+      expect(summary.distanceMeters).toBe(0);
+      expect(summary.startLat).toBe(47.6062);
+      expect(summary.startLng).toBe(-122.3321);
+    });
+
+    it('keeps a fix taken at the moment the ride started', async () => {
+      await rideRecorder.start(makeController());
+      emit({ timestamp: Date.now() });
+
+      expect(rideRecorder.getSnapshot().pointCount).toBe(1);
+    });
+  });
+
   it('drops the (0,0) no-fix sentinel entirely', async () => {
     await rideRecorder.start(makeController());
 
