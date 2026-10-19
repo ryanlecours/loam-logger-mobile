@@ -26,6 +26,8 @@ Fixes
 - Signing up with an email that already has an account now offers to log you
   in with that email filled in, or to reset your password, instead of saying
   "Signup failed"
+- Continue with Google now asks which Google account to use every time, so
+  you can switch accounts after logging out
 - After upgrading to Pro, the app waits for your upgrade to take effect and
   takes you to the Dashboard, instead of returning to Settings still showing
   "Upgrade to Pro"
@@ -150,6 +152,16 @@ Paywall footer and post-purchase state (PR #100)
   is off, a second completion event is ignored while the first wait runs,
   the overlay resets in a `finally`, and if the screen is gone by the end
   the rider is not pulled to the Dashboard.
+
+Google sign-in account picker (PR #101)
+- The Google Sign-In library remembers the last account and `signIn()`
+  reuses it without asking. The app never called `signOut()` on it, so after
+  one Google sign-in every later one, even after logging out, went to the
+  same account. `signInWithAccountPicker` (`src/lib/googleSignIn.ts`) now
+  forgets the remembered account first, so the picker shows every time.
+- In this library version (16.x) backing out of the picker resolves
+  `{ type: 'cancelled' }` instead of throwing, which the button reported as
+  "No ID token received from Google". It is now treated as a silent cancel.
 
 Dashboard Pro badge (PR #102)
 - `ProBadge` (`src/components/common/ProBadge.tsx`) mirrors web's earned-status
