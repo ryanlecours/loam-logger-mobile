@@ -174,7 +174,7 @@ Dashboard Pro badge (PR #102)
   sanctions outside the earth palette, for earned status only. Gated features
   keep the sage Pro chip. Pill radius per the mobile radius rule.
 
-Google sign-in button to Google's spec (PR #TBD)
+Google sign-in button to Google's spec (PR #103)
 - Google's "Sign in with Google" branding guidelines require the multicolor
   G on custom buttons; the mobile button was text only (web uses Google's
   own button, which has it). `GoogleGLogo` draws the G from the exact paths
