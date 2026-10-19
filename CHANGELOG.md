@@ -175,7 +175,7 @@ Dashboard Pro badge (PR #102)
   sanctions outside the earth palette, for earned status only. Gated features
   keep the sage Pro chip. Pill radius per the mobile radius rule.
 
-Stale first fix at ride start (PR #TBD)
+Stale first fix at ride start (PR #105)
 - When location updates start, Android delivers its cached last-known
   location first, timestamped when it was taken: often where the previous
   ride ended, or home. The recorder accepted it (clamping its negative `t`
