@@ -132,7 +132,7 @@ Android push through Firebase (PR #99)
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
 
-Dashboard Pro badge (PR #TBD)
+Dashboard Pro badge (PR #102)
 - `ProBadge` (`src/components/common/ProBadge.tsx`) mirrors web's earned-status
   badge: "Pro", or "Founding Rider" for founding riders, shown beside the
   Dashboard wordmark when `useUserTier().isPro`. Free riders see no badge;
