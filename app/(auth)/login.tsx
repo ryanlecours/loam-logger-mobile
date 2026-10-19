@@ -12,7 +12,14 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Href } from 'expo-router';
-import { loginWithApple, loginWithEmail, loginWithGoogle } from '../../src/lib/auth';
+import {
+  loginWithApple,
+  loginWithEmail,
+  loginWithGoogle,
+  type AuthResult,
+  type PendingProviderLink,
+} from '../../src/lib/auth';
+import { ProviderLinkSheet } from '../../src/components/auth/ProviderLinkSheet';
 import { useAuth } from '../../src/hooks/useAuth';
 import { GoogleSignInButton } from '../../src/components/GoogleSignInButton';
 import { AppleSignInButton } from '../../src/components/AppleSignInButton';
@@ -54,6 +61,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [pendingLink, setPendingLink] = useState<PendingProviderLink | null>(null);
   const passwordRef = useRef<TextInput>(null);
   const { setAuthenticated } = useAuth();
 
@@ -132,18 +140,29 @@ export default function LoginScreen() {
     Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
   }
 
+  function finishSignIn() {
+    setAuthenticated(true);
+    void maybePromptBiometricEnrollment();
+  }
+
+  /** Google and Apple share the outcome handling, including a held link. */
+  function handleProviderResult(result: AuthResult) {
+    if (result.success) {
+      finishSignIn();
+      return;
+    }
+    if (result.errorCode === 'LINK_NEEDS_PASSWORD' && result.providerLink) {
+      setPendingLink(result.providerLink);
+      return;
+    }
+    Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
+  }
+
   async function handleGoogleSuccess(idToken: string) {
     setGoogleLoading(true);
     const result = await loginWithGoogle(idToken);
     setGoogleLoading(false);
-
-    if (result.success) {
-      setAuthenticated(true);
-      void maybePromptBiometricEnrollment();
-      return;
-    }
-
-    Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
+    handleProviderResult(result);
   }
 
   function handleGoogleError(error: string) {
@@ -157,14 +176,7 @@ export default function LoginScreen() {
     setAppleLoading(true);
     const result = await loginWithApple(identityToken, user);
     setAppleLoading(false);
-
-    if (result.success) {
-      setAuthenticated(true);
-      void maybePromptBiometricEnrollment();
-      return;
-    }
-
-    Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
+    handleProviderResult(result);
   }
 
   function handleAppleError(error: string) {
@@ -269,6 +281,16 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ProviderLinkSheet
+        pending={pendingLink}
+        onClose={() => setPendingLink(null)}
+        onLinked={() => {
+          setPendingLink(null);
+          finishSignIn();
+        }}
+        onForgotPassword={() => router.push('/(auth)/forgot-password' as Href)}
+      />
     </Screen>
   );
 }
