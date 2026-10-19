@@ -21,6 +21,7 @@ jest.mock('@sentry/react-native', () => ({
 import {
   completeProviderLink,
   loginWithApple,
+  loginWithEmail,
   loginWithGoogle,
   logout,
   refreshAccessToken,
@@ -231,5 +232,39 @@ describe('a Google or Apple sign-in held for the account password', () => {
 
     expect(result).toMatchObject({ success: false, error: 'Incorrect password' });
     expect(mockStore.size).toBe(0);
+  });
+});
+
+describe('loginWithEmail and email verification', () => {
+  beforeEach(() => {
+    mockStore.clear();
+  });
+
+  it('reports an unverified account so the screen can send the rider to check their email', async () => {
+    mockFetchResponse(403, {
+      error: 'Check your inbox for a link to verify your email, then sign in.',
+      code: 'EMAIL_VERIFICATION_REQUIRED',
+      details: { email: 'rider@example.com' },
+    });
+
+    const result = await loginWithEmail('Rider@Example.com', 'right-password');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Check your inbox for a link to verify your email, then sign in.',
+      errorCode: 'EMAIL_VERIFICATION_REQUIRED',
+      verificationEmail: 'rider@example.com',
+      requestId: undefined,
+    });
+    expect(mockStore.has(ACCESS_TOKEN_KEY)).toBe(false);
+  });
+
+  it('still reports a wrong password as invalid credentials', async () => {
+    mockFetchResponse(401, { error: 'Invalid email or password' });
+
+    const result = await loginWithEmail('rider@example.com', 'wrong');
+
+    expect(result.errorCode).toBe('INVALID_CREDENTIALS');
+    expect(result.verificationEmail).toBeUndefined();
   });
 });
