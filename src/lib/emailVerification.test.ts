@@ -31,6 +31,18 @@ describe('resendVerificationEmail', () => {
     });
   });
 
+  it('reports a server error rather than claiming a link was sent', async () => {
+    mockFetch(503, { error: 'Service Unavailable' });
+
+    await expect(resendVerificationEmail('rider@example.com')).resolves.toEqual({ ok: false, reason: 'server' });
+  });
+
+  it('treats a 400 as a failure too', async () => {
+    mockFetch(400, { error: 'A valid email is required' });
+
+    await expect(resendVerificationEmail('rider@example.com')).resolves.toEqual({ ok: false, reason: 'server' });
+  });
+
   it('reports a network failure', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('offline'));
 

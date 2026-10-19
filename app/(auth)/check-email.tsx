@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import { resendVerificationEmail } from '../../src/lib/emailVerification';
 import { colors, radius } from '../../src/constants/theme';
 import { Screen } from '../../src/components/common/Screen';
 
+const RESEND_COOLDOWN_MS = 60_000;
+
 /**
  * Shown after a password signup, and when signing in to an account that has
  * not confirmed its email yet. The API issues no tokens until the link in the
@@ -24,6 +26,14 @@ export default function CheckEmailScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  // Briefly disabled after a send. Past a few sends an hour the API still
+  // answers 200 but sends nothing, so repeated taps would only promise links
+  // that never arrive.
+  const [coolingDown, setCoolingDown] = useState(false);
+  const cooldownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+  }, []);
 
   async function handleResend() {
     if (!email) return;
@@ -33,10 +43,16 @@ export default function CheckEmailScreen() {
 
     if (result.ok) {
       setSent(true);
+      setCoolingDown(true);
+      cooldownTimer.current = setTimeout(() => setCoolingDown(false), RESEND_COOLDOWN_MS);
       return;
     }
     if (result.reason === 'rate-limited') {
       Alert.alert('Too many attempts', `Please try again in ${result.retryAfter} seconds.`);
+      return;
+    }
+    if (result.reason === 'server') {
+      Alert.alert('Error', 'We could not send a new link right now. Please try again in a few minutes.');
       return;
     }
     Alert.alert('Error', 'Network error. Please try again.');
@@ -76,14 +92,16 @@ export default function CheckEmailScreen() {
 
           {email ? (
             <TouchableOpacity
-              style={[styles.secondaryButton, sending && styles.buttonDisabled]}
+              style={[styles.secondaryButton, (sending || coolingDown) && styles.buttonDisabled]}
               onPress={handleResend}
-              disabled={sending}
+              disabled={sending || coolingDown}
             >
               {sending ? (
                 <ActivityIndicator color={colors.primary} />
               ) : (
-                <Text style={styles.secondaryButtonText}>Send a New Link</Text>
+                <Text style={styles.secondaryButtonText}>
+                  {coolingDown ? 'Link Sent' : 'Send a New Link'}
+                </Text>
               )}
             </TouchableOpacity>
           ) : null}
