@@ -131,7 +131,7 @@ Android push through Firebase (PR #99)
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
 
-Paywall footer and post-purchase state (PR #TBD)
+Paywall footer and post-purchase state (PR #100)
 - The note under the RevenueCat paywall told Android riders to manage or
   cancel "in your Apple ID settings". It now says "your Google Play
   subscriptions" on Android and keeps the Apple wording on iOS.
