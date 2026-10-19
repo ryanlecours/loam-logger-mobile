@@ -137,6 +137,15 @@ export default function LoginScreen() {
       return;
     }
 
+    if (result.errorCode === 'EMAIL_VERIFICATION_REQUIRED') {
+      setPassword('');
+      router.push({
+        pathname: '/(auth)/check-email',
+        params: { email: result.verificationEmail ?? email.trim() },
+      } as Href);
+      return;
+    }
+
     Alert.alert('Login Failed', authFailureMessage(result.error, result.requestId));
   }
 

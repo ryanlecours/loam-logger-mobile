@@ -37,3 +37,22 @@ describe('describeSignupFailure', () => {
     });
   });
 });
+
+describe('describeSignupFailure and email verification', () => {
+  it('sends a created-but-unverified signup to check its email', () => {
+    expect(
+      describeSignupFailure(403, {
+        error: 'Check your inbox for a link to verify your email, then sign in.',
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+        details: { email: 'new@example.com', accountCreated: true },
+      }),
+    ).toEqual({ kind: 'verify-email', email: 'new@example.com' });
+  });
+
+  it('copes with a verification answer that carries no email', () => {
+    expect(describeSignupFailure(403, { code: 'EMAIL_VERIFICATION_REQUIRED' })).toEqual({
+      kind: 'verify-email',
+      email: null,
+    });
+  });
+});

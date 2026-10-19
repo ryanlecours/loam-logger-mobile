@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import * as Sentry from '@sentry/react-native';
 import type { RideSyncNotificationMode, UserRole } from '../graphql/generated';
+import { EMAIL_VERIFICATION_REQUIRED_CODE } from './emailVerification';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -218,9 +219,14 @@ export interface PendingProviderLink {
 export interface AuthResult {
   success: boolean;
   error?: string;
-  errorCode?: 'INVALID_CREDENTIALS' | 'NETWORK_ERROR' | 'LINK_NEEDS_PASSWORD';
+  errorCode?: 'INVALID_CREDENTIALS' | 'NETWORK_ERROR' | 'LINK_NEEDS_PASSWORD' | 'EMAIL_VERIFICATION_REQUIRED';
   /** Set with errorCode LINK_NEEDS_PASSWORD. */
   providerLink?: PendingProviderLink;
+  /**
+   * Set with errorCode EMAIL_VERIFICATION_REQUIRED: the password was right,
+   * but the account has not confirmed this address yet.
+   */
+  verificationEmail?: string;
   /**
    * The backend's x-request-id header, when available. Surface this in user-facing
    * error messages so a bug report ties to an exact log line in Railway.
@@ -289,7 +295,17 @@ export async function loginWithEmail(
     });
 
     if (!response.ok) {
-      const { message, requestId } = await parseErrorResponse(response);
+      const { message, code, details, requestId } = await parseErrorResponse(response);
+
+      if (code === EMAIL_VERIFICATION_REQUIRED_CODE) {
+        return {
+          success: false,
+          error: message,
+          errorCode: 'EMAIL_VERIFICATION_REQUIRED',
+          verificationEmail: typeof details?.email === 'string' ? details.email : email.trim(),
+          requestId,
+        };
+      }
 
       recordAuthFailure('email', 'INVALID_CREDENTIALS', requestId, response.status);
       return { success: false, error: message, errorCode: 'INVALID_CREDENTIALS', requestId };

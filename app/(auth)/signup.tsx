@@ -119,10 +119,19 @@ export default function SignupScreen() {
           offerExistingAccount(email.trim());
           return;
         }
+        if (failure.kind === 'verify-email') {
+          // The account was created; it signs in once the emailed link is opened.
+          setLoading(false);
+          router.replace({
+            pathname: '/(auth)/check-email',
+            params: { email: failure.email ?? email.trim() },
+          } as Href);
+          return;
+        }
         throw new Error(failure.message);
       }
 
-      // Signup always creates an active account and returns tokens.
+      // An API from before email verification signs the new account straight in.
       const { storeTokens } = await import('../../src/lib/auth');
       await storeTokens(data.accessToken, data.refreshToken, data.user);
       setAuthenticated(true);
