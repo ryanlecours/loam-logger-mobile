@@ -175,7 +175,7 @@ Dashboard Pro badge (PR #102)
   sanctions outside the earth palette, for earned status only. Gated features
   keep the sage Pro chip. Pill radius per the mobile radius rule.
 
-Ride form placeholder contrast (PR #TBD)
+Ride form placeholder contrast (PR #104)
 - The 16 text inputs on Save Ride, Add Ride and Edit Ride set no
   `placeholderTextColor`, so Android drew their hints in its default grey,
   near-invisible on our dark inputs. They now use `colors.textMuted` like
