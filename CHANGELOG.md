@@ -31,6 +31,8 @@ Fixes
 - After upgrading to Pro, the app waits for your upgrade to take effect and
   takes you to the Dashboard, instead of returning to Settings still showing
   "Upgrade to Pro"
+- On Android, the hint text in the Save Ride, Add Ride and Edit Ride forms is
+  readable again
 
 New
 - Pro members now see a Pro badge next to Loam Logger on the Dashboard, and
@@ -172,6 +174,14 @@ Dashboard Pro badge (PR #102)
   (amber-400 on amber-500 at 20%), the one value DESIGN.md's Open Gate Rule
   sanctions outside the earth palette, for earned status only. Gated features
   keep the sage Pro chip. Pill radius per the mobile radius rule.
+
+Ride form placeholder contrast (PR #TBD)
+- The 16 text inputs on Save Ride, Add Ride and Edit Ride set no
+  `placeholderTextColor`, so Android drew their hints in its default grey,
+  near-invisible on our dark inputs. They now use `colors.textMuted` like
+  every other input in the app.
+- A new `no-restricted-syntax` lint entry rejects any `TextInput` with a
+  `placeholder` but no `placeholderTextColor`, so this can't recur.
 
 ## 1.3.2 - 2026-10-08
 
