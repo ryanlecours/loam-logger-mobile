@@ -225,6 +225,16 @@ Password to connect Google or Apple (PR #91, API loam-logger#341)
   password, stays open on a wrong one, and hands off to forgot-password.
 - Against an API without #341 the 409 never comes, so the sheet never opens.
 
+Activity recognition permission removed
+- `expo-sensors` adds `android.permission.ACTIVITY_RECOGNITION` to the
+  manifest for its Pedometer. The app uses only its Barometer, which needs no
+  permission, but the merged permission made Play Console require a Health
+  apps declaration before a release could go out.
+- `app.json` now lists it in `android.blockedPermissions`, so prebuild
+  removes it from the manifest (`tools:node="remove"`).
+- If the Pedometer is ever used, take it off that list and complete Play's
+  Health apps declaration.
+
 ## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"
