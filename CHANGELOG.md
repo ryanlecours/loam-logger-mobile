@@ -26,6 +26,9 @@ Fixes
 - Signing up with an email that already has an account now offers to log you
   in with that email filled in, or to reset your password, instead of saying
   "Signup failed"
+- After upgrading to Pro, the app waits for your upgrade to take effect and
+  takes you to the Dashboard, instead of returning to Settings still showing
+  "Upgrade to Pro"
 
 New
 - Pro members now see a Pro badge next to Loam Logger on the Dashboard, and
@@ -131,6 +134,22 @@ Android push through Firebase (PR #99)
   token.
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
+
+Paywall footer and post-purchase state (PR #100)
+- The note under the RevenueCat paywall told Android riders to manage or
+  cancel "in your Apple ID settings". It now says "your Google Play
+  subscriptions" on Android and keeps the Apple wording on iOS.
+- Pro reaches the account through RevenueCat's webhook to the API a moment
+  after the store confirms the purchase. `onPurchaseCompleted` refetched the
+  account once, straight away, so it still read FREE and Settings kept showing
+  "Upgrade to Pro". It now polls `me` until the tier is PRO (`waitForPro`,
+  up to 10 reads 1.5 s apart) behind a "Turning on Pro" overlay, then goes to
+  the Dashboard. If Pro hasn't arrived by then, it still goes to the Dashboard
+  and says Pro is on its way.
+- During that wait, Android's back button is swallowed and iOS swipe-back
+  is off, a second completion event is ignored while the first wait runs,
+  the overlay resets in a `finally`, and if the screen is gone by the end
+  the rider is not pulled to the Dashboard.
 
 Dashboard Pro badge (PR #102)
 - `ProBadge` (`src/components/common/ProBadge.tsx`) mirrors web's earned-status
