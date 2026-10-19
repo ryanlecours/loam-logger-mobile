@@ -28,6 +28,13 @@ Fixes
   "Signup failed"
 - Continue with Google now asks which Google account to use every time, so
   you can switch accounts after logging out
+- After upgrading to Pro, the app waits for your upgrade to take effect and
+  takes you to the Dashboard, instead of returning to Settings still showing
+  "Upgrade to Pro"
+
+New
+- Pro members now see a Pro badge next to Loam Logger on the Dashboard, and
+  Founding Riders see theirs
 
 ### Internal
 
@@ -130,7 +137,23 @@ Android push through Firebase (PR #99)
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
 
-Google sign-in account picker (PR #TBD)
+Paywall footer and post-purchase state (PR #100)
+- The note under the RevenueCat paywall told Android riders to manage or
+  cancel "in your Apple ID settings". It now says "your Google Play
+  subscriptions" on Android and keeps the Apple wording on iOS.
+- Pro reaches the account through RevenueCat's webhook to the API a moment
+  after the store confirms the purchase. `onPurchaseCompleted` refetched the
+  account once, straight away, so it still read FREE and Settings kept showing
+  "Upgrade to Pro". It now polls `me` until the tier is PRO (`waitForPro`,
+  up to 10 reads 1.5 s apart) behind a "Turning on Pro" overlay, then goes to
+  the Dashboard. If Pro hasn't arrived by then, it still goes to the Dashboard
+  and says Pro is on its way.
+- During that wait, Android's back button is swallowed and iOS swipe-back
+  is off, a second completion event is ignored while the first wait runs,
+  the overlay resets in a `finally`, and if the screen is gone by the end
+  the rider is not pulled to the Dashboard.
+
+Google sign-in account picker (PR #101)
 - The Google Sign-In library remembers the last account and `signIn()`
   reuses it without asking. The app never called `signOut()` on it, so after
   one Google sign-in every later one, even after logging out, went to the
@@ -139,6 +162,16 @@ Google sign-in account picker (PR #TBD)
 - In this library version (16.x) backing out of the picker resolves
   `{ type: 'cancelled' }` instead of throwing, which the button reported as
   "No ID token received from Google". It is now treated as a silent cancel.
+
+Dashboard Pro badge (PR #102)
+- `ProBadge` (`src/components/common/ProBadge.tsx`) mirrors web's earned-status
+  badge: "Pro", or "Founding Rider" for founding riders, shown beside the
+  Dashboard wordmark when `useUserTier().isPro`. Free riders see no badge;
+  the Dashboard's upsell card already speaks for Pro.
+- New theme tokens `colors.earned` / `colors.earnedBg` carry web's amber
+  (amber-400 on amber-500 at 20%), the one value DESIGN.md's Open Gate Rule
+  sanctions outside the earth palette, for earned status only. Gated features
+  keep the sage Pro chip. Pill radius per the mobile radius rule.
 
 ## 1.3.2 - 2026-10-08
 
