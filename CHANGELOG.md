@@ -11,6 +11,32 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.4 - 2026-10-19
+
+### App Store "What's New"
+
+New
+- New accounts made with an email and password now confirm the email
+  first. After signing up, check your inbox for a link, open it, then sign
+  in. If the email doesn't arrive, you can ask for a new link from the same
+  screen
+
+### Internal
+
+Release note for iOS
+- 1.3.3 was only ever built for Android (builds 4 to 7). iOS goes from
+  1.3.2 straight to 1.3.4, so its App Store "What's New" is this entry
+  followed by the 1.3.3 Fixes and New lists below.
+
+Email verification gate (PR #109, API loam-logger#364)
+- The API issues no tokens to a password signup until its email is
+  confirmed. Signup and sign-in answer 403 `EMAIL_VERIFICATION_REQUIRED`,
+  which now opens `app/(auth)/check-email.tsx` instead of an alert.
+- Builds before 1.3.4 still work: they show the API's error text
+  ("Check your inbox for a link to verify your email, then sign in.").
+- Send a New Link is disabled for 60 seconds after a send, and a non-200
+  answer is reported as an error rather than as a sent link.
+
 ## 1.3.3 - 2026-10-16
 
 ### App Store "What's New"
