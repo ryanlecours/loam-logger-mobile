@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import {
-  TouchableOpacity,
+  Pressable,
   Text,
   StyleSheet,
   ActivityIndicator,
   View,
 } from 'react-native';
 import { signInWithAccountPicker } from '../lib/googleSignIn';
+import { radius } from '../constants/theme';
+import { GoogleGLogo } from './GoogleGLogo';
 
 interface Props {
   onSuccess: (idToken: string) => void;
@@ -89,45 +91,82 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: Props) {
     }
   }
 
+  const inactive = disabled || loading || !configured;
+
   return (
-    <TouchableOpacity
-      style={[styles.button, (disabled || loading || !configured) && styles.buttonDisabled]}
+    <Pressable
+      style={({ pressed }) => [
+        styles.button,
+        pressed && styles.buttonPressed,
+        inactive && styles.buttonDisabled,
+      ]}
       onPress={handlePress}
-      disabled={disabled || loading || !configured}
+      disabled={inactive}
+      accessibilityRole="button"
+      accessibilityLabel="Continue with Google"
     >
       {loading ? (
-        <ActivityIndicator color="#333" />
+        <ActivityIndicator color={GOOGLE.text} />
       ) : (
-        <View style={styles.content}>
+        <View style={[styles.content, inactive && styles.contentDisabled]}>
+          <GoogleGLogo size={20} />
           <Text style={styles.text}>Continue with Google</Text>
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
+/**
+ * Google's "Sign in with Google" light button, from Google's own button
+ * generator: white fill, #747775 border, #1F1F1F label, the multicolor G at
+ * 20 with 10 between it and the label, pressed state #303030 at 12%,
+ * disabled fill white at 38% and content at 38%. This is Google's lockup, so
+ * its white and greys are theirs, not Loam UI (DESIGN.md, "The Guest Jersey
+ * Rule"). Sized to the Sign In pill below it; Google's own button is a pill
+ * too.
+ */
+const GOOGLE = {
+  fill: '#FFFFFF',
+  fillPressed: '#E6E6E6', // #FFFFFF under #303030 at 12%
+  fillDisabled: 'rgba(255, 255, 255, 0.38)',
+  border: '#747775',
+  borderDisabled: 'rgba(31, 31, 31, 0.12)',
+  text: '#1F1F1F',
+};
+
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#fff',
+    backgroundColor: GOOGLE.fill,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 16,
+    borderColor: GOOGLE.border,
+    borderRadius: radius.full,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
   },
+  buttonPressed: {
+    backgroundColor: GOOGLE.fillPressed,
+  },
   buttonDisabled: {
-    opacity: 0.6,
+    backgroundColor: GOOGLE.fillDisabled,
+    borderColor: GOOGLE.borderDisabled,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+  },
+  contentDisabled: {
+    opacity: 0.38,
   },
   text: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '500',
+    letterSpacing: 0.25,
+    color: GOOGLE.text,
   },
   devText: {
     fontSize: 13,

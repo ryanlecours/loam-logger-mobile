@@ -39,6 +39,7 @@ Fixes
 New
 - Pro members now see a Pro badge next to Loam Logger on the Dashboard, and
   Founding Riders see theirs
+- The Continue with Google button now carries the Google logo
 
 ### Internal
 
@@ -176,6 +177,18 @@ Dashboard Pro badge (PR #102)
   (amber-400 on amber-500 at 20%), the one value DESIGN.md's Open Gate Rule
   sanctions outside the earth palette, for earned status only. Gated features
   keep the sage Pro chip. Pill radius per the mobile radius rule.
+
+Google sign-in button to Google's spec (PR #103)
+- Google's "Sign in with Google" branding guidelines require the multicolor
+  G on custom buttons; the mobile button was text only (web uses Google's
+  own button, which has it). `GoogleGLogo` draws the G from the exact paths
+  and colors in Google's button generator, with `react-native-svg` (new
+  dependency, 15.12.1, Expo SDK 54's version; native, so it needs a build).
+- `GoogleSignInButton` follows the generator's light button: white fill,
+  #747775 border, #1F1F1F label at weight 500, logo at 20 with 10 between,
+  pressed fill for #303030 at 12%, disabled fill and content at 38%. Sized as
+  a pill to match the Sign In button. Google's lockup keeps its own white and
+  greys (DESIGN.md, "The Guest Jersey Rule").
 
 Ride form placeholder contrast (PR #104)
 - The 16 text inputs on Save Ride, Add Ride and Edit Ride set no
