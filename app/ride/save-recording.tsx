@@ -212,6 +212,7 @@ export default function SaveRecordingScreen() {
             value={location}
             onChangeText={setLocation}
             placeholder="e.g., Tiger Mountain"
+            placeholderTextColor={colors.textMuted}
           />
         </View>
 
@@ -223,6 +224,7 @@ export default function SaveRecordingScreen() {
             value={notes}
             onChangeText={setNotes}
             placeholder="Add any notes about this ride..."
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={4}
             maxLength={2000}
