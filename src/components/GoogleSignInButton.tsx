@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   View,
 } from 'react-native';
+import { signInWithAccountPicker } from '../lib/googleSignIn';
 
 interface Props {
   onSuccess: (idToken: string) => void;
@@ -68,15 +69,10 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: Props) {
 
     setLoading(true);
     try {
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      const idToken = response.data?.idToken;
-
-      if (!idToken) {
-        throw new Error('No ID token received from Google');
+      const result = await signInWithAccountPicker(GoogleSignin);
+      if (result.kind === 'success') {
+        onSuccess(result.idToken);
       }
-
-      onSuccess(idToken);
     } catch (error: unknown) {
       const typedError = error as { code?: string; message?: string };
       if (typedError.code === statusCodes.SIGN_IN_CANCELLED) {

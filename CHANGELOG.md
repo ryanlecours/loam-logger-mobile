@@ -26,6 +26,8 @@ Fixes
 - Signing up with an email that already has an account now offers to log you
   in with that email filled in, or to reset your password, instead of saying
   "Signup failed"
+- Continue with Google now asks which Google account to use every time, so
+  you can switch accounts after logging out
 
 ### Internal
 
@@ -127,6 +129,16 @@ Android push through Firebase (PR #99)
   token.
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
+
+Google sign-in account picker (PR #TBD)
+- The Google Sign-In library remembers the last account and `signIn()`
+  reuses it without asking. The app never called `signOut()` on it, so after
+  one Google sign-in every later one, even after logging out, went to the
+  same account. `signInWithAccountPicker` (`src/lib/googleSignIn.ts`) now
+  forgets the remembered account first, so the picker shows every time.
+- In this library version (16.x) backing out of the picker resolves
+  `{ type: 'cancelled' }` instead of throwing, which the button reported as
+  "No ID token received from Google". It is now treated as a silent cancel.
 
 ## 1.3.2 - 2026-10-08
 
