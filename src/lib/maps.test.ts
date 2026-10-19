@@ -1,4 +1,5 @@
 import { canDrawNativeMap, mapUnavailableText } from './maps';
+import * as fs from 'fs';
 import appConfig from '../../app.config';
 
 describe('canDrawNativeMap', () => {
@@ -32,9 +33,18 @@ describe('app.config', () => {
     extra: { eas: { projectId: 'p' } },
   };
   const saved = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
+  const savedServices = process.env.GOOGLE_SERVICES_JSON;
+  // A developer's local google-services.json must not leak into these cases.
+  let localServicesFile: jest.SpyInstance;
+  beforeEach(() => {
+    localServicesFile = jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+  });
   afterEach(() => {
+    localServicesFile.mockRestore();
     if (saved === undefined) delete process.env.GOOGLE_MAPS_ANDROID_API_KEY;
     else process.env.GOOGLE_MAPS_ANDROID_API_KEY = saved;
+    if (savedServices === undefined) delete process.env.GOOGLE_SERVICES_JSON;
+    else process.env.GOOGLE_SERVICES_JSON = savedServices;
   });
 
   it('injects the Android Maps key from the environment and flags maps on', () => {
@@ -75,11 +85,32 @@ describe('app.config', () => {
       expect(appConfig({ config: base } as never).extra?.androidMapsEnabled).toBe(false);
     });
 
-    it('builds production Android when the key is set', () => {
+    it('fails a production Android build that has no Firebase config', () => {
       process.env.GOOGLE_MAPS_ANDROID_API_KEY = 'k';
+      delete process.env.GOOGLE_SERVICES_JSON;
       onEas('android', 'production');
-      expect(appConfig({ config: base } as never).extra?.androidMapsEnabled).toBe(true);
+      expect(() => appConfig({ config: base } as never)).toThrow(/GOOGLE_SERVICES_JSON is not set/);
     });
+
+    it('builds production Android when the key and Firebase config are set', () => {
+      process.env.GOOGLE_MAPS_ANDROID_API_KEY = 'k';
+      process.env.GOOGLE_SERVICES_JSON = '/home/expo/workingdir/google-services.json';
+      onEas('android', 'production');
+      const config = appConfig({ config: base } as never);
+      expect(config.extra?.androidMapsEnabled).toBe(true);
+      expect(config.android?.googleServicesFile).toBe('/home/expo/workingdir/google-services.json');
+    });
+  });
+
+  it('uses a local google-services.json at the project root when there is no EAS file', () => {
+    delete process.env.GOOGLE_SERVICES_JSON;
+    localServicesFile.mockReturnValue(true);
+    expect(appConfig({ config: base } as never).android?.googleServicesFile).toBe('./google-services.json');
+  });
+
+  it('leaves the Firebase config out when there is none, so local builds still work', () => {
+    delete process.env.GOOGLE_SERVICES_JSON;
+    expect(appConfig({ config: base } as never).android?.googleServicesFile).toBeUndefined();
   });
 
   it('leaves the manifest key out and flags maps off when there is no key', () => {

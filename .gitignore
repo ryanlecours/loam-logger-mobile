@@ -38,6 +38,10 @@ yarn-error.*
 **/.env
 **/.env.local
 
+# Firebase config for Android push; on EAS it comes from the GOOGLE_SERVICES_JSON
+# file variable (see app.config.ts). This repo is public.
+google-services.json
+
 # typescript
 *.tsbuildinfo
 

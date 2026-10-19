@@ -115,6 +115,19 @@ Android purchases through RevenueCat (PR #98)
   RevenueCat; never reactivate it.
 - `.env.example` documents both RevenueCat keys.
 
+Android push through Firebase (PR #99)
+- Android push tokens come from Firebase Cloud Messaging, and
+  expo-notifications cannot get one without the app's google-services.json.
+  `app.config.ts` now sets `android.googleServicesFile` from the EAS file
+  variable `GOOGLE_SERVICES_JSON`, or from a git-ignored
+  `google-services.json` at the project root for local builds.
+- A production Android build on EAS without it fails in `app.config.ts`,
+  like a missing Maps key, so a release can't ship with push silently off.
+  Local and preview builds still work without it; Android just gets no push
+  token.
+- Sending also needs the Firebase project's FCM V1 service account key
+  uploaded to EAS credentials, so Expo's push service can deliver to FCM.
+
 ## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"
