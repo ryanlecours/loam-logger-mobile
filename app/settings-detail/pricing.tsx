@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Stack, useRouter, Href, Link } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -88,6 +89,7 @@ export default function PricingScreen() {
   // Apple requires apps offering auto-renewable subscriptions to display
   // functional links to the Terms of Use (EULA) and Privacy Policy on the
   // purchase screen itself — see App Store Review Guideline 3.1.2(a).
+  // The renewal note names the store the rider actually pays through.
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Upgrade to Pro', headerShown: false }} />
@@ -126,7 +128,7 @@ export default function PricingScreen() {
       </View>
       <View style={styles.legalFooter}>
         <Text style={styles.legalText}>
-          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. Manage or cancel in your Apple ID settings.
+          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. {MANAGE_SUBSCRIPTION_NOTE}
         </Text>
         <View style={styles.legalLinks}>
           <Link href={'/settings-detail/terms' as Href} style={styles.legalLink}>
@@ -141,6 +143,12 @@ export default function PricingScreen() {
     </View>
   );
 }
+
+/** Where a rider manages or cancels: the store that bills them. */
+const MANAGE_SUBSCRIPTION_NOTE =
+  Platform.OS === 'android'
+    ? 'Manage or cancel in your Google Play subscriptions.'
+    : 'Manage or cancel in your Apple ID settings.';
 
 const styles = StyleSheet.create({
   container: {
