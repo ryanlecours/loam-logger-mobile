@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { useMeQuery, useCreateBillingPortalSessionMutation, CheckoutPlatform } from '../../src/graphql/generated';
 import { colors, radius } from '../../src/constants/theme';
+import { waitForPro } from '../../src/lib/waitForPro';
 
 export default function PricingScreen() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function PricingScreen() {
   const { refetch } = useMeQuery({ fetchPolicy: 'cache-first' });
   const [createPortal, { loading: portalLoading }] = useCreateBillingPortalSessionMutation();
   const [managingStripe, setManagingStripe] = useState(false);
+  const [activatingPro, setActivatingPro] = useState(false);
 
   const handleManage = async () => {
     if (subscriptionProvider === 'APPLE' || subscriptionProvider === 'GOOGLE') {
@@ -96,11 +98,22 @@ export default function PricingScreen() {
       <View style={styles.paywallContainer}>
         <RevenueCatUI.Paywall
           onPurchaseCompleted={async () => {
-            await refetch();
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace('/(tabs)/settings');
+            // The store has the purchase, but Pro reaches the account through
+            // RevenueCat's webhook a moment later. Wait for it, so the rider
+            // doesn't land on the Free state they just paid to leave, then
+            // take them home.
+            setActivatingPro(true);
+            const proActive = await waitForPro(
+              async () => (await refetch()).data?.me?.subscriptionTier,
+            );
+            setActivatingPro(false);
+            if (router.canDismiss()) router.dismissAll();
+            router.navigate('/(tabs)');
+            if (!proActive) {
+              Alert.alert(
+                'Pro is on its way',
+                'Your purchase went through. Pro usually turns on within a minute; if it still shows Free, close and reopen the app.',
+              );
             }
           }}
           onPurchaseError={({ error }) => {
@@ -125,6 +138,12 @@ export default function PricingScreen() {
             }
           }}
         />
+        {activatingPro && (
+          <View style={styles.activating}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.activatingText}>Turning on Pro…</Text>
+          </View>
+        )}
       </View>
       <View style={styles.legalFooter}>
         <Text style={styles.legalText}>
@@ -196,6 +215,17 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  activating: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: colors.background,
+  },
+  activatingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
   },
   paywallContainer: {
     flex: 1,

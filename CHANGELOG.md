@@ -26,6 +26,9 @@ Fixes
 - Signing up with an email that already has an account now offers to log you
   in with that email filled in, or to reset your password, instead of saying
   "Signup failed"
+- After upgrading to Pro, the app waits for your upgrade to take effect and
+  takes you to the Dashboard, instead of returning to Settings still showing
+  "Upgrade to Pro"
 
 ### Internal
 
@@ -128,10 +131,17 @@ Android push through Firebase (PR #99)
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
 
-Paywall footer names the right store (PR #TBD)
+Paywall footer and post-purchase state (PR #TBD)
 - The note under the RevenueCat paywall told Android riders to manage or
   cancel "in your Apple ID settings". It now says "your Google Play
   subscriptions" on Android and keeps the Apple wording on iOS.
+- Pro reaches the account through RevenueCat's webhook to the API a moment
+  after the store confirms the purchase. `onPurchaseCompleted` refetched the
+  account once, straight away, so it still read FREE and Settings kept showing
+  "Upgrade to Pro". It now polls `me` until the tier is PRO (`waitForPro`,
+  up to 10 reads 1.5 s apart) behind a "Turning on Pro" overlay, then goes to
+  the Dashboard. If Pro hasn't arrived by then, it still goes to the Dashboard
+  and says Pro is on its way.
 
 ## 1.3.2 - 2026-10-08
 
