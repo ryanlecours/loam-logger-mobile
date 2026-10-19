@@ -27,6 +27,10 @@ Fixes
   in with that email filled in, or to reset your password, instead of saying
   "Signup failed"
 
+New
+- Pro members now see a Pro badge next to Loam Logger on the Dashboard, and
+  Founding Riders see theirs
+
 ### Internal
 
 Android Google Maps key (PR #94)
@@ -127,6 +131,16 @@ Android push through Firebase (PR #99)
   token.
 - Sending also needs the Firebase project's FCM V1 service account key
   uploaded to EAS credentials, so Expo's push service can deliver to FCM.
+
+Dashboard Pro badge (PR #TBD)
+- `ProBadge` (`src/components/common/ProBadge.tsx`) mirrors web's earned-status
+  badge: "Pro", or "Founding Rider" for founding riders, shown beside the
+  Dashboard wordmark when `useUserTier().isPro`. Free riders see no badge;
+  the Dashboard's upsell card already speaks for Pro.
+- New theme tokens `colors.earned` / `colors.earnedBg` carry web's amber
+  (amber-400 on amber-500 at 20%), the one value DESIGN.md's Open Gate Rule
+  sanctions outside the earth palette, for earned status only. Gated features
+  keep the sage Pro chip. Pill radius per the mobile radius rule.
 
 ## 1.3.2 - 2026-10-08
 
