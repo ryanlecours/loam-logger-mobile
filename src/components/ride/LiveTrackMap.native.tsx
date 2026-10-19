@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { colors, radius } from '../../constants/theme';
 import { buildChunks, type LatLngPoint } from './liveTrackChunks';
+import { canDrawNativeMap, mapUnavailableText } from '../../lib/maps';
 
 /**
  * Live map for an in-progress recording: the route so far plus a position
@@ -26,8 +27,10 @@ import { buildChunks, type LatLngPoint } from './liveTrackChunks';
  * canvas at a no-signal trailhead. The stats block above the map stays the
  * primary "is it working" signal.
  *
- * ANDROID: tiles render blank until an androidGoogleMapsApiKey is added to
- * app.json (same standing caveat as RouteMapView.native.tsx).
+ * ANDROID: needs the Google Maps key app.config.ts injects (see
+ * RouteMapView.native.tsx). Without one the SDK throws on mount, which would
+ * take down the record screen mid-ride, so a build without a key shows a
+ * placeholder and the recording carries on.
  */
 
 interface LiveTrackMapProps {
@@ -69,6 +72,16 @@ export default function LiveTrackMap({ track, trackLength, lastFix }: LiveTrackM
   // nowhere. The record screen's "Acquiring GPS signal" line carries the copy.
   if (!lastFix) {
     return <View style={[styles.container, styles.placeholder]} />;
+  }
+
+  if (!canDrawNativeMap()) {
+    return (
+      <View style={[styles.container, styles.placeholder, styles.unavailable]} testID="live-map-unavailable">
+        <Text style={styles.unavailableText}>
+          {mapUnavailableText('Map unavailable. Your ride is still recording.')}
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -138,6 +151,16 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     backgroundColor: colors.card,
+  },
+  unavailable: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  unavailableText: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
   // Same overlay-legibility exception as ROUTE_COLOR: white ring + route red
   // core reads on any tile imagery.

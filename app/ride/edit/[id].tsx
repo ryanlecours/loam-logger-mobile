@@ -265,6 +265,7 @@ export default function EditRideScreen() {
                 value={hours}
                 onChangeText={setHours}
                 placeholder="0"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
                 maxLength={2}
               />
@@ -277,6 +278,7 @@ export default function EditRideScreen() {
                 value={minutes}
                 onChangeText={setMinutes}
                 placeholder="0"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
                 maxLength={2}
               />
@@ -296,6 +298,7 @@ export default function EditRideScreen() {
                 value={distance}
                 onChangeText={setDistance}
                 placeholder="0.0"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="decimal-pad"
               />
               <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'km' : 'mi'}</Text>
@@ -307,6 +310,7 @@ export default function EditRideScreen() {
                 value={elevation}
                 onChangeText={setElevation}
                 placeholder="0"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
               />
               <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
@@ -354,6 +358,7 @@ export default function EditRideScreen() {
               value={averageHr}
               onChangeText={setAverageHr}
               placeholder="0"
+              placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
               maxLength={3}
             />
@@ -370,6 +375,7 @@ export default function EditRideScreen() {
             value={location}
             onChangeText={setLocation}
             placeholder="e.g., Tiger Mountain"
+            placeholderTextColor={colors.textMuted}
           />
         </View>
 
@@ -382,6 +388,7 @@ export default function EditRideScreen() {
             value={notes}
             onChangeText={setNotes}
             placeholder="Add any notes about this ride..."
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={4}
             maxLength={2000}

@@ -1929,6 +1929,13 @@ export type AddRideMutationVariables = Exact<{
 
 export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
 
+export type UpdateAnalyticsOptOutMutationVariables = Exact<{
+  optOut: Scalars['Boolean']['input'];
+}>;
+
+
+export type UpdateAnalyticsOptOutMutation = { __typename?: 'Mutation', updateAnalyticsOptOut: { __typename?: 'User', id: string, analyticsOptOut: boolean } };
+
 export type UnassignedRideSummaryQueryVariables = Exact<{
   filter?: InputMaybe<UnassignedRideFilterInput>;
 }>;
@@ -2237,7 +2244,7 @@ export type BikeAdvisorSummaryQuery = { __typename?: 'Query', bike?: { __typenam
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean, analyticsOptOut: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RideQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2592,6 +2599,40 @@ export function useAddRideMutation(baseOptions?: Apollo.MutationHookOptions<AddR
 export type AddRideMutationHookResult = ReturnType<typeof useAddRideMutation>;
 export type AddRideMutationResult = Apollo.MutationResult<AddRideMutation>;
 export type AddRideMutationOptions = Apollo.BaseMutationOptions<AddRideMutation, AddRideMutationVariables>;
+export const UpdateAnalyticsOptOutDocument = gql`
+    mutation UpdateAnalyticsOptOut($optOut: Boolean!) {
+  updateAnalyticsOptOut(optOut: $optOut) {
+    id
+    analyticsOptOut
+  }
+}
+    `;
+export type UpdateAnalyticsOptOutMutationFn = Apollo.MutationFunction<UpdateAnalyticsOptOutMutation, UpdateAnalyticsOptOutMutationVariables>;
+
+/**
+ * __useUpdateAnalyticsOptOutMutation__
+ *
+ * To run a mutation, you first call `useUpdateAnalyticsOptOutMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useUpdateAnalyticsOptOutMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [updateAnalyticsOptOutMutation, { data, loading, error }] = useUpdateAnalyticsOptOutMutation({
+ *   variables: {
+ *      optOut: // value for 'optOut'
+ *   },
+ * });
+ */
+export function useUpdateAnalyticsOptOutMutation(baseOptions?: Apollo.MutationHookOptions<UpdateAnalyticsOptOutMutation, UpdateAnalyticsOptOutMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<UpdateAnalyticsOptOutMutation, UpdateAnalyticsOptOutMutationVariables>(UpdateAnalyticsOptOutDocument, options);
+      }
+export type UpdateAnalyticsOptOutMutationHookResult = ReturnType<typeof useUpdateAnalyticsOptOutMutation>;
+export type UpdateAnalyticsOptOutMutationResult = Apollo.MutationResult<UpdateAnalyticsOptOutMutation>;
+export type UpdateAnalyticsOptOutMutationOptions = Apollo.BaseMutationOptions<UpdateAnalyticsOptOutMutation, UpdateAnalyticsOptOutMutationVariables>;
 export const UnassignedRideSummaryDocument = gql`
     query UnassignedRideSummary($filter: UnassignedRideFilterInput) {
   unassignedRideSummary(filter: $filter) {
@@ -4387,6 +4428,7 @@ export const MeDocument = gql`
     rideSyncNotificationMode
     weeklyDigestEnabled
     aiFeaturesEnabled
+    analyticsOptOut
     pairedComponentMigrationSeenAt
     createdAt
     activeDataSource

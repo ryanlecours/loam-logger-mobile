@@ -77,6 +77,14 @@ export default tseslint.config([
           message:
             'Radius below 8 breaks the DESIGN.md minimum. Use radius.sm/md/lg/xl, or radius.full for pills, bars, dots and circles.',
         },
+        {
+          // The platform's default placeholder grey is near-invisible on our
+          // dark inputs, which is how the ride forms shipped unreadable hints.
+          selector:
+            "JSXOpeningElement[name.name='TextInput']:has(JSXAttribute[name.name='placeholder']):not(:has(JSXAttribute[name.name='placeholderTextColor']))",
+          message:
+            'A TextInput with a placeholder needs placeholderTextColor={colors.textMuted}; the platform default is unreadable on dark inputs.',
+        },
       ],
     },
   },
@@ -99,6 +107,14 @@ export default tseslint.config([
           selector: "Property[key.name='borderRadius'] > Literal[value>0][value<8]",
           message:
             'Radius below 8 breaks the DESIGN.md minimum. Use radius.sm/md/lg/xl, or radius.full for pills, bars, dots and circles.',
+        },
+        {
+          // The platform's default placeholder grey is near-invisible on our
+          // dark inputs, which is how the ride forms shipped unreadable hints.
+          selector:
+            "JSXOpeningElement[name.name='TextInput']:has(JSXAttribute[name.name='placeholder']):not(:has(JSXAttribute[name.name='placeholderTextColor']))",
+          message:
+            'A TextInput with a placeholder needs placeholderTextColor={colors.textMuted}; the platform default is unreadable on dark inputs.',
         },
         {
           selector: "Property[key.name='fontSize'] > Literal",

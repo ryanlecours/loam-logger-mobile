@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { useRouter, Href } from 'expo-router';
+import { useLocalSearchParams, useRouter, Href } from 'expo-router';
 import {
   loginWithApple,
   loginWithEmail,
@@ -44,14 +44,25 @@ function authFailureMessage(error?: string, requestId?: string): string {
 }
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const router = useRouter();
+  // Filled in when signup finds the email already has an account. Signup
+  // returns to this screen rather than mounting a new one, so the param can
+  // arrive after the first render. It is cleared once used: a later trip
+  // back with the same email then still counts as a change and refills the
+  // field, and a stale email does not linger on the route.
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(emailParam ?? '');
+  useEffect(() => {
+    if (!emailParam) return;
+    setEmail(emailParam);
+    router.setParams({ email: undefined });
+  }, [emailParam, router]);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [pendingLink, setPendingLink] = useState<PendingProviderLink | null>(null);
   const passwordRef = useRef<TextInput>(null);
-  const router = useRouter();
   const { setAuthenticated } = useAuth();
 
   const isLoading = loading || googleLoading || appleLoading;

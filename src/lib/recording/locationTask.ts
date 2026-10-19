@@ -69,16 +69,57 @@ const UPDATE_OPTIONS: Location.LocationTaskOptions = {
   },
 };
 
-let foregroundFallback: Location.LocationSubscription | null = null;
+let locationWatch: Location.LocationSubscription | null = null;
+
+// Both platform calls are async, so stop() can run while start() is still
+// awaiting one of them, and would find nothing to stop. Each start() and
+// stop() bumps the generation; a start() that resumes to find it moved on
+// undoes what it just started, unless a newer start() now owns the stream.
+let generation = 0;
+let running = false;
+
+/** Feed the recorder from a watch in this JS runtime, replacing any earlier one. */
+async function startWatch(gen: number): Promise<void> {
+  locationWatch?.remove();
+  locationWatch = null;
+  const watch = await Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
+      distanceInterval: 3,
+      // With Google Location Accuracy off, Android would otherwise prompt to
+      // turn it on, and declining rejects the watch outright. GPS alone is
+      // enough for a ride track, and the background task never prompts.
+      mayShowUserSettingsDialog: false,
+    },
+    (location) => rideRecorder.ingest(toUpdate(location)),
+  );
+  if (gen !== generation) {
+    watch.remove();
+    return;
+  }
+  locationWatch = watch;
+}
 
 /**
  * Production controller. Prefers the background task; if starting it is
  * rejected (OS edge cases, stripped entitlements in some build flavor), falls
  * back to the phase-1 foreground watch so recording still works with the
  * screen on rather than not at all.
+ *
+ * ANDROID: the task alone is not enough. expo-task-manager on the new
+ * architecture can stop handing the task's fixes to JS: they queue natively
+ * behind a job that never finishes and arrive in one burst on the next
+ * reload, by which point the restored session is paused and drops them
+ * (expo/expo#50060). So Android also runs a watch, which delivers in this
+ * runtime. The task stays: its foreground service is what keeps the process
+ * and GPS alive with the screen off, and the watch rides on that. When both
+ * do deliver, the recorder counts each fix once (RideRecorder.ingest).
  */
 export const rideLocationController: LocationController = {
   async start() {
+    const gen = ++generation;
+    running = true;
     try {
       await Location.startLocationUpdatesAsync(RIDE_RECORDING_TASK, UPDATE_OPTIONS);
     } catch (error) {
@@ -86,19 +127,30 @@ export const rideLocationController: LocationController = {
         '[recording] background location unavailable, falling back to foreground watch',
         error,
       );
-      foregroundFallback = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 1000,
-          distanceInterval: 3,
-        },
-        (location) => rideRecorder.ingest(toUpdate(location)),
-      );
+      await startWatch(gen);
+      return;
+    }
+    if (gen !== generation) {
+      // Superseded mid-start. After a stop(), the task it could not see yet
+      // is running and must go; after a newer start(), that start owns it.
+      if (!running) {
+        await Location.stopLocationUpdatesAsync(RIDE_RECORDING_TASK).catch(() => {});
+      }
+      return;
+    }
+    if (Platform.OS === 'android') {
+      // The task is already running, so a failed watch should not fail the
+      // start and leave the ride paused.
+      await startWatch(gen).catch((error) => {
+        console.warn('[recording] location watch unavailable, relying on the background task', error);
+      });
     }
   },
   async stop() {
-    foregroundFallback?.remove();
-    foregroundFallback = null;
+    generation++;
+    running = false;
+    locationWatch?.remove();
+    locationWatch = null;
     const started = await Location.hasStartedLocationUpdatesAsync(RIDE_RECORDING_TASK).catch(
       () => false,
     );

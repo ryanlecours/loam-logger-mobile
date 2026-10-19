@@ -22,6 +22,7 @@ on:
         type: choice
         options:
           - ios
+          - android
 
 jobs:
   build:
@@ -62,9 +63,12 @@ jobs:
           # (bundleId@version+build): see Sentry.init in app/_layout.tsx.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          # Only production builds auto-submit to TestFlight. Preview builds use
-          # internal distribution and have no submit profile in eas.json, so
-          # submitting them would fail.
+          # Only production builds auto-submit: iOS to TestFlight, Android to
+          # the Play internal testing track as a draft (submit.production in
+          # eas.json). Preview builds use internal distribution and have no
+          # submit profile, so submitting them would fail. Google Play rejects
+          # API uploads until one bundle has been uploaded by hand in Play
+          # Console, so the first Android release goes up manually.
           SUBMIT_FLAG=""
           if [ "${{ inputs.profile }}" = "production" ]; then
             SUBMIT_FLAG="--auto-submit"

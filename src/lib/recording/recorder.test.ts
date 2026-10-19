@@ -201,6 +201,85 @@ describe('rideRecorder', () => {
     expect(rideRecorder.getSnapshot().pointCount).toBe(1);
   });
 
+  // On Android a fix can arrive from both the watch and the background task,
+  // and the task can deliver a late batch the watch already supplied.
+  describe('the same fix from two sources', () => {
+    it('counts an exact repeat once', async () => {
+      await rideRecorder.start(makeController());
+      const t = Date.now();
+
+      emit({ timestamp: t });
+      emit({ timestamp: t }); // same fix, second route
+      emit({ longitude: -122.3221, timestamp: t + 1000 });
+      emit({ longitude: -122.3221, timestamp: t + 1000 });
+
+      expect(rideRecorder.getSnapshot().pointCount).toBe(2);
+      expect(rideRecorder.getTrack()).toHaveLength(2);
+    });
+
+    it('drops a late batch of fixes older than the last one ingested', async () => {
+      await rideRecorder.start(makeController());
+      const t = Date.now();
+
+      emit({ timestamp: t });
+      emit({ longitude: -122.3221, timestamp: t + 2000 });
+      // The task's backlog arrives after the watch already moved on.
+      emit({ longitude: -122.3271, timestamp: t + 1000 });
+
+      const summary = await rideRecorder.stop();
+      expect(rideRecorder.getSnapshot().pointCount).toBe(2);
+      expect(summary.distanceMeters).toBeLessThan(1000);
+    });
+
+    it('keeps two different fixes that share a millisecond', async () => {
+      await rideRecorder.start(makeController());
+      const t = Date.now();
+
+      emit({ timestamp: t });
+      emit({ longitude: -122.3221, timestamp: t });
+
+      expect(rideRecorder.getSnapshot().pointCount).toBe(2);
+    });
+
+    it('starts afresh for each ride', async () => {
+      await rideRecorder.start(makeController());
+      const t = Date.now();
+      emit({ timestamp: t + 5000 });
+      await rideRecorder.clear();
+
+      await rideRecorder.start(makeController());
+      emit({ timestamp: t }); // older than the last ride's last fix, new ride
+
+      expect(rideRecorder.getSnapshot().pointCount).toBe(1);
+    });
+  });
+
+  // Android hands over its cached last-known location when updates start,
+  // timestamped when it was taken: often the end of the previous ride.
+  describe('a fix from before the ride started', () => {
+    it('is dropped, so it neither starts the ride nor adds distance', async () => {
+      await rideRecorder.start(makeController());
+      const startedAt = Date.now();
+
+      // Where the last ride ended, a couple of km away, ten minutes ago.
+      emit({ latitude: 47.62, longitude: -122.36, timestamp: startedAt - 10 * 60_000 });
+      emit({ timestamp: startedAt + 1000 });
+
+      const summary = await rideRecorder.stop();
+      expect(rideRecorder.getSnapshot().pointCount).toBe(1);
+      expect(summary.distanceMeters).toBe(0);
+      expect(summary.startLat).toBe(47.6062);
+      expect(summary.startLng).toBe(-122.3321);
+    });
+
+    it('keeps a fix taken at the moment the ride started', async () => {
+      await rideRecorder.start(makeController());
+      emit({ timestamp: Date.now() });
+
+      expect(rideRecorder.getSnapshot().pointCount).toBe(1);
+    });
+  });
+
   it('drops the (0,0) no-fix sentinel entirely', async () => {
     await rideRecorder.start(makeController());
 

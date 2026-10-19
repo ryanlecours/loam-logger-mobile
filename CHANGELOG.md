@@ -11,6 +11,202 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.3 - 2026-10-16
+
+### App Store "What's New"
+
+Fixes
+- On Android, the Push Notifications switch in Settings no longer sits greyed
+  out and pointing you to system settings when you haven't turned
+  notifications on yet. Tap it and Android asks for permission right there
+- On Android, recording a ride or opening a ride's map no longer closes the
+  app. The map shows your route as it does on iPhone
+- On Android, a recorded ride now captures your route, including with the
+  screen off. Before, the timer ran but no GPS points were saved
+- A new ride no longer starts with extra distance from wherever your phone
+  last had a location, such as the end of your previous ride
+- Signing up with an email that already has an account now offers to log you
+  in with that email filled in, or to reset your password, instead of saying
+  "Signup failed"
+- Continue with Google now asks which Google account to use every time, so
+  you can switch accounts after logging out
+- After upgrading to Pro, the app waits for your upgrade to take effect and
+  takes you to the Dashboard, instead of returning to Settings still showing
+  "Upgrade to Pro"
+- On Android, the hint text in the Save Ride, Add Ride and Edit Ride forms is
+  readable again
+
+New
+- Pro members now see a Pro badge next to Loam Logger on the Dashboard, and
+  Founding Riders see theirs
+- The Continue with Google button now carries the Google logo
+
+### Internal
+
+Android Google Maps key (PR #94)
+- react-native-maps draws with the Google Maps SDK on Android, which throws
+  "API key not found" when a map mounts without a key. That crashed the record
+  screen mid-ride and the ride detail map. iOS was unaffected: Apple Maps
+  needs no key.
+- `app.config.ts` now extends `app.json` and injects
+  `android.config.googleMaps.apiKey` from `GOOGLE_MAPS_ANDROID_API_KEY` (the
+  EAS environment for cloud builds, `.env` for local ones), so the key stays
+  out of this public repo. It also sets `extra.androidMapsEnabled`, because
+  Expo keeps the key itself out of the config bundled into the app.
+- `canDrawNativeMap()` reads that flag. `RouteMapView` and `LiveTrackMap` show
+  a placeholder instead of mounting a map when it is off, so a build without
+  a key degrades instead of crashing; the live map says the ride is still
+  recording. In development builds the placeholder also names the missing
+  variable.
+- A production Android build on EAS without the key fails in
+  `app.config.ts`, with the `eas env:create` command in the error, so a
+  release can't quietly ship without maps. iOS, preview and local builds are
+  unaffected.
+- The Jest `MapView` mock exposes no-op camera methods so a live map can mount
+  in tests.
+
+Notification permission status (PR #95)
+- On Android 13+, expo-notifications reports `denied` for a permission that
+  was never requested, because the app's notifications count as disabled
+  until it is granted. It also reports `denied` after a first refusal, when
+  Android still allows one more prompt. `getNotificationPermissionStatus` now
+  returns `denied` only when `canAskAgain` is false, so the Settings switch
+  stays tappable while the OS prompt is still available. iOS is unaffected:
+  its `denied` always comes with `canAskAgain: false`.
+- `registerForPushNotificationsAsync` checked `Device.isDevice` before asking
+  for permission, so onboarding's "Enable" did nothing on simulators and
+  emulators. The check now runs after the request and only skips the push
+  token fetch.
+
+Android ride recording location feed (PR #96)
+- On the new architecture, expo-task-manager can stop handing the background
+  location task's fixes to JS (expo/expo#50060). They queue natively and
+  arrive in one burst on the next reload, when the restored session is paused
+  and drops them, so an Android ride recorded no points.
+- Android now also runs a `watchPositionAsync` subscription that feeds the
+  recorder directly. The background task stays: its location foreground
+  service keeps the process and GPS alive with the screen off. iOS is
+  unchanged and still uses the task alone.
+- `RideRecorder.ingest` drops a fix that repeats the last one (same timestamp
+  and position) or is older than it, so a fix delivered by both sources, or a
+  late batch from the task, is counted once.
+- The watch passes `mayShowUserSettingsDialog: false`. Otherwise, with Google
+  Location Accuracy off, Android prompts to turn it on and declining rejects
+  the watch, which left a resumed ride paused. A watch that still fails on
+  Android is logged and the start carries on with the task.
+- A stop that lands while the controller is still starting (Finish or
+  Discard right after Start) no longer leaks the stream. Before, the watch
+  resolved after the stop and kept the GPS on, and the task could be left
+  running with its notification up. A generation counter lets the late
+  start undo what it started, unless a newer start owns the stream.
+
+Signup with an existing email (PR #97, API loam-logger#361)
+- The signup screen read `data.message`, but the API puts its text in
+  `error`, so every signup failure said "Signup failed". Failures now go
+  through `describeSignupFailure` (`src/lib/signupFailure.ts`), which reads
+  `error` first and recognises the 409 `EMAIL_EXISTS` code.
+- On `EMAIL_EXISTS` an alert offers "Log in" (back to the login screen via
+  `dismissTo`, email filled in) or "Reset password" (forgot-password, email
+  filled in). Both screens take an optional `email` param. Login clears it
+  once it has filled the field, so a second trip back with the same email
+  still refills it rather than keeping whatever the rider typed since.
+- Needs loam-logger#361 deployed for the code. Against an API without it, the
+  rider sees the API's own message ("An account with this email already
+  exists. Please log in.") rather than the alert.
+
+Android purchases through RevenueCat (PR #98)
+- `eas.json` sets `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (the `goog_` key
+  of the new Loam Logger (Play Store) app in RevenueCat) for production
+  builds. Before this, Android builds logged "Missing
+  EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY" and skipped RevenueCat, so Pro
+  could not be bought or restored there.
+- Play subscription `loam_logger_pro` with base plans `monthly` ($4.99) and
+  `annual` ($39.99), priced in 174 countries, no free trial (matching iOS).
+  Both are attached to the `Loam Logger Pro` entitlement and to the
+  `$rc_monthly` and `$rc_annual` packages of the default offering, so the
+  existing paywall shows them. A `yearly` base plan created with a monthly
+  billing period by mistake is deactivated in Play and archived in
+  RevenueCat; never reactivate it.
+- `.env.example` documents both RevenueCat keys.
+
+Android push through Firebase (PR #99)
+- Android push tokens come from Firebase Cloud Messaging, and
+  expo-notifications cannot get one without the app's google-services.json.
+  `app.config.ts` now sets `android.googleServicesFile` from the EAS file
+  variable `GOOGLE_SERVICES_JSON`, or from a git-ignored
+  `google-services.json` at the project root for local builds.
+- A production Android build on EAS without it fails in `app.config.ts`,
+  like a missing Maps key, so a release can't ship with push silently off.
+  Local and preview builds still work without it; Android just gets no push
+  token.
+- Sending also needs the Firebase project's FCM V1 service account key
+  uploaded to EAS credentials, so Expo's push service can deliver to FCM.
+
+Paywall footer and post-purchase state (PR #100)
+- The note under the RevenueCat paywall told Android riders to manage or
+  cancel "in your Apple ID settings". It now says "your Google Play
+  subscriptions" on Android and keeps the Apple wording on iOS.
+- Pro reaches the account through RevenueCat's webhook to the API a moment
+  after the store confirms the purchase. `onPurchaseCompleted` refetched the
+  account once, straight away, so it still read FREE and Settings kept showing
+  "Upgrade to Pro". It now polls `me` until the tier is PRO (`waitForPro`,
+  up to 10 reads 1.5 s apart) behind a "Turning on Pro" overlay, then goes to
+  the Dashboard. If Pro hasn't arrived by then, it still goes to the Dashboard
+  and says Pro is on its way.
+- During that wait, Android's back button is swallowed and iOS swipe-back
+  is off, a second completion event is ignored while the first wait runs,
+  the overlay resets in a `finally`, and if the screen is gone by the end
+  the rider is not pulled to the Dashboard.
+
+Google sign-in account picker (PR #101)
+- The Google Sign-In library remembers the last account and `signIn()`
+  reuses it without asking. The app never called `signOut()` on it, so after
+  one Google sign-in every later one, even after logging out, went to the
+  same account. `signInWithAccountPicker` (`src/lib/googleSignIn.ts`) now
+  forgets the remembered account first, so the picker shows every time.
+- In this library version (16.x) backing out of the picker resolves
+  `{ type: 'cancelled' }` instead of throwing, which the button reported as
+  "No ID token received from Google". It is now treated as a silent cancel.
+
+Dashboard Pro badge (PR #102)
+- `ProBadge` (`src/components/common/ProBadge.tsx`) mirrors web's earned-status
+  badge: "Pro", or "Founding Rider" for founding riders, shown beside the
+  Dashboard wordmark when `useUserTier().isPro`. Free riders see no badge;
+  the Dashboard's upsell card already speaks for Pro.
+- New theme tokens `colors.earned` / `colors.earnedBg` carry web's amber
+  (amber-400 on amber-500 at 20%), the one value DESIGN.md's Open Gate Rule
+  sanctions outside the earth palette, for earned status only. Gated features
+  keep the sage Pro chip. Pill radius per the mobile radius rule.
+
+Google sign-in button to Google's spec (PR #103)
+- Google's "Sign in with Google" branding guidelines require the multicolor
+  G on custom buttons; the mobile button was text only (web uses Google's
+  own button, which has it). `GoogleGLogo` draws the G from the exact paths
+  and colors in Google's button generator, with `react-native-svg` (new
+  dependency, 15.12.1, Expo SDK 54's version; native, so it needs a build).
+- `GoogleSignInButton` follows the generator's light button: white fill,
+  #747775 border, #1F1F1F label at weight 500, logo at 20 with 10 between,
+  pressed fill for #303030 at 12%, disabled fill and content at 38%. Sized as
+  a pill to match the Sign In button. Google's lockup keeps its own white and
+  greys (DESIGN.md, "The Guest Jersey Rule").
+
+Ride form placeholder contrast (PR #104)
+- The 16 text inputs on Save Ride, Add Ride and Edit Ride set no
+  `placeholderTextColor`, so Android drew their hints in its default grey,
+  near-invisible on our dark inputs. They now use `colors.textMuted` like
+  every other input in the app.
+- A new `no-restricted-syntax` lint entry rejects any `TextInput` with a
+  `placeholder` but no `placeholderTextColor`, so this can't recur.
+
+Stale first fix at ride start (PR #105)
+- When location updates start, Android delivers its cached last-known
+  location first, timestamped when it was taken: often where the previous
+  ride ended, or home. The recorder accepted it (clamping its negative `t`
+  to 0), so it became the ride's start coordinate, sent to the API for
+  weather, and the gap to the first live fix was booked as distance.
+- `RideRecorder.ingest` now drops any fix timestamped before the ride's
+  `startedAt`. Live fixes are always taken after start.
+
 ## 1.3.2 - 2026-10-08
 
 ### App Store "What's New"

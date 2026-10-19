@@ -36,6 +36,7 @@ import { useBikesWithPredictions } from '../../src/hooks/useBikesWithPredictions
 import { usePendingRides } from '../../src/hooks/usePendingRides';
 import { useRecorderStatus, isRecorderLive } from '../../src/hooks/useRecorderStatus';
 import { PendingRideCard } from '../../src/components/rides';
+import { ProBadge } from '../../src/components/common/ProBadge';
 import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
 import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
@@ -79,13 +80,19 @@ const nameOf = (b: BikeFieldsFragment) => b.nickname || `${b.manufacturer} ${b.m
  * so the title does not pop in once data arrives. It scrolls with the content
  * rather than pinning: the triage list is what the rider came for, and a fixed
  * bar would spend permanent vertical space on a name they already know.
+ *
+ * Pro riders get the amber earned-status badge beside the wordmark, as on
+ * web's top bar. Free riders get nothing here: this screen's upsell card
+ * already speaks for Pro, and the badge is never a gate.
  */
 function BrandHeader() {
+  const { isPro, isFoundingRider } = useUserTier();
   return (
     <View style={styles.brandHeader}>
       <Text style={styles.brandTitle} accessibilityRole="header">
         Loam Logger
       </Text>
+      {isPro && <ProBadge isFoundingRider={isFoundingRider} />}
     </View>
   );
 }
@@ -572,6 +579,9 @@ const styles = StyleSheet.create({
     paddingBottom: space.xxxl,
   },
   brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
     paddingHorizontal: space.xl,
     paddingTop: space.lg,
   },

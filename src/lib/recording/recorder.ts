@@ -174,6 +174,13 @@ class RideRecorder {
   private moving = true;
   /** Epoch ms of the last accuracy-accepted fix, for the stale-signal rule. */
   private lastAcceptedAt: number | null = null;
+  /**
+   * The last fix ingested, accepted or not, so a fix delivered twice is
+   * counted once. On Android a fix can arrive from both the foreground watch
+   * and the background task (see locationTask.ts), and the task can deliver a
+   * late batch of fixes the watch already supplied.
+   */
+  private lastIngested: { t: number; latitude: number; longitude: number } | null = null;
   // Accuracy-accepted fixes only, so the drawn line agrees with the distance
   // math (a rejected fix that never added meters must not bend the line).
   // Mutated in place; snapshot.trackLength is the change signal.
@@ -275,6 +282,7 @@ class RideRecorder {
     // off every ride.
     this.moving = true;
     this.lastAcceptedAt = null;
+    this.lastIngested = null;
 
     const db = await getDb();
     await db.runAsync(
@@ -362,6 +370,7 @@ class RideRecorder {
     this.baro = null;
     this.motion.reset();
     this.moving = true;
+    this.lastIngested = null;
 
     // Replay the stored points through the same math that built the live
     // totals, so a restored session shows exactly what a never-interrupted
@@ -422,6 +431,30 @@ class RideRecorder {
     // several-thousand-km distance segment. The API rejects it too, as a
     // backstop.
     if (update.latitude === 0 && update.longitude === 0) return;
+
+    // A fix timestamped before the ride began is the platform's cached
+    // last-known location, which Android hands over the moment updates start:
+    // wherever the phone last had a fix, such as the end of the previous ride
+    // or home before the drive to the trailhead. As the first point it would
+    // make the ride start there and book the gap to the real position as
+    // distance. Every live fix is taken after start.
+    if (update.timestamp < this.startedAt) return;
+
+    // One fix, one sample. Older than the last fix ingested means a late
+    // batch whose fixes already arrived by the other route; the same time and
+    // place means the same fix twice. Two different fixes can share a
+    // millisecond, so the position has to match too.
+    const last = this.lastIngested;
+    if (
+      last &&
+      (update.timestamp < last.t ||
+        (update.timestamp === last.t &&
+          update.latitude === last.latitude &&
+          update.longitude === last.longitude))
+    ) {
+      return;
+    }
+    this.lastIngested = { t: update.timestamp, latitude: update.latitude, longitude: update.longitude };
 
     const sample: GeoSample = {
       latitude: update.latitude,
@@ -689,6 +722,7 @@ class RideRecorder {
     this.motion.reset();
     this.moving = true;
     this.lastAcceptedAt = null;
+    this.lastIngested = null;
     this.publish();
   }
 }
