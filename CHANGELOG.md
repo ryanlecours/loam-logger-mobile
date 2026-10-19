@@ -11,6 +11,29 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## Unreleased
+
+### Internal
+
+Device attestation on password signup (API loam-logger, `feat/device-attestation`)
+- Before `POST /auth/mobile/signup`, the app fetches a one-time challenge
+  from `POST /auth/mobile/attest-challenge` and sends an `attestation`
+  field: an App Attest key attestation on iOS, a Play Integrity token on
+  Android, each bound to `${challenge}.${email}`. Devices that cannot
+  attest send `unsupported`, and failures send `clientError`; signup never
+  waits more than 10 seconds on it and never fails because of it.
+- Adds `@expo/app-integrity` (native) and the iOS entitlement
+  `com.apple.developer.devicecheck.appattest-environment: production`, so
+  this ships only in a new native build, not an OTA update.
+- Android reads `EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER` (set in the
+  production EAS profile); the Cloud project must be linked to the app in
+  Play Console. The signup screen warms up Play Integrity when it opens.
+- Simulators, emulators and sideloaded or locally built installs do not
+  attest. The API records them and, in enforce mode, lets them through a
+  small global cap; add test addresses to the API's
+  `DEVICE_ATTESTATION_BYPASS_EMAILS`.
+- Google and Apple sign-in are not attested in this pass.
+
 ## 1.3.4 - 2026-10-19
 
 ### App Store "What's New"
