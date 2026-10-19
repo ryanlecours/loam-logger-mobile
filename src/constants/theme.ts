@@ -158,6 +158,16 @@ export const colors = {
   /** Quiet medal tone for achievements. Not a status. */
   accentPearl: palette.pearl,
 
+  // ------------------------------------------------------- earned status
+  /**
+   * The amber ProBadge: earned status (Pro, Founding Rider) and nothing else.
+   * The one sanctioned value outside the earth palette (DESIGN.md, "The Open
+   * Gate Rule"), matching web's ProBadge (amber-400 on amber-500 at 20%).
+   * Never for gating: a gated spot wears the sage Pro chip.
+   */
+  earned: '#FBBF24',
+  earnedBg: 'rgba(245, 158, 11, 0.2)',
+
   // Data sources — a partner's own badge only, never Loam UI
   // (DESIGN.md, "The Guest Jersey Rule").
   strava: '#fc4c02',
