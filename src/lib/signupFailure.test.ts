@@ -46,13 +46,32 @@ describe('describeSignupFailure and email verification', () => {
         code: 'EMAIL_VERIFICATION_REQUIRED',
         details: { email: 'new@example.com', accountCreated: true },
       }),
-    ).toEqual({ kind: 'verify-email', email: 'new@example.com' });
+    ).toEqual({ kind: 'verify-email', email: 'new@example.com', grant: null });
+  });
+
+  it('carries the sign-in grant so the app can sign in once the email is verified', () => {
+    expect(
+      describeSignupFailure(403, {
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+        details: {
+          email: 'new@example.com',
+          accountCreated: true,
+          signInSecret: 'grant-secret',
+          signInSecretExpiresAt: '2026-10-21T12:00:00.000Z',
+        },
+      }),
+    ).toEqual({
+      kind: 'verify-email',
+      email: 'new@example.com',
+      grant: { secret: 'grant-secret', expiresAt: '2026-10-21T12:00:00.000Z', email: 'new@example.com' },
+    });
   });
 
   it('copes with a verification answer that carries no email', () => {
     expect(describeSignupFailure(403, { code: 'EMAIL_VERIFICATION_REQUIRED' })).toEqual({
       kind: 'verify-email',
       email: null,
+      grant: null,
     });
   });
 });

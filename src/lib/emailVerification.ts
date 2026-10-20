@@ -35,3 +35,33 @@ export async function resendVerificationEmail(email: string): Promise<ResendResu
     return { ok: false, reason: 'network' };
   }
 }
+
+export type VerifyEmailOutcome =
+  | { status: 'verified'; email?: string }
+  | { status: 'expired' | 'invalid' | 'error' };
+
+/**
+ * Confirm an address with the token from the verification email, when the
+ * link opened the app. Only verifies: signing in is up to the device's
+ * sign-in grant (completeEmailSignIn) or the password. `email` comes back for
+ * prefilling sign-in.
+ */
+export async function verifyEmailToken(token: string): Promise<VerifyEmailOutcome> {
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+  try {
+    const res = await fetch(`${apiUrl}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok) {
+      return { status: 'verified', ...(typeof data?.email === 'string' ? { email: data.email } : {}) };
+    }
+    if (data?.code === 'TOKEN_EXPIRED') return { status: 'expired' };
+    if (data?.code === 'TOKEN_INVALID') return { status: 'invalid' };
+    return { status: 'error' };
+  } catch {
+    return { status: 'error' };
+  }
+}

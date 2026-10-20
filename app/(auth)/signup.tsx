@@ -14,6 +14,7 @@ import {
 import { useRouter, type Href } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { describeSignupFailure } from '../../src/lib/signupFailure';
+import { saveSignInGrant } from '../../src/lib/signInGrant';
 import { getSignupAttestation, prepareDeviceAttestation } from '../../src/lib/deviceAttestation';
 import {
   PasswordRequirements,
@@ -129,7 +130,9 @@ export default function SignupScreen() {
           return;
         }
         if (failure.kind === 'verify-email') {
-          // The account was created; it signs in once the emailed link is opened.
+          // The account was created; it signs in once the emailed link is
+          // opened, by itself when the API handed over a sign-in grant.
+          if (failure.grant) await saveSignInGrant(failure.grant);
           setLoading(false);
           router.replace({
             pathname: '/(auth)/check-email',

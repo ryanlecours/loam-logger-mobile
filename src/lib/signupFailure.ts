@@ -1,4 +1,5 @@
 import { EMAIL_VERIFICATION_REQUIRED_CODE } from './emailVerification';
+import { signInGrantFromDetails, type SignInGrant } from './signInGrant';
 
 /**
  * What the signup screen should do with a failed POST /auth/mobile/signup.
@@ -10,10 +11,12 @@ import { EMAIL_VERIFICATION_REQUIRED_CODE } from './emailVerification';
  * A successful password signup also lands here: the account is created but
  * no tokens are issued until the email is confirmed, so the API answers 403
  * EMAIL_VERIFICATION_REQUIRED (a 2xx would break builds that expect tokens).
+ * Its `grant`, when the API sent one, lets the app sign itself in once the
+ * email is verified.
  */
 export type SignupFailure =
   | { kind: 'email-exists' }
-  | { kind: 'verify-email'; email: string | null }
+  | { kind: 'verify-email'; email: string | null; grant: SignInGrant | null }
   | { kind: 'error'; message: string };
 
 export function describeSignupFailure(status: number, body: unknown): SignupFailure {
@@ -21,7 +24,7 @@ export function describeSignupFailure(status: number, body: unknown): SignupFail
     error?: unknown;
     message?: unknown;
     code?: unknown;
-    details?: { email?: unknown } | null;
+    details?: { email?: unknown; signInSecret?: unknown; signInSecretExpiresAt?: unknown } | null;
   };
 
   if (status === 409 && data.code === 'EMAIL_EXISTS') {
@@ -29,8 +32,9 @@ export function describeSignupFailure(status: number, body: unknown): SignupFail
   }
 
   if (data.code === EMAIL_VERIFICATION_REQUIRED_CODE) {
-    const email = data.details?.email;
-    return { kind: 'verify-email', email: typeof email === 'string' ? email : null };
+    const rawEmail = data.details?.email;
+    const email = typeof rawEmail === 'string' ? rawEmail : null;
+    return { kind: 'verify-email', email, grant: signInGrantFromDetails(data.details, email) };
   }
 
   const text = [data.error, data.message].find(
