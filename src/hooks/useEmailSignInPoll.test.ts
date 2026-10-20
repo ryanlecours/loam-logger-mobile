@@ -118,7 +118,7 @@ describe('useEmailSignInPoll', () => {
 
   it('does nothing while disabled, and stops when the screen loses focus', async () => {
     mockComplete.mockResolvedValue({ status: 'pending' });
-    const { rerender } = await renderHook(({ enabled }) => useEmailSignInPoll(enabled, jest.fn()), {
+    const { rerender } = await renderHook(({ enabled }: { enabled: boolean }) => useEmailSignInPoll(enabled, jest.fn()), {
       initialProps: { enabled: false },
     });
     await act(async () => {
