@@ -39,7 +39,11 @@ export default function CheckEmailScreen() {
       return () => setFocused(false);
     }, []),
   );
-  useEmailSignInPoll(focused, () => setAuthenticated(true));
+  useEmailSignInPoll(focused, () => setAuthenticated(true), {
+    expectedEmail: email,
+    // The grant expired or was refused: the copy should stop promising it.
+    onUnavailable: () => setHasGrant(false),
+  });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   // Briefly disabled after a send. Past a few sends an hour the API still

@@ -12,12 +12,22 @@ import { emailSignInPollDelay } from '../lib/signInGrant';
  * once there is no usable grant (none stored, expired, or refused).
  *
  * `onSignedIn` runs after the tokens are stored; it flips the auth state.
+ * `onUnavailable` runs when it gives up for want of a usable grant, so the
+ * screen can stop promising an automatic sign-in. `expectedEmail` limits it
+ * to a grant for that address (see completeEmailSignIn).
  */
-export function useEmailSignInPoll(enabled: boolean, onSignedIn: () => void): void {
+export function useEmailSignInPoll(
+  enabled: boolean,
+  onSignedIn: () => void,
+  options: { expectedEmail?: string; onUnavailable?: () => void } = {},
+): void {
+  const { expectedEmail, onUnavailable } = options;
   const onSignedInRef = useRef(onSignedIn);
+  const onUnavailableRef = useRef(onUnavailable);
   useEffect(() => {
     onSignedInRef.current = onSignedIn;
-  }, [onSignedIn]);
+    onUnavailableRef.current = onUnavailable;
+  }, [onSignedIn, onUnavailable]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -39,7 +49,7 @@ export function useEmailSignInPoll(enabled: boolean, onSignedIn: () => void): vo
       // In the background, wait for the app to come back instead.
       if (stopped || inFlight || AppState.currentState !== 'active') return;
       inFlight = true;
-      const result = await completeEmailSignIn();
+      const result = await completeEmailSignIn(expectedEmail);
       inFlight = false;
       if (stopped) return;
 
@@ -48,6 +58,7 @@ export function useEmailSignInPoll(enabled: boolean, onSignedIn: () => void): vo
         onSignedInRef.current();
       } else if (result.status === 'unavailable') {
         stop();
+        onUnavailableRef.current?.();
       } else {
         schedule(result.status === 'retry' ? result.retryAfterMs : 0);
       }
@@ -69,5 +80,5 @@ export function useEmailSignInPoll(enabled: boolean, onSignedIn: () => void): vo
     // screen was out of view.
     void poll();
     return stop;
-  }, [enabled]);
+  }, [enabled, expectedEmail]);
 }

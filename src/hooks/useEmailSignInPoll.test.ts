@@ -64,16 +64,26 @@ describe('useEmailSignInPoll', () => {
     expect(mockComplete).toHaveBeenCalledTimes(3);
   });
 
-  it('stops for good when there is no usable grant', async () => {
+  it('stops for good when there is no usable grant, and says so', async () => {
     mockComplete.mockResolvedValue({ status: 'unavailable' });
     const onSignedIn = jest.fn();
-    await renderHook(() => useEmailSignInPoll(true, onSignedIn));
+    const onUnavailable = jest.fn();
+    await renderHook(() => useEmailSignInPoll(true, onSignedIn, { onUnavailable }));
 
     await act(async () => {
       await jest.advanceTimersByTimeAsync(10 * 60_000);
     });
     expect(mockComplete).toHaveBeenCalledTimes(1);
     expect(onSignedIn).not.toHaveBeenCalled();
+    expect(onUnavailable).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks only about the address it is waiting on', async () => {
+    mockComplete.mockResolvedValue({ status: 'pending' });
+    await renderHook(() => useEmailSignInPoll(true, jest.fn(), { expectedEmail: 'rider@example.com' }));
+    await act(async () => {});
+
+    expect(mockComplete).toHaveBeenCalledWith('rider@example.com');
   });
 
   it('waits in the background, and asks the moment the app is active again', async () => {

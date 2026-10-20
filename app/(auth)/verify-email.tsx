@@ -40,7 +40,9 @@ export default function VerifyEmailScreen() {
   const [status, setStatus] = useState<Status>(token ? 'verifying' : 'invalid');
   const [email, setEmail] = useState<string | null>(null);
   // A token works once; a second request would land on an already-used token.
-  const started = useRef(false);
+  // Keyed on the token, so a newer link opened while this screen is still
+  // mounted (after a resend, say) is verified too.
+  const startedFor = useRef<string | null>(null);
 
   const run = useCallback(
     async (t: string) => {
@@ -51,13 +53,15 @@ export default function VerifyEmailScreen() {
         return;
       }
       if (outcome.email) setEmail(outcome.email);
-      if (isAuthenticated) {
+      // Only a grant for the address this link verified may sign in, so a
+      // leftover grant for another account never does.
+      if (isAuthenticated || !outcome.email) {
         setStatus('verified');
         return;
       }
 
       setStatus('signing-in');
-      const signIn = await completeEmailSignIn();
+      const signIn = await completeEmailSignIn(outcome.email);
       if (signIn.status === 'signed-in') {
         setAuthenticated(true);
         // This screen is exempt from the signed-in redirect, so move on
@@ -71,8 +75,8 @@ export default function VerifyEmailScreen() {
   );
 
   useEffect(() => {
-    if (!token || started.current) return;
-    started.current = true;
+    if (!token || startedFor.current === token) return;
+    startedFor.current = token;
     void run(token);
   }, [token, run]);
 
