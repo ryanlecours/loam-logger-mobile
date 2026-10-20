@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import { useRouter, type Href } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { describeSignupFailure } from '../../src/lib/signupFailure';
+import { getSignupAttestation, prepareDeviceAttestation } from '../../src/lib/deviceAttestation';
 import {
   PasswordRequirements,
   checkPasswordRequirements,
@@ -29,6 +30,11 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setAuthenticated } = useAuth();
+
+  // Warm up Play Integrity while the rider fills in the form (no-op on iOS).
+  useEffect(() => {
+    void prepareDeviceAttestation();
+  }, []);
 
   const passwordCheck = useMemo(
     () => checkPasswordRequirements(password),
@@ -98,6 +104,8 @@ export default function SignupScreen() {
 
     try {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+      // Bound to `email` exactly as sent below; never throws.
+      const attestation = await getSignupAttestation(apiUrl, email);
       const response = await fetch(`${apiUrl}/auth/mobile/signup`, {
         method: 'POST',
         headers: {
@@ -107,6 +115,7 @@ export default function SignupScreen() {
           email,
           password,
           name: name.trim(),
+          attestation,
         }),
       });
 

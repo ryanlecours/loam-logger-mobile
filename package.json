@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",
+    "@expo/app-integrity": "~0.1.10",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-google-signin/google-signin": "^16.1.0",

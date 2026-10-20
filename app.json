@@ -20,6 +20,9 @@
         "applinks:loamlogger.app"
       ],
       "usesAppleSignIn": true,
+      "entitlements": {
+        "com.apple.developer.devicecheck.appattest-environment": "production"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
