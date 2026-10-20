@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 
 const mockIntegrity = {
@@ -122,10 +123,47 @@ describe('getSignupAttestation on Android', () => {
     await expect(prepareDeviceAttestation()).resolves.toBe(true);
   });
 
+  it('gives up after the timeout', async () => {
+    jest.useFakeTimers();
+    try {
+      mockIntegrity.prepareIntegrityTokenProviderAsync.mockResolvedValue(undefined);
+      mockIntegrity.requestIntegrityCheckAsync.mockReturnValue(new Promise(() => undefined));
+      const pending = getSignupAttestation(API, EMAIL);
+      await jest.advanceTimersByTimeAsync(ATTESTATION_TIMEOUT_MS);
+      await expect(pending).resolves.toEqual({ platform: 'android', clientError: true });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('puts the Play error message in the breadcrumb when there is no code', async () => {
+    mockIntegrity.prepareIntegrityTokenProviderAsync.mockRejectedValueOnce(new Error('PLAY_STORE_NOT_FOUND'));
+    await getSignupAttestation(API, EMAIL);
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Play Integrity prepare failed: PLAY_STORE_NOT_FOUND' }),
+    );
+  });
+
   it('sends clientError when the build has no cloud project number', async () => {
     delete process.env.EXPO_PUBLIC_GOOGLE_CLOUD_PROJECT_NUMBER;
     await expect(getSignupAttestation(API, EMAIL)).resolves.toEqual({ platform: 'android', clientError: true });
     expect(mockIntegrity.prepareIntegrityTokenProviderAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('a build without the native module (Expo Go, an older dev client)', () => {
+  beforeEach(() => __test.failModuleLoad());
+
+  it('reports iOS as unsupported without fetching a challenge', async () => {
+    setPlatform('ios');
+    await expect(getSignupAttestation(API, EMAIL)).resolves.toEqual({ platform: 'ios', unsupported: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports Android as unsupported too, without preparing or fetching', async () => {
+    setPlatform('android');
+    await expect(getSignupAttestation(API, EMAIL)).resolves.toEqual({ platform: 'android', unsupported: true });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

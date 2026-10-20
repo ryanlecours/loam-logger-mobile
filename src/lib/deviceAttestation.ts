@@ -36,10 +36,15 @@ type AppIntegrityModule = typeof import('@expo/app-integrity');
  * Loaded lazily: the native module only exists in builds made after it was
  * added, and requiring it in Expo Go or an older dev client throws.
  */
+const requireAppIntegrity = (): AppIntegrityModule =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@expo/app-integrity') as AppIntegrityModule;
+
+let moduleLoader: () => AppIntegrityModule = requireAppIntegrity;
+
 function loadAppIntegrity(): AppIntegrityModule | null {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require('@expo/app-integrity') as AppIntegrityModule;
+    return moduleLoader();
   } catch {
     return null;
   }
@@ -78,9 +83,16 @@ export function prepareDeviceAttestation(): Promise<boolean> {
   return androidPrepared;
 }
 
+/**
+ * A short label for a breadcrumb: the native error code when there is one,
+ * otherwise the message (Play Integrity puts codes like PLAY_STORE_NOT_FOUND
+ * there). These errors never carry the email, which only goes into the
+ * attested string.
+ */
 function errorCode(error: unknown): string {
   if (error && typeof error === 'object' && 'code' in error) return String((error as { code: unknown }).code);
-  return error instanceof Error ? error.name : 'unknown';
+  if (error instanceof Error) return error.message ? error.message.slice(0, 120) : error.name;
+  return 'unknown';
 }
 
 async function fetchChallenge(apiUrl: string): Promise<string> {
@@ -146,5 +158,12 @@ export async function getSignupAttestation(apiUrl: string, email: string): Promi
 export const __test = {
   reset: () => {
     androidPrepared = null;
+    moduleLoader = requireAppIntegrity;
+  },
+  /** Stand in for a build without the native module (Expo Go, an older dev client). */
+  failModuleLoad: () => {
+    moduleLoader = () => {
+      throw new Error("Cannot find native module 'ExpoAppIntegrity'");
+    };
   },
 };
