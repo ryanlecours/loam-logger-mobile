@@ -19,6 +19,7 @@ jest.mock('@sentry/react-native', () => ({
 }));
 
 import {
+  completeEmailSignIn,
   completeProviderLink,
   loginWithApple,
   loginWithEmail,
@@ -30,6 +31,9 @@ import {
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const SIGN_IN_GRANT_KEY = 'email_sign_in_grant';
+
+const inAnHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
 function mockFetchResponse(status: number, body: unknown = {}): void {
   global.fetch = jest.fn().mockResolvedValue({
@@ -259,6 +263,50 @@ describe('loginWithEmail and email verification', () => {
     expect(mockStore.has(ACCESS_TOKEN_KEY)).toBe(false);
   });
 
+  it('keeps the sign-in grant from the refusal, so the app can sign in once the email is verified', async () => {
+    const expiresAt = inAnHour();
+    mockFetchResponse(403, {
+      error: 'Check your inbox for a link to verify your email, then sign in.',
+      code: 'EMAIL_VERIFICATION_REQUIRED',
+      details: { email: 'rider@example.com', signInSecret: 'grant-secret', signInSecretExpiresAt: expiresAt },
+    });
+
+    await loginWithEmail('rider@example.com', 'right-password');
+
+    expect(JSON.parse(mockStore.get(SIGN_IN_GRANT_KEY)!)).toEqual({
+      secret: 'grant-secret',
+      expiresAt,
+      email: 'rider@example.com',
+    });
+  });
+
+  it('drops any leftover grant once a sign-in succeeds', async () => {
+    mockStore.set(SIGN_IN_GRANT_KEY, JSON.stringify({ secret: 'old', expiresAt: inAnHour() }));
+    mockFetchResponse(200, { accessToken: 'a', refreshToken: 'r', user: { id: 'u1' } });
+
+    await expect(loginWithEmail('rider@example.com', 'right-password')).resolves.toEqual({ success: true });
+
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(false);
+  });
+
+  it('drops a leftover grant for another address before signing in to a different account', async () => {
+    mockStore.set(SIGN_IN_GRANT_KEY, JSON.stringify({ secret: 'a', expiresAt: inAnHour(), email: 'a@example.com' }));
+    mockFetchResponse(401, { error: 'Invalid email or password' });
+
+    await loginWithEmail('b@example.com', 'wrong');
+
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(false);
+  });
+
+  it('keeps the grant when the attempt is for the same address', async () => {
+    mockStore.set(SIGN_IN_GRANT_KEY, JSON.stringify({ secret: 'a', expiresAt: inAnHour(), email: 'rider@example.com' }));
+    mockFetchResponse(401, { error: 'Invalid email or password' });
+
+    await loginWithEmail(' Rider@Example.com', 'wrong');
+
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(true);
+  });
+
   it('still reports a wrong password as invalid credentials', async () => {
     mockFetchResponse(401, { error: 'Invalid email or password' });
 
@@ -266,5 +314,109 @@ describe('loginWithEmail and email verification', () => {
 
     expect(result.errorCode).toBe('INVALID_CREDENTIALS');
     expect(result.verificationEmail).toBeUndefined();
+  });
+});
+
+describe('completeEmailSignIn', () => {
+  beforeEach(() => {
+    mockStore.clear();
+    mockStore.set(SIGN_IN_GRANT_KEY, JSON.stringify({ secret: 'grant-secret', expiresAt: inAnHour() }));
+  });
+
+  it('makes no request when the device holds no grant', async () => {
+    mockStore.clear();
+    global.fetch = jest.fn();
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'unavailable' });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('makes no request, and forgets the grant, once it has expired', async () => {
+    mockStore.set(SIGN_IN_GRANT_KEY, JSON.stringify({ secret: 'grant-secret', expiresAt: new Date(Date.now() - 1000).toISOString() }));
+    global.fetch = jest.fn();
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'unavailable' });
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(false);
+  });
+
+  it('stores the session and drops the grant once the email is verified', async () => {
+    mockFetchResponse(200, { accessToken: 'access-1', refreshToken: 'refresh-1', user: { id: 'u1', email: 'rider@example.com' } });
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'signed-in' });
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toMatch(/\/auth\/mobile\/verify-email\/complete$/);
+    expect(init).toMatchObject({ method: 'POST', body: JSON.stringify({ secret: 'grant-secret' }) });
+    expect(mockStore.get(ACCESS_TOKEN_KEY)).toBe('access-1');
+    expect(mockStore.get(REFRESH_TOKEN_KEY)).toBe('refresh-1');
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(false);
+  });
+
+  it('keeps the grant while the email is still unverified', async () => {
+    mockFetchResponse(202, { pending: true, code: 'EMAIL_VERIFICATION_PENDING' });
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'pending' });
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(true);
+    expect(mockStore.has(ACCESS_TOKEN_KEY)).toBe(false);
+  });
+
+  it('forgets a grant the API refuses', async () => {
+    mockFetchResponse(401, { code: 'SIGN_IN_GRANT_INVALID' });
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'unavailable' });
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(false);
+  });
+
+  it('asks to retry after a rate limit, as long as the API said', async () => {
+    mockFetchResponse(429, { code: 'TOO_MANY_REQUESTS', details: { retryAfter: 20 } });
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'retry', retryAfterMs: 20_000 });
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(true);
+  });
+
+  it('gives up, keeping the grant, on a 4xx that asking again will not change', async () => {
+    mockFetchResponse(404, {});
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'unavailable' });
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(true);
+  });
+
+  it('asks to retry after a server error', async () => {
+    mockFetchResponse(503, {});
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'retry', retryAfterMs: undefined });
+  });
+
+  describe('for a known address', () => {
+    beforeEach(() => {
+      mockStore.set(
+        SIGN_IN_GRANT_KEY,
+        JSON.stringify({ secret: 'grant-secret', expiresAt: inAnHour(), email: 'rider@example.com' }),
+      );
+    });
+
+    it('sends the address along, so the API checks it too', async () => {
+      mockFetchResponse(200, { accessToken: 'a', refreshToken: 'r', user: { id: 'u1' } });
+
+      await expect(completeEmailSignIn('Rider@example.com')).resolves.toEqual({ status: 'signed-in' });
+
+      const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(init.body).toBe(JSON.stringify({ secret: 'grant-secret', email: 'Rider@example.com' }));
+    });
+
+    it('never uses a grant for another account, and leaves it in place', async () => {
+      global.fetch = jest.fn();
+
+      await expect(completeEmailSignIn('someone-else@example.com')).resolves.toEqual({ status: 'unavailable' });
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(true);
+    });
+  });
+
+  it('asks to retry when the network is unreachable', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed'));
+
+    await expect(completeEmailSignIn()).resolves.toEqual({ status: 'retry' });
+    expect(mockStore.has(SIGN_IN_GRANT_KEY)).toBe(true);
   });
 });

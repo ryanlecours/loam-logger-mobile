@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,9 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, Href } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter, Href } from 'expo-router';
 import {
+  completeEmailSignIn,
   loginWithApple,
   loginWithEmail,
   loginWithGoogle,
@@ -64,6 +65,17 @@ export default function LoginScreen() {
   const [pendingLink, setPendingLink] = useState<PendingProviderLink | null>(null);
   const passwordRef = useRef<TextInput>(null);
   const { setAuthenticated } = useAuth();
+
+  // A rider who signed up here, closed the app and opened the link on
+  // another device comes back to this screen. If the device still holds the
+  // sign-in grant from signup, use it once: no network call without one.
+  useFocusEffect(
+    useCallback(() => {
+      void completeEmailSignIn().then((result) => {
+        if (result.status === 'signed-in') setAuthenticated(true);
+      });
+    }, [setAuthenticated]),
+  );
 
   const isLoading = loading || googleLoading || appleLoading;
 

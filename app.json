@@ -93,6 +93,11 @@
               "scheme": "https",
               "host": "loamlogger.app",
               "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "loamlogger.app",
+              "pathPrefix": "/verify-email"
             }
           ],
           "autoVerify": true

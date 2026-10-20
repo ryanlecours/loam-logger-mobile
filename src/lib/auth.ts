@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Sentry from '@sentry/react-native';
 import type { RideSyncNotificationMode, UserRole } from '../graphql/generated';
 import { EMAIL_VERIFICATION_REQUIRED_CODE } from './emailVerification';
+import { clearSignInGrant, readSignInGrant, saveSignInGrant, signInGrantFromDetails } from './signInGrant';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -79,6 +80,9 @@ export async function storeTokens(
   if (user) {
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
   }
+  // Signed in, by whatever route: a sign-in grant left over from signup must
+  // not sign this device back in after a later logout.
+  await clearSignInGrant();
 }
 
 export async function getAccessToken(): Promise<string | null> {
@@ -279,11 +283,81 @@ function recordAuthFailure(
   }
 }
 
+export type EmailSignInResult =
+  /** Signed in: the tokens are stored. */
+  | { status: 'signed-in' }
+  /** The email is not verified yet. Ask again later. */
+  | { status: 'pending' }
+  /** No grant on this device for this address, or one that can never sign in. Sign in by hand. */
+  | { status: 'unavailable' }
+  /** Rate limited, a server error or no network. Ask again later. */
+  | { status: 'retry'; retryAfterMs?: number };
+
+/**
+ * Trade this device's sign-in grant for a session, if the account's email is
+ * verified by now. The grant came from signup or from a sign-in refused for
+ * an unverified email (see signInGrant.ts). Answers like loginWithEmail on
+ * success; the caller then flips the auth state.
+ *
+ * `expectedEmail` is the address the caller is waiting on, when it knows one
+ * (the verify screen knows which address its link confirmed). A grant for
+ * another account is then left alone and never used, so a leftover grant
+ * cannot sign the rider in to the wrong account; the API checks it too.
+ */
+export async function completeEmailSignIn(expectedEmail?: string): Promise<EmailSignInResult> {
+  const grant = await readSignInGrant();
+  if (!grant) return { status: 'unavailable' };
+  if (expectedEmail !== undefined && !sameEmail(grant.email, expectedEmail)) {
+    return { status: 'unavailable' };
+  }
+
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+  try {
+    const response = await fetch(`${apiUrl}/auth/mobile/verify-email/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(
+        expectedEmail !== undefined ? { secret: grant.secret, email: expectedEmail } : { secret: grant.secret },
+      ),
+    });
+
+    if (response.status === 200) {
+      const data = await response.json();
+      await storeTokens(data.accessToken, data.refreshToken, data.user);
+      return { status: 'signed-in' };
+    }
+    if (response.status === 202) return { status: 'pending' };
+    if (response.status === 401) {
+      await clearSignInGrant();
+      return { status: 'unavailable' };
+    }
+    // Any other 4xx but a rate limit will not change by asking again (an API
+    // without this endpoint answers 404, for one).
+    if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+      return { status: 'unavailable' };
+    }
+    const data = await response.json().catch(() => null);
+    const retryAfter = data?.details?.retryAfter;
+    return { status: 'retry', retryAfterMs: typeof retryAfter === 'number' ? retryAfter * 1000 : undefined };
+  } catch {
+    return { status: 'retry' };
+  }
+}
+
+function sameEmail(a: string | undefined, b: string): boolean {
+  return !!a && a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 export async function loginWithEmail(
   email: string,
   password: string
 ): Promise<AuthResult> {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+
+  // The rider has moved on to another account: a grant left over from an
+  // earlier signup must not sign this device in to that one later.
+  const leftover = await readSignInGrant();
+  if (leftover && !sameEmail(leftover.email, email)) await clearSignInGrant();
 
   try {
     const response = await fetch(`${apiUrl}/auth/mobile/login`, {
@@ -298,11 +372,16 @@ export async function loginWithEmail(
       const { message, code, details, requestId } = await parseErrorResponse(response);
 
       if (code === EMAIL_VERIFICATION_REQUIRED_CODE) {
+        const verificationEmail = typeof details?.email === 'string' ? details.email : email.trim();
+        // The password was right, so this device may sign itself in once the
+        // email is verified (see completeEmailSignIn).
+        const grant = signInGrantFromDetails(details, verificationEmail);
+        if (grant) await saveSignInGrant(grant);
         return {
           success: false,
           error: message,
           errorCode: 'EMAIL_VERIFICATION_REQUIRED',
-          verificationEmail: typeof details?.email === 'string' ? details.email : email.trim(),
+          verificationEmail,
           requestId,
         };
       }
