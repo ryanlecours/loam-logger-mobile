@@ -11,11 +11,18 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
-## Unreleased
+## 1.3.5 - 2026-10-20
+
+### App Store "What's New"
+
+Improvements
+- Signing up now checks that it comes from the real Loam Logger app on a
+  real device, which keeps automated spam accounts out. Nothing changes
+  for you: sign up as before
 
 ### Internal
 
-Device attestation on password signup (API loam-logger, `feat/device-attestation`)
+Device attestation on password signup (PR #111, API loam-logger#371)
 - Before `POST /auth/mobile/signup`, the app fetches a one-time challenge
   from `POST /auth/mobile/attest-challenge` and sends an `attestation`
   field: an App Attest key attestation on iOS, a Play Integrity token on
