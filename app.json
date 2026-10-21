@@ -58,6 +58,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png",
         "backgroundColor": "#293327"
       },
       "package": "com.loamlabs.loamlogger",
@@ -140,8 +141,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#4f7a5a"
+          "icon": "./assets/notification-icon.png",
+          "color": "#22362C"
         }
       ],
       [
