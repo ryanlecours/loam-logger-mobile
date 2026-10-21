@@ -63,6 +63,10 @@ export default function EditRideScreen() {
   const [elevation, setElevation] = useState('');
   // Blank is "no descent on record" and saves as null; it is not 0.
   const [descent, setDescent] = useState('');
+  // What the field showed on open, so a save only sends descent when the
+  // rider changed it: the field holds a rounded, unit-converted copy, and
+  // echoing it back on a notes-only edit would overwrite a provider's figure.
+  const [initialDescent, setInitialDescent] = useState('');
   const [rideType, setRideType] = useState('TRAIL');
   const [bikeId, setBikeId] = useState('');
   const [averageHr, setAverageHr] = useState('');
@@ -82,11 +86,12 @@ export default function EditRideScreen() {
 
       setDistance(String(parseFloat(fromMeters(ride.distanceMeters).toFixed(1))));
       setElevation(String(distanceUnit === 'km' ? Math.round(ride.elevationGainMeters) : parseFloat((ride.elevationGainMeters * 3.28084).toFixed(0))));
-      setDescent(
+      const descentShown =
         ride.elevationLossMeters == null
           ? ''
-          : String(Math.round(distanceUnit === 'km' ? ride.elevationLossMeters : ride.elevationLossMeters * 3.28084))
-      );
+          : String(Math.round(distanceUnit === 'km' ? ride.elevationLossMeters : ride.elevationLossMeters * 3.28084));
+      setDescent(descentShown);
+      setInitialDescent(descentShown);
       setRideType(ride.rideType);
       // "Not my bike" shares the bike picker's single value slot: a ride is on
       // one of your bikes, on nobody's, or on someone else's, and those are
@@ -169,13 +174,18 @@ export default function EditRideScreen() {
             durationSeconds,
             distanceMeters: toMeters(parseFloat(distance)),
             elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
-            // Blank clears it back to "not reported" rather than writing 0.
-            elevationLossMeters:
-              descent.trim() === ''
-                ? null
-                : distanceUnit === 'km'
-                  ? parseFloat(descent)
-                  : parseFloat(descent) * 0.3048,
+            // Only when changed; blank clears it back to "not reported"
+            // rather than writing 0.
+            ...(descent.trim() !== initialDescent.trim()
+              ? {
+                  elevationLossMeters:
+                    descent.trim() === ''
+                      ? null
+                      : distanceUnit === 'km'
+                        ? parseFloat(descent)
+                        : parseFloat(descent) * 0.3048,
+                }
+              : {}),
             rideType,
             // Never send both: the server rejects a bikeId alongside
             // unownedBike: true rather than silently picking one.
