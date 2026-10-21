@@ -16,6 +16,7 @@ query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
       durationSeconds
       distanceMeters
       elevationGainMeters
+      elevationLossMeters
       averageHr
       rideType
       trailSystem

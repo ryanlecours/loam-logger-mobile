@@ -61,6 +61,8 @@ export default function EditRideScreen() {
   const [minutes, setMinutes] = useState('');
   const [distance, setDistance] = useState('');
   const [elevation, setElevation] = useState('');
+  // Blank is "no descent on record" and saves as null; it is not 0.
+  const [descent, setDescent] = useState('');
   const [rideType, setRideType] = useState('TRAIL');
   const [bikeId, setBikeId] = useState('');
   const [averageHr, setAverageHr] = useState('');
@@ -80,6 +82,11 @@ export default function EditRideScreen() {
 
       setDistance(String(parseFloat(fromMeters(ride.distanceMeters).toFixed(1))));
       setElevation(String(distanceUnit === 'km' ? Math.round(ride.elevationGainMeters) : parseFloat((ride.elevationGainMeters * 3.28084).toFixed(0))));
+      setDescent(
+        ride.elevationLossMeters == null
+          ? ''
+          : String(Math.round(distanceUnit === 'km' ? ride.elevationLossMeters : ride.elevationLossMeters * 3.28084))
+      );
       setRideType(ride.rideType);
       // "Not my bike" shares the bike picker's single value slot: a ride is on
       // one of your bikes, on nobody's, or on someone else's, and those are
@@ -134,6 +141,14 @@ export default function EditRideScreen() {
       return false;
     }
 
+    if (descent.trim() !== '') {
+      const descentNum = parseFloat(descent);
+      if (isNaN(descentNum) || descentNum < 0) {
+        Alert.alert('Validation Error', 'Please enter a valid descent');
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -154,6 +169,13 @@ export default function EditRideScreen() {
             durationSeconds,
             distanceMeters: toMeters(parseFloat(distance)),
             elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
+            // Blank clears it back to "not reported" rather than writing 0.
+            elevationLossMeters:
+              descent.trim() === ''
+                ? null
+                : distanceUnit === 'km'
+                  ? parseFloat(descent)
+                  : parseFloat(descent) * 0.3048,
             rideType,
             // Never send both: the server rejects a bikeId alongside
             // unownedBike: true rather than silently picking one.
@@ -312,8 +334,24 @@ export default function EditRideScreen() {
                 placeholder="0"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
+                accessibilityLabel="Climb"
               />
-              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
+              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'm climb' : 'ft climb'}</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
+                style={styles.input}
+                value={descent}
+                onChangeText={setDescent}
+                placeholder="Optional"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+                accessibilityLabel="Descent (optional)"
+              />
+              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'm descent' : 'ft descent'}</Text>
             </View>
           </View>
         </View>

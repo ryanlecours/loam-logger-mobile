@@ -98,6 +98,7 @@ export type AddRideInput = {
   distanceMeters: Scalars['Float']['input'];
   durationSeconds: Scalars['Int']['input'];
   elevationGainMeters: Scalars['Float']['input'];
+  elevationLossMeters?: InputMaybe<Scalars['Float']['input']>;
   location?: InputMaybe<Scalars['String']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   rideType: Scalars['String']['input'];
@@ -393,6 +394,7 @@ export type Component = {
   hoursSinceService: Scalars['Float']['output'];
   hoursUsed: Scalars['Float']['output'];
   id: Scalars['ID']['output'];
+  /** @deprecated Mobile builds up to 1.3.0 request this. Remove once they stop (see the deprecatedFieldUsage plugin). */
   inspectionDueAtHours?: Maybe<Scalars['Float']['output']>;
   installedAt?: Maybe<Scalars['String']['output']>;
   isSpare: Scalars['Boolean']['output'];
@@ -467,6 +469,12 @@ export type ComponentHistoryPayload = {
   tenures: Array<ComponentTenure>;
 };
 
+export type ComponentHistoryRidesPayload = {
+  __typename?: 'ComponentHistoryRidesPayload';
+  hasMore: Scalars['Boolean']['output'];
+  rides: Array<Ride>;
+};
+
 export type ComponentInstallEvent = {
   __typename?: 'ComponentInstallEvent';
   component: Component;
@@ -495,12 +503,17 @@ export type ComponentPrediction = {
   currentHours: Scalars['Float']['output'];
   drivers?: Maybe<Array<WearDriver>>;
   hoursRemaining?: Maybe<Scalars['Float']['output']>;
+  /** @deprecated Mobile builds up to 1.3.0 request this. Remove once they stop (see the deprecatedFieldUsage plugin). */
   hoursSinceInspection?: Maybe<Scalars['Float']['output']>;
   hoursSinceService: Scalars['Float']['output'];
+  /** @deprecated Mobile builds up to 1.3.0 request this. Remove once they stop (see the deprecatedFieldUsage plugin). */
   inspectionHoursRemaining?: Maybe<Scalars['Float']['output']>;
+  /** @deprecated Mobile builds up to 1.3.0 request this. Remove once they stop (see the deprecatedFieldUsage plugin). */
   inspectionIntervalHours?: Maybe<Scalars['Float']['output']>;
+  /** @deprecated Mobile builds up to 1.3.0 request this. Remove once they stop (see the deprecatedFieldUsage plugin). */
   inspectionStatus?: Maybe<PredictionStatus>;
   lifetimeHours: Scalars['Float']['output'];
+  /** @deprecated Mobile builds up to 1.3.0 request this. Remove once they stop (see the deprecatedFieldUsage plugin). */
   limitingClock?: Maybe<Scalars['String']['output']>;
   location: ComponentLocation;
   model: Scalars['String']['output'];
@@ -549,6 +562,7 @@ export type ComponentShare = {
   __typename?: 'ComponentShare';
   createdAt: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  includeRides: Scalars['Boolean']['output'];
   rangeEnd?: Maybe<Scalars['String']['output']>;
   rangeStart?: Maybe<Scalars['String']['output']>;
   scope: ComponentShareScope;
@@ -649,6 +663,7 @@ export type ConnectedAccount = {
 
 export type CreateComponentShareInput = {
   componentId: Scalars['ID']['input'];
+  includeRides?: InputMaybe<Scalars['Boolean']['input']>;
   rangeEnd?: InputMaybe<Scalars['String']['input']>;
   rangeStart?: InputMaybe<Scalars['String']['input']>;
   scope: ComponentShareScope;
@@ -789,6 +804,7 @@ export type Mutation = {
   updateBikeServicePreferences: Array<BikeServicePreference>;
   updateBikesOrder: Array<Bike>;
   updateComponent: Component;
+  updateComponentShare: ComponentShare;
   updateRide: Ride;
   updateServiceLog: ServiceLog;
   updateServicePreferences: Array<UserServicePreference>;
@@ -1039,6 +1055,12 @@ export type MutationUpdateComponentArgs = {
 };
 
 
+export type MutationUpdateComponentShareArgs = {
+  id: Scalars['ID']['input'];
+  includeRides: Scalars['Boolean']['input'];
+};
+
+
 export type MutationUpdateRideArgs = {
   id: Scalars['ID']['input'];
   input: UpdateRideInput;
@@ -1100,6 +1122,7 @@ export type Query = {
   calibrationState?: Maybe<CalibrationState>;
   component?: Maybe<Component>;
   componentHistory: ComponentHistoryPayload;
+  componentHistoryRides: ComponentHistoryRidesPayload;
   componentRides: ComponentRidesPayload;
   components: Array<Component>;
   importNotificationState?: Maybe<ImportNotificationState>;
@@ -1113,6 +1136,7 @@ export type Query = {
   servicePreferenceDefaults: Array<ServicePreferenceDefault>;
   sharedBikeHistory?: Maybe<SharedBikeHistory>;
   sharedComponentHistory?: Maybe<SharedComponentHistory>;
+  sharedComponentRides?: Maybe<SharedComponentRidesPayload>;
   stravaGearMappings: Array<StravaGearMapping>;
   unassignedRideCount: Scalars['Int']['output'];
   unassignedRideSummary: UnassignedRideSummary;
@@ -1155,6 +1179,14 @@ export type QueryComponentHistoryArgs = {
 };
 
 
+export type QueryComponentHistoryRidesArgs = {
+  componentId: Scalars['ID']['input'];
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  sinceService?: InputMaybe<Scalars['Boolean']['input']>;
+  take?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QueryComponentRidesArgs = {
   after?: InputMaybe<Scalars['ID']['input']>;
   componentId: Scalars['ID']['input'];
@@ -1191,6 +1223,13 @@ export type QuerySharedBikeHistoryArgs = {
 
 export type QuerySharedComponentHistoryArgs = {
   slug: Scalars['String']['input'];
+};
+
+
+export type QuerySharedComponentRidesArgs = {
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  slug: Scalars['String']['input'];
+  take?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1237,6 +1276,13 @@ export type Ride = {
   distanceMeters: Scalars['Float']['output'];
   durationSeconds: Scalars['Int']['output'];
   elevationGainMeters: Scalars['Float']['output'];
+  /**
+   * Total descent. Null means no source reported one (rides imported before
+   * descent was tracked, manual rides without one, Strava rides whose stream
+   * has not been analyzed), so clients hide the stat rather than show 0.
+   * Zero is a genuinely flat ride.
+   */
+  elevationLossMeters?: Maybe<Scalars['Float']['output']>;
   garminActivityId?: Maybe<Scalars['String']['output']>;
   /**
    * Garmin device model that recorded this ride, raw from the Activity API
@@ -1479,6 +1525,7 @@ export type SharedComponentHistory = {
   contributingSources: Array<Scalars['String']['output']>;
   cumulative: Array<ComponentCumulativePoint>;
   declaredPriorHours: Scalars['Float']['output'];
+  includeRides: Scalars['Boolean']['output'];
   logbook: Array<SharedComponentLogEntry>;
   scope: ComponentShareScope;
   totals: ComponentUsageTotals;
@@ -1501,6 +1548,24 @@ export type SharedComponentLogEntry = {
   kind: ServiceLogKind;
   performedAt: Scalars['String']['output'];
   serviceExtensionHours?: Maybe<Scalars['Float']['output']>;
+};
+
+export type SharedComponentRide = {
+  __typename?: 'SharedComponentRide';
+  date: Scalars['String']['output'];
+  distanceMeters: Scalars['Float']['output'];
+  durationSeconds: Scalars['Int']['output'];
+  elevationGainMeters: Scalars['Float']['output'];
+  garminAttribution?: Maybe<Scalars['String']['output']>;
+  location?: Maybe<Scalars['String']['output']>;
+  sources: Array<Scalars['String']['output']>;
+  trailSystem?: Maybe<Scalars['String']['output']>;
+};
+
+export type SharedComponentRidesPayload = {
+  __typename?: 'SharedComponentRidesPayload';
+  hasMore: Scalars['Boolean']['output'];
+  rides: Array<SharedComponentRide>;
 };
 
 export type SharedComponentTenure = {
@@ -1779,7 +1844,6 @@ export type UpdateBikeServicePreferencesInput = {
 export type UpdateComponentInput = {
   brand?: InputMaybe<Scalars['String']['input']>;
   hoursUsed?: InputMaybe<Scalars['Float']['input']>;
-  inspectionDueAtHours?: InputMaybe<Scalars['Float']['input']>;
   isStock?: InputMaybe<Scalars['Boolean']['input']>;
   location?: InputMaybe<ComponentLocation>;
   model?: InputMaybe<Scalars['String']['input']>;
@@ -1794,6 +1858,7 @@ export type UpdateRideInput = {
   distanceMeters?: InputMaybe<Scalars['Float']['input']>;
   durationSeconds?: InputMaybe<Scalars['Int']['input']>;
   elevationGainMeters?: InputMaybe<Scalars['Float']['input']>;
+  elevationLossMeters?: InputMaybe<Scalars['Float']['input']>;
   location?: InputMaybe<Scalars['String']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   rideType?: InputMaybe<Scalars['String']['input']>;
@@ -1927,7 +1992,7 @@ export type AddRideMutationVariables = Exact<{
 }>;
 
 
-export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
 
 export type UpdateAnalyticsOptOutMutationVariables = Exact<{
   optOut: Scalars['Boolean']['input'];
@@ -2001,7 +2066,7 @@ export type BikeHistoryQueryVariables = Exact<{
 }>;
 
 
-export type BikeHistoryQuery = { __typename?: 'Query', bikeHistory: { __typename?: 'BikeHistoryPayload', truncated: boolean, bike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, shareSlug?: string | null, contributingSources: Array<string> }, rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, trailSystem?: string | null, location?: string | null }>, serviceEvents: Array<{ __typename?: 'ServiceEvent', id: string, performedAt: string, notes?: string | null, hoursAtService: number, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, installs: Array<{ __typename?: 'ComponentInstallEvent', id: string, eventType: ComponentInstallEventType, occurredAt: string, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, totals: { __typename?: 'BikeHistoryTotals', rideCount: number, totalDistanceMeters: number, totalDurationSeconds: number, totalElevationGainMeters: number, serviceEventCount: number, installEventCount: number } } };
+export type BikeHistoryQuery = { __typename?: 'Query', bikeHistory: { __typename?: 'BikeHistoryPayload', truncated: boolean, bike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, shareSlug?: string | null, contributingSources: Array<string> }, rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, trailSystem?: string | null, location?: string | null }>, serviceEvents: Array<{ __typename?: 'ServiceEvent', id: string, performedAt: string, notes?: string | null, hoursAtService: number, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, installs: Array<{ __typename?: 'ComponentInstallEvent', id: string, eventType: ComponentInstallEventType, occurredAt: string, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, totals: { __typename?: 'BikeHistoryTotals', rideCount: number, totalDistanceMeters: number, totalDurationSeconds: number, totalElevationGainMeters: number, serviceEventCount: number, installEventCount: number } } };
 
 export type EnableBikeShareMutationVariables = Exact<{
   bikeId: Scalars['ID']['input'];
@@ -2083,7 +2148,7 @@ export type ComponentRidesQueryVariables = Exact<{
 }>;
 
 
-export type ComponentRidesQuery = { __typename?: 'Query', componentRides: { __typename?: 'ComponentRidesPayload', componentId: string, anchor?: string | null, countedHours: number, hoursUsed: number, countedRideCount: number, hasMore: boolean, entries: Array<{ __typename?: 'ComponentRideEntry', counted: boolean, adjustment?: ComponentRideAdjustmentKind | null, beforeAnchor: boolean, ride: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, trailSystem?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } }> } };
+export type ComponentRidesQuery = { __typename?: 'Query', componentRides: { __typename?: 'ComponentRidesPayload', componentId: string, anchor?: string | null, countedHours: number, hoursUsed: number, countedRideCount: number, hasMore: boolean, entries: Array<{ __typename?: 'ComponentRideEntry', counted: boolean, adjustment?: ComponentRideAdjustmentKind | null, beforeAnchor: boolean, ride: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, bikeId?: string | null, location?: string | null, trailSystem?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } }> } };
 
 export type SetComponentRideAdjustmentMutationVariables = Exact<{
   componentId: Scalars['ID']['input'];
@@ -2251,7 +2316,7 @@ export type RideQueryVariables = Exact<{
 }>;
 
 
-export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
+export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
 
 export type RideTrackQueryVariables = Exact<{
   rideId: Scalars['ID']['input'];
@@ -2265,7 +2330,7 @@ export type RecentRidesQueryVariables = Exact<{
 }>;
 
 
-export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
+export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
 
 export type RidesPageQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -2274,7 +2339,7 @@ export type RidesPageQueryVariables = Exact<{
 }>;
 
 
-export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
 
 export type UpdateServiceLogMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2333,7 +2398,7 @@ export type UpdateRideMutationVariables = Exact<{
 }>;
 
 
-export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null } };
+export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null } };
 
 export type UpdateUserPreferencesMutationVariables = Exact<{
   input: UpdateUserPreferencesInput;
@@ -2566,6 +2631,7 @@ export const AddRideDocument = gql`
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     rideType
     bikeId
     location
@@ -3006,6 +3072,7 @@ export const BikeHistoryDocument = gql`
       durationSeconds
       distanceMeters
       elevationGainMeters
+      elevationLossMeters
       averageHr
       rideType
       trailSystem
@@ -3581,6 +3648,7 @@ export const ComponentRidesDocument = gql`
         durationSeconds
         distanceMeters
         elevationGainMeters
+        elevationLossMeters
         averageHr
         rideType
         bikeId
@@ -4491,6 +4559,7 @@ export const RideDocument = gql`
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     averageHr
     rideType
     bikeId
@@ -4607,6 +4676,7 @@ export const RecentRidesDocument = gql`
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     rideType
     bikeId
     unownedBike
@@ -4663,6 +4733,7 @@ export const RidesPageDocument = gql`
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     averageHr
     rideType
     bikeId
@@ -5040,6 +5111,7 @@ export const UpdateRideDocument = gql`
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     rideType
     bikeId
     unownedBike
