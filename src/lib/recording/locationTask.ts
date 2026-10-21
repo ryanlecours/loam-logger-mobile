@@ -64,8 +64,8 @@ const UPDATE_OPTIONS: Location.LocationTaskOptions = {
   foregroundService: {
     notificationTitle: 'Recording your ride',
     notificationBody: 'Loam Logger is tracking your route.',
-    // Sage, matching the notification icon color used in app.json.
-    notificationColor: '#4f7a5a',
+    // Forest, matching the notification icon color used in app.json.
+    notificationColor: '#22362C',
   },
 };
 
