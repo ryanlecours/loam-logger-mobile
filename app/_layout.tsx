@@ -21,6 +21,7 @@ import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
 import { OfflineBanner } from '../src/components/common/OfflineBanner';
+import { OutageBanner } from '../src/components/common/OutageBanner';
 import { LockScreen } from '../src/components/LockScreen';
 import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 import { PostHogProvider } from 'posthog-react-native';
@@ -240,6 +241,7 @@ function RootLayoutNav() {
     <>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <OfflineBanner />
+      <OutageBanner />
       <Stack
         // `index` is a transient landing route (spinner only) so cold-boot
         // navigation is deterministic — see app/index.tsx.
