@@ -67,6 +67,8 @@ export default function EditRideScreen() {
   // rider changed it: the field holds a rounded, unit-converted copy, and
   // echoing it back on a notes-only edit would overwrite a provider's figure.
   const [initialDescent, setInitialDescent] = useState('');
+  const [initialDistance, setInitialDistance] = useState('');
+  const [initialElevation, setInitialElevation] = useState('');
   const [rideType, setRideType] = useState('TRAIL');
   const [bikeId, setBikeId] = useState('');
   const [averageHr, setAverageHr] = useState('');
@@ -84,8 +86,16 @@ export default function EditRideScreen() {
       setHours(String(Math.floor(totalMinutes / 60)));
       setMinutes(String(totalMinutes % 60));
 
-      setDistance(String(parseFloat(fromMeters(ride.distanceMeters).toFixed(1))));
-      setElevation(String(distanceUnit === 'km' ? Math.round(ride.elevationGainMeters) : parseFloat((ride.elevationGainMeters * 3.28084).toFixed(0))));
+      // Rounded, unit-converted copies of the stored values. Each is sent
+      // back only when the rider changed it (compared against these
+      // initials), so a notes-only save cannot replace a provider's
+      // 8,368.4 m with the 5.2 mi the field displayed.
+      const distanceShown = String(parseFloat(fromMeters(ride.distanceMeters).toFixed(1)));
+      const elevationShown = String(distanceUnit === 'km' ? Math.round(ride.elevationGainMeters) : parseFloat((ride.elevationGainMeters * 3.28084).toFixed(0)));
+      setDistance(distanceShown);
+      setInitialDistance(distanceShown);
+      setElevation(elevationShown);
+      setInitialElevation(elevationShown);
       const descentShown =
         ride.elevationLossMeters == null
           ? ''
@@ -172,8 +182,15 @@ export default function EditRideScreen() {
           input: {
             startTime: date.toISOString(),
             durationSeconds,
-            distanceMeters: toMeters(parseFloat(distance)),
-            elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
+            ...(distance.trim() !== initialDistance.trim()
+              ? { distanceMeters: toMeters(parseFloat(distance)) }
+              : {}),
+            ...(elevation.trim() !== initialElevation.trim()
+              ? {
+                  elevationGainMeters:
+                    distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
+                }
+              : {}),
             // Only when changed; blank clears it back to "not reported"
             // rather than writing 0.
             ...(descent.trim() !== initialDescent.trim()
