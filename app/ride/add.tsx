@@ -51,6 +51,8 @@ export default function AddRideScreen() {
   const [minutes, setMinutes] = useState('');
   const [distance, setDistance] = useState('');
   const [elevation, setElevation] = useState('');
+  // Optional, and blank on purpose: a guessed descent would be invented data.
+  const [descent, setDescent] = useState('');
   const [rideType, setRideType] = useState('TRAIL');
   const [bikeId, setBikeId] = useState(bikes[0]?.id || '');
   const [averageHr, setAverageHr] = useState('');
@@ -99,6 +101,14 @@ export default function AddRideScreen() {
       return false;
     }
 
+    if (descent.trim() !== '') {
+      const descentNum = parseFloat(descent);
+      if (isNaN(descentNum) || descentNum < 0) {
+        Alert.alert('Validation Error', 'Please enter a valid descent');
+        return false;
+      }
+    }
+
     if (!bikeId && bikes.length > 0) {
       Alert.alert('Validation Error', 'Please select a bike');
       return false;
@@ -125,6 +135,13 @@ export default function AddRideScreen() {
       durationSeconds,
       distanceMeters: toMeters(parseFloat(distance)),
       elevationGainMeters: distanceUnit === 'km' ? parseFloat(elevation) : parseFloat(elevation) * 0.3048,
+      // Omitted when blank: the ride then has no descent on record.
+      ...(descent.trim() !== ''
+        ? {
+            elevationLossMeters:
+              distanceUnit === 'km' ? parseFloat(descent) : parseFloat(descent) * 0.3048,
+          }
+        : {}),
       rideType,
       // Never send both: the server rejects a bikeId alongside
       // unownedBike: true rather than silently picking one.
@@ -277,8 +294,24 @@ export default function AddRideScreen() {
                 placeholder="0"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="number-pad"
+                accessibilityLabel="Climb"
               />
-              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'meters' : 'feet'}</Text>
+              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'm climb' : 'ft climb'}</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <TextInput
+                inputAccessoryViewID={DONE_ACCESSORY}
+                style={styles.input}
+                value={descent}
+                onChangeText={setDescent}
+                placeholder="Optional"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+                accessibilityLabel="Descent (optional)"
+              />
+              <Text style={styles.inputSuffix}>{distanceUnit === 'km' ? 'm descent' : 'ft descent'}</Text>
             </View>
           </View>
         </View>

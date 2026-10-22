@@ -5,6 +5,7 @@ mutation AddRide($input: AddRideInput!) {
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     rideType
     bikeId
     location

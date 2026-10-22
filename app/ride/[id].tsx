@@ -477,8 +477,19 @@ export default function RideDetailScreen() {
             <View style={styles.statItem}>
               <Ionicons name="trending-up-outline" size={20} color={colors.textMuted} />
               <Text style={styles.statValue}>{formatElevation(ride.elevationGainMeters, distanceUnit)}</Text>
-              <Text style={styles.statLabel}>Elevation</Text>
+              {/* "Climb" only once a descent sits beside it; alone, the
+                  number is the ride's elevation as it always was. */}
+              <Text style={styles.statLabel}>{ride.elevationLossMeters != null ? 'Climb' : 'Elevation'}</Text>
             </View>
+            {/* Null means no source reported a descent (older imports, manual
+                rides), so the tile is absent rather than showing 0. */}
+            {ride.elevationLossMeters != null && (
+              <View style={styles.statItem}>
+                <Ionicons name="trending-down-outline" size={20} color={colors.textMuted} />
+                <Text style={styles.statValue}>{formatElevation(ride.elevationLossMeters, distanceUnit)}</Text>
+                <Text style={styles.statLabel}>Descent</Text>
+              </View>
+            )}
             {ride.averageHr && (
               <View style={styles.statItem}>
                 <Ionicons name="heart-outline" size={20} color={colors.textMuted} />
