@@ -5,6 +5,10 @@ query Ride($id: ID!) {
     durationSeconds
     distanceMeters
     elevationGainMeters
+    countedElevationGainMeters
+    lift {
+      ...RideLiftFields
+    }
     averageHr
     rideType
     bikeId
@@ -27,5 +31,16 @@ query Ride($id: ID!) {
       wmoCode
       condition
     }
+  }
+}
+
+fragment RideLiftFields on RideLift {
+  elevationGainMeters
+  countElevation
+  countElevationChoice
+  segments {
+    startTime
+    liftName
+    kind
   }
 }

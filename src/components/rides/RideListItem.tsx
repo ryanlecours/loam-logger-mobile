@@ -15,6 +15,7 @@ import {
   stravaRecordingDevice,
 } from '../../constants/garminAttribution';
 import { WeatherBadge } from '../weather/WeatherBadge';
+import { rideClimbMeters } from '../../utils/rideLift';
 
 interface RideListItemProps {
   ride: RideItem;
@@ -80,7 +81,7 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
   const dateStr = formatRideDate(ride.startTime);
   const durationStr = formatDuration(ride.durationSeconds);
   const distanceStr = formatDistance(ride.distanceMeters);
-  const elevationStr = formatElevation(ride.elevationGainMeters, distanceUnit);
+  const elevationStr = formatElevation(rideClimbMeters(ride), distanceUnit);
   const sourceBadges = getSourceBadges(ride);
   // A non-Garmin recording device (Wahoo, phone, ...) Strava reported, shown
   // muted next to the badges. Garmin devices appear in their own badge already.

@@ -9,6 +9,7 @@ import { useRideStats, type TimeframeOption } from '../src/hooks/useRideStats';
 import { useDistanceUnit } from '../src/hooks/useDistanceUnit';
 import { formatDuration, formatElevation } from '../src/utils/greetingMessages';
 import { ErrorState } from '../src/components/common/ErrorState';
+import { OsmCredit } from '../src/components/common/OsmCredit';
 import { describeError } from '../src/utils/errorCopy';
 import { colors, radius, space, type } from '../src/constants/theme';
 import { conditionIcon, conditionLabel, conditionTint } from '../src/lib/weather';
@@ -68,7 +69,7 @@ export default function RideInsightsScreen() {
   const insets = useSafeAreaInsets();
   const { formatDistance, distanceUnit } = useDistanceUnit();
   const [timeframe, setTimeframe] = useState<TimeframeOption>('30d');
-  const { stats, loading, error, refetch } = useRideStats(timeframe);
+  const { stats, liftAdjusted, loading, error, refetch } = useRideStats(timeframe);
 
   const trend = (value: number | null): { text: string; color: string } => {
     if (value === null) return { text: '--', color: colors.textMuted };
@@ -307,6 +308,8 @@ export default function RideInsightsScreen() {
                   Based on your most recent 500 rides. Weather covers the full timeframe.
                 </Text>
               )}
+
+              {liftAdjusted && <OsmCredit style={styles.note} />}
             </>
           )}
         </ScrollView>

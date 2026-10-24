@@ -28,6 +28,8 @@ import { useDistanceUnit } from '../../src/hooks/useDistanceUnit';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { WeatherCard } from '../../src/components/ride/WeatherCard';
 import { RideTrackMap } from '../../src/components/ride/RideTrackMap';
+import { RideLiftCard } from '../../src/components/ride/RideLiftCard';
+import { rideClimbMeters } from '../../src/utils/rideLift';
 import { UpsellCard } from '../../src/components/common/UpgradePrompt';
 import { useShareRideOverlay } from '../../src/hooks/useShareRideOverlay';
 // Doubles as the in-flight key for the picker's "Not my bike" row: it shares
@@ -476,7 +478,7 @@ export default function RideDetailScreen() {
             </View>
             <View style={styles.statItem}>
               <Ionicons name="trending-up-outline" size={20} color={colors.textMuted} />
-              <Text style={styles.statValue}>{formatElevation(ride.elevationGainMeters, distanceUnit)}</Text>
+              <Text style={styles.statValue}>{formatElevation(rideClimbMeters(ride), distanceUnit)}</Text>
               <Text style={styles.statLabel}>Elevation</Text>
             </View>
             {ride.averageHr && (
@@ -487,6 +489,19 @@ export default function RideDetailScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Lift card: self-hiding. The wrapper claims its own touches, so
+            tapping the card's text or credit does not fall through to the
+            tap-to-edit touchable around it; the Switch handles its own. */}
+        <View onStartShouldSetResponder={() => true}>
+          <RideLiftCard
+            rideId={ride.id}
+            elevationGainMeters={ride.elevationGainMeters}
+            countedElevationGainMeters={rideClimbMeters(ride)}
+            lift={ride.lift}
+            distanceUnit={distanceUnit}
+          />
         </View>
 
         {/* Weather Card — Pro-only; free users see the weather upsell where it would render */}

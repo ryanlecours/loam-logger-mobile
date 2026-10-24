@@ -5,6 +5,7 @@ query RecentRides($take: Int) {
     durationSeconds
     distanceMeters
     elevationGainMeters
+    countedElevationGainMeters
     rideType
     bikeId
     unownedBike
