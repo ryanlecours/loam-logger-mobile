@@ -1,0 +1,13 @@
+# Save whether a detected lift's climb counts in this ride. Returns the same
+# fields the Ride query reads so the cached ride (and the lists and stats
+# built from the cached rides) pick up the new counted climb.
+mutation SetRideLiftElevation($rideId: ID!, $count: Boolean) {
+  setRideLiftElevation(rideId: $rideId, count: $count) {
+    id
+    elevationGainMeters
+    countedElevationGainMeters
+    lift {
+      ...RideLiftFields
+    }
+  }
+}

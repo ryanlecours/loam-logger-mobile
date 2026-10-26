@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useRidesPageQuery, useWeatherBreakdownQuery } from '../graphql/generated';
 import { useBikesWithPredictions } from './useBikesWithPredictions';
 import type { WeatherCondition } from '../lib/weather';
+import { hasLiftAdjustedClimb, rideClimbMeters } from '../utils/rideLift';
 
 export type TimeframeOption = '7d' | '30d' | '90d' | 'YTD' | `year:${number}`;
 
@@ -177,6 +178,7 @@ type RideData = {
   durationSeconds: number;
   distanceMeters: number;
   elevationGainMeters: number;
+  countedElevationGainMeters?: number | null;
   averageHr?: number | null;
   bikeId?: string | null;
   location?: string | null;
@@ -287,7 +289,7 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
 
     for (const ride of filteredRides) {
       const distance = Math.max(ride.distanceMeters ?? 0, 0);
-      const elevation = Math.max(ride.elevationGainMeters ?? 0, 0);
+      const elevation = Math.max(rideClimbMeters(ride), 0);
       const seconds = Math.max(ride.durationSeconds ?? 0, 0);
       const hours = seconds / 3600;
 
@@ -315,7 +317,7 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
       if (!longestDistanceRide || distance > longestDistanceRide.distanceMeters) {
         longestDistanceRide = ride;
       }
-      if (!mostElevationRide || elevation > mostElevationRide.elevationGainMeters) {
+      if (!mostElevationRide || elevation > rideClimbMeters(mostElevationRide)) {
         mostElevationRide = ride;
       }
       if (!longestDurationRide || seconds > longestDurationRide.durationSeconds) {
@@ -366,10 +368,10 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
         rideId: longestDistanceRide.id,
       });
     }
-    if (mostElevationRide && mostElevationRide.elevationGainMeters > 0) {
+    if (mostElevationRide && rideClimbMeters(mostElevationRide) > 0) {
       personalRecords.push({
         type: 'most_elevation',
-        value: mostElevationRide.elevationGainMeters,
+        value: rideClimbMeters(mostElevationRide),
         date: mostElevationRide.startTime,
         rideId: mostElevationRide.id,
       });
@@ -458,8 +460,16 @@ export function useRideStats(timeframe: TimeframeOption = '30d') {
     };
   }, [stats, weatherData]);
 
+  // Any loaded ride whose climb leaves out a lift's share: such totals are
+  // derived from OpenStreetMap data, so the screen shows the OSM credit.
+  const liftAdjusted = useMemo(
+    () => ((data?.rides ?? []) as RideData[]).some(hasLiftAdjustedClimb),
+    [data?.rides]
+  );
+
   return {
     stats: statsWithWeather,
+    liftAdjusted,
     loading,
     // Surfaced so callers can tell "no rides yet" from "we could not load your
     // rides". Collapsing both into an empty card hides a failure as a fact.
