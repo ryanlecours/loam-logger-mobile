@@ -82,6 +82,9 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
   const durationStr = formatDuration(ride.durationSeconds);
   const distanceStr = formatDistance(ride.distanceMeters);
   const elevationStr = formatElevation(rideClimbMeters(ride), distanceUnit);
+  // Null is "no source reported one", so the stat is absent, never "0 ft".
+  const descentStr =
+    ride.elevationLossMeters != null ? formatElevation(ride.elevationLossMeters, distanceUnit) : null;
   const sourceBadges = getSourceBadges(ride);
   // A non-Garmin recording device (Wahoo, phone, ...) Strava reported, shown
   // muted next to the badges. Garmin devices appear in their own badge already.
@@ -168,6 +171,12 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
             <Ionicons name="trending-up-outline" size={14} color={colors.textMuted} />
             <Text style={styles.statText}>{elevationStr}</Text>
           </View>
+          {descentStr && (
+            <View style={styles.stat}>
+              <Ionicons name="trending-down-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.statText}>{descentStr}</Text>
+            </View>
+          )}
           <WeatherBadge weather={ride.weather} distanceUnit={distanceUnit as 'mi' | 'km'} />
         </View>
 

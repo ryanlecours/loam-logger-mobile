@@ -5,6 +5,7 @@ query Ride($id: ID!) {
     durationSeconds
     distanceMeters
     elevationGainMeters
+    elevationLossMeters
     countedElevationGainMeters
     lift {
       ...RideLiftFields
