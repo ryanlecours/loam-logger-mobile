@@ -21,6 +21,7 @@ import { initializeRevenueCat } from '../src/lib/revenuecat';
 import { getStoredUser } from '../src/lib/auth';
 import { DowngradeSelectionModal } from '../src/components/common/DowngradeSelectionModal';
 import { OfflineBanner } from '../src/components/common/OfflineBanner';
+import { OutageBanner } from '../src/components/common/OutageBanner';
 import { LockScreen } from '../src/components/LockScreen';
 import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 import { PostHogProvider } from 'posthog-react-native';
@@ -104,12 +105,15 @@ function RootLayoutNav() {
     }
 
     // User IS authenticated - don't let them stay in auth group, EXCEPT for
-    // /reset-password. A user can be logged in on their phone and still tap a
-    // reset link from email (e.g. they remembered their password mid-reset, or
-    // an admin sent them one). Bouncing them to /(tabs) would discard the
-    // token and break the reset flow. The reset screen handles its own
-    // session invalidation when the new password is saved.
-    if (inAuthGroup && secondSegment !== 'reset-password') {
+    // /reset-password and /verify-email. A user can be logged in on their
+    // phone and still tap a reset link from email (e.g. they remembered their
+    // password mid-reset, or an admin sent them one). Bouncing them to /(tabs)
+    // would discard the token and break the reset flow. The reset screen
+    // handles its own session invalidation when the new password is saved.
+    // The verify screen signs in with the device's grant and then moves on to
+    // /(tabs) itself, so it must not be bounced mid-verify either.
+    const linkScreen = secondSegment === 'reset-password' || secondSegment === 'verify-email';
+    if (inAuthGroup && !linkScreen) {
       // Determine where they should go based on flags
       if (!hasAcceptedCurrentTerms) {
         router.replace('/(onboarding)/terms');
@@ -237,6 +241,7 @@ function RootLayoutNav() {
     <>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <OfflineBanner />
+      <OutageBanner />
       <Stack
         // `index` is a transient landing route (spinner only) so cold-boot
         // navigation is deterministic — see app/index.tsx.

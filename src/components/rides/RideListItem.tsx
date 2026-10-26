@@ -15,6 +15,7 @@ import {
   stravaRecordingDevice,
 } from '../../constants/garminAttribution';
 import { WeatherBadge } from '../weather/WeatherBadge';
+import { rideClimbMeters } from '../../utils/rideLift';
 
 interface RideListItemProps {
   ride: RideItem;
@@ -80,7 +81,7 @@ export function RideListItem({ ride, bikeName, onPress }: RideListItemProps) {
   const dateStr = formatRideDate(ride.startTime);
   const durationStr = formatDuration(ride.durationSeconds);
   const distanceStr = formatDistance(ride.distanceMeters);
-  const elevationStr = formatElevation(ride.elevationGainMeters, distanceUnit);
+  const elevationStr = formatElevation(rideClimbMeters(ride), distanceUnit);
   // Null is "no source reported one", so the stat is absent, never "0 ft".
   const descentStr =
     ride.elevationLossMeters != null ? formatElevation(ride.elevationLossMeters, distanceUnit) : null;

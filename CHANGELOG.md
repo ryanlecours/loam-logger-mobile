@@ -11,6 +11,56 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.6 - 2026-10-21
+
+### App Store "What's New"
+
+Improvements
+- After you sign up, confirming your email now signs you in by itself.
+  Tap the link in the email on your phone and Loam Logger opens and takes
+  you straight in. Open it on another device instead and the app signs you
+  in when you come back to it
+
+### Internal
+
+Sign in automatically once the email is verified (PR #113, API
+loam-logger#374, live in production)
+- Signup and a sign-in refused with `EMAIL_VERIFICATION_REQUIRED` now
+  carry a sign-in grant (`details.signInSecret`, `signInSecretExpiresAt`).
+  The app keeps it in SecureStore and trades it at
+  `POST /auth/mobile/verify-email/complete` once the email is verified.
+  The verification link itself still only verifies.
+- `check-email` polls while focused and when the app returns to the
+  foreground. The new `(auth)/verify-email` screen handles the emailed link,
+  and the login screen tries a stored grant once on focus. A grant is only
+  used for the address in play, and any stored session drops it.
+- Android: `/verify-email` joins the `https://loamlogger.app` app-link
+  paths, so this needs a new native build, not an OTA update. iOS opens the
+  link through the AASA file, which went live with the web deploy: builds
+  before 1.3.6 open it on an Unmatched Route screen.
+- Builds before 1.3.6 ignore the new fields; their riders sign in by hand
+  after verifying, as before.
+
+Android notification and themed icons (PR #115)
+- The `expo-notifications` icon was `assets/icon.png`, which is fully
+  opaque. Android draws a notification icon from its alpha channel only, so
+  every push showed a solid square. The new `assets/notification-icon.png`
+  (96x96) is a white-on-transparent silhouette of the logo, with the spine
+  and the page lines cut out so it still reads as an open book at 24dp.
+- `assets/adaptive-icon-monochrome.png` is the same silhouette on the
+  adaptive icon's 1024 canvas, at the same position and size as
+  `adaptive-icon.png`, set as `android.adaptiveIcon.monochromeImage` for
+  Android 13+ themed icons.
+- The notification accent moves from `#4f7a5a`, which is not in DESIGN.md,
+  to forest `#22362C`, in `app.json` and the ride recording notification
+  (`locationTask.ts`). Android lightens it on dark notification shades for
+  contrast.
+- The ride recording notification still uses the launcher icon:
+  `expo-location` sets its small icon from `applicationInfo.icon`, not from
+  the `expo-notifications` setting.
+- Native resources, so this needs a new build, not an OTA update. Android
+  only: it ships in Android 1.3.6 (11). iOS 1.3.6 is unchanged.
+
 ## 1.3.5 - 2026-10-20
 
 ### App Store "What's New"

@@ -171,29 +171,73 @@ Screens that draw a native header (`app/bike/`, `app/ride/`,
 ## Releases
 
 Production releases are **manual** — CI does **not** build on merge to `main`.
-Every production build is a paid EAS build that auto-submits to App Store Connect,
-so releases are cut on demand rather than on every merge.
+Every production build is a paid EAS build that auto-submits to App Store Connect
+(iOS) or Google Play (Android), so releases are cut on demand rather than on every
+merge.
 
 ### Cut a release (recommended)
 
 1. **Bump the marketing version** in [`app.json`](app.json) (`expo.version`) when the
-   release is going to the public App Store — e.g. `1.0.2` → `1.0.3` (patch) or `1.1.0`
-   (features) — and commit it. Skip this when pushing another TestFlight build for a
-   release that's already in progress. You never set the iOS **build number** by hand:
-   EAS auto-increments it (`autoIncrement` + `appVersionSource: "remote"` in `eas.json`),
-   so each upload gets a unique, increasing build number.
+   release is going to the public stores — e.g. `1.0.2` → `1.0.3` (patch) or `1.1.0`
+   (features) — and commit it. Skip this when pushing another TestFlight or internal
+   testing build for a release that's already in progress. You never set the iOS
+   **build number** or Android **versionCode** by hand: EAS auto-increments them
+   (`autoIncrement` + `appVersionSource: "remote"` in `eas.json`), so each upload gets
+   a unique, increasing build number. Run the workflow once per platform.
 2. Go to the repo's **Actions** tab → **EAS Build** → **Run workflow**.
 3. Choose the inputs:
    - **profile**: `production` (default) or `preview`
-   - **platform**: `ios`
+   - **platform**: `ios` or `android`
+   - **submit**: on by default. Turn it off for a production build you want to
+     upload by hand (or not at all).
+   - **android_track** (Android only): `internal` (default) or `production`
 4. Run it. The build runs on EAS with `--no-wait`; track progress on the EAS dashboard.
+   The submission is queued on EAS and starts when the build finishes.
 
 Profile behavior in CI:
 
-- **production** — builds and auto-submits to App Store Connect. The build then
+- **production, iOS** — builds and auto-submits to App Store Connect. The build then
   shows up in TestFlight; promoting it to the public App Store is a separate manual
   step in App Store Connect (submit for review / release).
+- **production, Android** — builds and auto-submits to Google Play on the chosen track
+  (`submit.production` and `submit.play-production` in `eas.json`):
+  - `internal`: Play internal testing, released to testers as soon as Play processes
+    it. Promote to production from Play Console when ready.
+  - `production`: the public production track, full rollout, sent to Google for
+    review as part of the submit. Use this only for a build you have already tested.
+    To stage the release instead, set that profile's `releaseStatus` to `draft` and
+    press Release in Play Console.
 - **preview** — internal-distribution build only, no submission. Use for ad-hoc testing.
+
+### Google Play submission key (one-time setup)
+
+Android auto-submit uploads through the Google Play Developer API with a service
+account key that EAS keeps in its credentials store. Without it the Android
+production workflow run ends "failed" at the submit step while the build itself
+succeeds (`eas build:view <id>` shows the truth). Keep this service account separate
+from RevenueCat's.
+
+1. In Google Cloud, create a service account (any project; key creation may need the
+   org's Secure by Default policy overridden on that project, then set back to inherit).
+   Create a **JSON key** for it and download it.
+2. In Play Console, **Users and permissions** → **Invite new users**: enter the service
+   account email, add the Loam Logger app, and grant **Release apps to testing tracks**
+   and **Release to production, exclude devices, and use Play App Signing**.
+3. From this repo, upload the key to EAS (interactive, done once):
+
+   ```bash
+   eas credentials -p android
+   ```
+
+   Choose the `production` profile → **Google Service Account** → **Manage your
+   Google Service Account Key for Play Store Submissions** → set up a new key and
+   point it at the downloaded JSON file.
+4. Delete the local JSON file. Never commit it: this repo is public and `*.json` keys
+   are not git-ignored by pattern.
+
+`eas credentials -p android` (production) should then list the key under "Google
+Service Account Key for Play Store Submissions". The workflow needs no GitHub
+secret for this: `eas build --auto-submit-with-profile` reads the key from EAS.
 
 ### Local / ad-hoc builds
 

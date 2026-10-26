@@ -18,6 +18,8 @@ import { usePendingRides } from '../../src/hooks/usePendingRides';
 import { RideListItem, PendingRideCard } from '../../src/components/rides';
 import type { RidesFilterInput } from '../../src/graphql/generated';
 import { colors, radius } from '../../src/constants/theme';
+import { OsmCredit } from '../../src/components/common/OsmCredit';
+import { hasLiftAdjustedClimb } from '../../src/utils/rideLift';
 
 type DateRange = '30days' | '3months' | '6months' | '1year' | 'all';
 
@@ -190,10 +192,14 @@ export default function RidesScreen() {
   };
 
   const renderFooter = () => {
-    if (!hasMore || rides.length === 0) return null;
+    // A row whose climb leaves out a lift's share is derived from
+    // OpenStreetMap data, so the list carries the OSM credit.
+    const credit = rides.some(hasLiftAdjustedClimb) ? <OsmCredit style={styles.osmCredit} /> : null;
+    if (!hasMore || rides.length === 0) return credit;
     return (
       <View style={styles.footer}>
         <ActivityIndicator size="small" color={colors.textMuted} />
+        {credit}
       </View>
     );
   };
@@ -501,6 +507,10 @@ const styles = StyleSheet.create({
   footer: {
     paddingVertical: 16,
     alignItems: 'center',
+  },
+  osmCredit: {
+    paddingVertical: 12,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',

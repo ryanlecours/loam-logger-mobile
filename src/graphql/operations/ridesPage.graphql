@@ -6,6 +6,7 @@ query RidesPage($take: Int, $after: ID, $filter: RidesFilterInput) {
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
     averageHr
     rideType
     bikeId

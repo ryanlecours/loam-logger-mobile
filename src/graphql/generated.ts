@@ -777,6 +777,7 @@ export type Mutation = {
   revokeComponentShare: Scalars['Boolean']['output'];
   selectBikeForDowngrade: Bike;
   setComponentRideAdjustment: ComponentRideAdjustmentResult;
+  setRideLiftElevation: Ride;
   snoozeComponent: Component;
   swapComponents: SwapComponentsResult;
   triggerProviderSync: TriggerSyncResult;
@@ -986,6 +987,12 @@ export type MutationSelectBikeForDowngradeArgs = {
 export type MutationSetComponentRideAdjustmentArgs = {
   componentId: Scalars['ID']['input'];
   kind: ComponentRideAdjustmentKind;
+  rideId: Scalars['ID']['input'];
+};
+
+
+export type MutationSetRideLiftElevationArgs = {
+  count?: InputMaybe<Scalars['Boolean']['input']>;
   rideId: Scalars['ID']['input'];
 };
 
@@ -1272,6 +1279,17 @@ export type Ride = {
   __typename?: 'Ride';
   averageHr?: Maybe<Scalars['Int']['output']>;
   bikeId?: Maybe<Scalars['ID']['output']>;
+  /**
+   * Elevation gain after the rider's lift choice. When a chairlift or gondola
+   * (see lift) climbed for the rider and the climb is not counted, the lift's share of the
+   * track's climb is taken out of elevationGainMeters proportionally, so it
+   * reaches 0 only if every foot was on a lift. Equals elevationGainMeters when
+   * no such lift was found or the rider counts it. Show this as the ride's
+   * climb; elevationGainMeters stays the editable recorded value. Wherever a
+   * lift-adjusted figure appears, credit "© OpenStreetMap contributors"
+   * (https://www.openstreetmap.org/copyright).
+   */
+  countedElevationGainMeters: Scalars['Float']['output'];
   createdAt: Scalars['String']['output'];
   distanceMeters: Scalars['Float']['output'];
   durationSeconds: Scalars['Int']['output'];
@@ -1280,7 +1298,9 @@ export type Ride = {
    * Total descent. Null means no source reported one (rides imported before
    * descent was tracked, manual rides without one, Strava rides whose stream
    * has not been analyzed), so clients hide the stat rather than show 0.
-   * Zero is a genuinely flat ride.
+   * Zero is a genuinely flat ride. Garmin and Suunto report it directly;
+   * WHOOP's is derived (gain minus net change) from phone altitude and is
+   * approximate; Strava and in-app rides get a sum over the altitude stream.
    */
   elevationLossMeters?: Maybe<Scalars['Float']['output']>;
   garminActivityId?: Maybe<Scalars['String']['output']>;
@@ -1293,6 +1313,14 @@ export type Ride = {
    */
   garminDeviceName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  /**
+   * Lifts detected on this ride, and the rider's choice about their climb.
+   * Only segments matched to a mapped chairlift or gondola (an OpenStreetMap
+   * aerialway) are included; motion-only detections and surface lifts (t-bars,
+   * rope tows, magic carpets) are left out. Null when there are none
+   * (including rides never analyzed).
+   */
+  lift?: Maybe<RideLift>;
   location?: Maybe<Scalars['String']['output']>;
   notes?: Maybe<Scalars['String']['output']>;
   rideType: Scalars['String']['output'];
@@ -1321,6 +1349,36 @@ export type Ride = {
   userId: Scalars['ID']['output'];
   weather?: Maybe<RideWeather>;
   whoopWorkoutId?: Maybe<Scalars['String']['output']>;
+};
+
+export type RideLift = {
+  __typename?: 'RideLift';
+  countElevation: Scalars['Boolean']['output'];
+  countElevationChoice?: Maybe<Scalars['Boolean']['output']>;
+  elevationGainMeters: Scalars['Float']['output'];
+  segments: Array<RideLiftSegment>;
+};
+
+export enum RideLiftKind {
+  Chairlift = 'CHAIRLIFT',
+  Gondola = 'GONDOLA',
+  Other = 'OTHER'
+}
+
+export type RideLiftSegment = {
+  __typename?: 'RideLiftSegment';
+  distanceMeters: Scalars['Float']['output'];
+  durationSeconds: Scalars['Int']['output'];
+  elevationGainMeters: Scalars['Float']['output'];
+  endTime: Scalars['String']['output'];
+  kind?: Maybe<RideLiftKind>;
+  /**
+   * OpenStreetMap name of the matched lift. Null when the lift is unnamed in
+   * OSM or the segment was found from motion alone. Show
+   * "© OpenStreetMap contributors" wherever it appears.
+   */
+  liftName?: Maybe<Scalars['String']['output']>;
+  startTime: Scalars['String']['output'];
 };
 
 /**
@@ -1992,7 +2050,7 @@ export type AddRideMutationVariables = Exact<{
 }>;
 
 
-export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
+export type AddRideMutation = { __typename?: 'Mutation', addRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, countedElevationGainMeters: number, rideType: string, bikeId?: string | null, location?: string | null, notes?: string | null } };
 
 export type UpdateAnalyticsOptOutMutationVariables = Exact<{
   optOut: Scalars['Boolean']['input'];
@@ -2316,7 +2374,9 @@ export type RideQueryVariables = Exact<{
 }>;
 
 
-export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
+export type RideQuery = { __typename?: 'Query', ride?: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, countedElevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, lift?: { __typename?: 'RideLift', elevationGainMeters: number, countElevation: boolean, countElevationChoice?: boolean | null, segments: Array<{ __typename?: 'RideLiftSegment', startTime: string, liftName?: string | null, kind?: RideLiftKind | null }> } | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null } | null };
+
+export type RideLiftFieldsFragment = { __typename?: 'RideLift', elevationGainMeters: number, countElevation: boolean, countElevationChoice?: boolean | null, segments: Array<{ __typename?: 'RideLiftSegment', startTime: string, liftName?: string | null, kind?: RideLiftKind | null }> };
 
 export type RideTrackQueryVariables = Exact<{
   rideId: Scalars['ID']['input'];
@@ -2330,7 +2390,7 @@ export type RecentRidesQueryVariables = Exact<{
 }>;
 
 
-export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
+export type RecentRidesQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, countedElevationGainMeters: number, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, condition: WeatherCondition } | null }> };
 
 export type RidesPageQueryVariables = Exact<{
   take?: InputMaybe<Scalars['Int']['input']>;
@@ -2339,7 +2399,7 @@ export type RidesPageQueryVariables = Exact<{
 }>;
 
 
-export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
+export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, countedElevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
 
 export type UpdateServiceLogMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2355,6 +2415,14 @@ export type DeleteServiceLogMutationVariables = Exact<{
 
 
 export type DeleteServiceLogMutation = { __typename?: 'Mutation', deleteServiceLog: boolean };
+
+export type SetRideLiftElevationMutationVariables = Exact<{
+  rideId: Scalars['ID']['input'];
+  count?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type SetRideLiftElevationMutation = { __typename?: 'Mutation', setRideLiftElevation: { __typename?: 'Ride', id: string, elevationGainMeters: number, countedElevationGainMeters: number, lift?: { __typename?: 'RideLift', elevationGainMeters: number, countElevation: boolean, countElevationChoice?: boolean | null, segments: Array<{ __typename?: 'RideLiftSegment', startTime: string, liftName?: string | null, kind?: RideLiftKind | null }> } | null } };
 
 export type UnmappedStravaGearsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2398,7 +2466,7 @@ export type UpdateRideMutationVariables = Exact<{
 }>;
 
 
-export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null } };
+export type UpdateRideMutation = { __typename?: 'Mutation', updateRide: { __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, countedElevationGainMeters: number, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null } };
 
 export type UpdateUserPreferencesMutationVariables = Exact<{
   input: UpdateUserPreferencesInput;
@@ -2589,6 +2657,18 @@ export const BikeFieldsFragmentDoc = gql`
     ${ComponentFieldsFragmentDoc}
 ${PredictionFieldsFragmentDoc}
 ${BikeNotificationPreferenceFieldsFragmentDoc}`;
+export const RideLiftFieldsFragmentDoc = gql`
+    fragment RideLiftFields on RideLift {
+  elevationGainMeters
+  countElevation
+  countElevationChoice
+  segments {
+    startTime
+    liftName
+    kind
+  }
+}
+    `;
 export const AcceptTermsDocument = gql`
     mutation AcceptTerms($input: AcceptTermsInput!) {
   acceptTerms(input: $input) {
@@ -2632,6 +2712,7 @@ export const AddRideDocument = gql`
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
     rideType
     bikeId
     location
@@ -4560,6 +4641,10 @@ export const RideDocument = gql`
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
+    lift {
+      ...RideLiftFields
+    }
     averageHr
     rideType
     bikeId
@@ -4584,7 +4669,7 @@ export const RideDocument = gql`
     }
   }
 }
-    `;
+    ${RideLiftFieldsFragmentDoc}`;
 
 /**
  * __useRideQuery__
@@ -4677,6 +4762,7 @@ export const RecentRidesDocument = gql`
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
     rideType
     bikeId
     unownedBike
@@ -4734,6 +4820,7 @@ export const RidesPageDocument = gql`
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
     averageHr
     rideType
     bikeId
@@ -4865,6 +4952,45 @@ export function useDeleteServiceLogMutation(baseOptions?: Apollo.MutationHookOpt
 export type DeleteServiceLogMutationHookResult = ReturnType<typeof useDeleteServiceLogMutation>;
 export type DeleteServiceLogMutationResult = Apollo.MutationResult<DeleteServiceLogMutation>;
 export type DeleteServiceLogMutationOptions = Apollo.BaseMutationOptions<DeleteServiceLogMutation, DeleteServiceLogMutationVariables>;
+export const SetRideLiftElevationDocument = gql`
+    mutation SetRideLiftElevation($rideId: ID!, $count: Boolean) {
+  setRideLiftElevation(rideId: $rideId, count: $count) {
+    id
+    elevationGainMeters
+    countedElevationGainMeters
+    lift {
+      ...RideLiftFields
+    }
+  }
+}
+    ${RideLiftFieldsFragmentDoc}`;
+export type SetRideLiftElevationMutationFn = Apollo.MutationFunction<SetRideLiftElevationMutation, SetRideLiftElevationMutationVariables>;
+
+/**
+ * __useSetRideLiftElevationMutation__
+ *
+ * To run a mutation, you first call `useSetRideLiftElevationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useSetRideLiftElevationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [setRideLiftElevationMutation, { data, loading, error }] = useSetRideLiftElevationMutation({
+ *   variables: {
+ *      rideId: // value for 'rideId'
+ *      count: // value for 'count'
+ *   },
+ * });
+ */
+export function useSetRideLiftElevationMutation(baseOptions?: Apollo.MutationHookOptions<SetRideLiftElevationMutation, SetRideLiftElevationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<SetRideLiftElevationMutation, SetRideLiftElevationMutationVariables>(SetRideLiftElevationDocument, options);
+      }
+export type SetRideLiftElevationMutationHookResult = ReturnType<typeof useSetRideLiftElevationMutation>;
+export type SetRideLiftElevationMutationResult = Apollo.MutationResult<SetRideLiftElevationMutation>;
+export type SetRideLiftElevationMutationOptions = Apollo.BaseMutationOptions<SetRideLiftElevationMutation, SetRideLiftElevationMutationVariables>;
 export const UnmappedStravaGearsDocument = gql`
     query UnmappedStravaGears {
   unmappedStravaGears {
@@ -5112,6 +5238,7 @@ export const UpdateRideDocument = gql`
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
     rideType
     bikeId
     unownedBike

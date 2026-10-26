@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { resendVerificationEmail } from '../../src/lib/emailVerification';
+import { readSignInGrant } from '../../src/lib/signInGrant';
+import { useEmailSignInPoll } from '../../src/hooks/useEmailSignInPoll';
+import { useAuth } from '../../src/hooks/useAuth';
 import { colors, radius } from '../../src/constants/theme';
 import { Screen } from '../../src/components/common/Screen';
 
@@ -18,12 +21,29 @@ const RESEND_COOLDOWN_MS = 60_000;
 /**
  * Shown after a password signup, and when signing in to an account that has
  * not confirmed its email yet. The API issues no tokens until the link in the
- * verification email is opened (it lands on the web verify page), after which
- * the rider signs in here as usual.
+ * verification email is opened. When the API handed this device a sign-in
+ * grant, the screen keeps asking while it is in view and signs the rider in
+ * as soon as the link is opened, on this phone or anywhere else; the root
+ * layout then routes into the app. Without one, the rider signs in by hand.
  */
 export default function CheckEmailScreen() {
   const router = useRouter();
+  const { setAuthenticated } = useAuth();
   const { email } = useLocalSearchParams<{ email?: string }>();
+  const [focused, setFocused] = useState(false);
+  const [hasGrant, setHasGrant] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      void readSignInGrant().then((grant) => setHasGrant(grant !== null));
+      return () => setFocused(false);
+    }, []),
+  );
+  useEmailSignInPoll(focused, () => setAuthenticated(true), {
+    expectedEmail: email,
+    // The grant expired or was refused: the copy should stop promising it.
+    onUnavailable: () => setHasGrant(false),
+  });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   // Briefly disabled after a send. Past a few sends an hour the API still
@@ -76,7 +96,9 @@ export default function CheckEmailScreen() {
           ) : (
             'We sent you a link.'
           )}{' '}
-          Open it to confirm your address, then come back and sign in.
+          {hasGrant
+            ? 'Open it on this phone or any other device, and the app signs you in once your address is confirmed.'
+            : 'Open it to confirm your address, then come back and sign in.'}
         </Text>
 
         {sent && (

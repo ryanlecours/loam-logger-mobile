@@ -6,6 +6,7 @@ mutation UpdateRide($id: ID!, $input: UpdateRideInput!) {
     distanceMeters
     elevationGainMeters
     elevationLossMeters
+    countedElevationGainMeters
     rideType
     bikeId
     unownedBike

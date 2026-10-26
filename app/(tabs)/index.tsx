@@ -42,6 +42,8 @@ import { describeError } from '../../src/utils/errorCopy';
 import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
 import { isFirstRun, showStatsBlock } from '../../src/utils/dashboardFirstRun';
 import { selectionTick } from '../../src/lib/haptics';
+import { OsmCredit } from '../../src/components/common/OsmCredit';
+import { hasLiftAdjustedClimb } from '../../src/utils/rideLift';
 
 const TIMEFRAME_OPTIONS: { key: TimeframeOption; label: string }[] = [
   { key: '7d', label: '7D' },
@@ -221,6 +223,7 @@ export default function DashboardScreen() {
 
   const {
     stats: rideStats,
+    liftAdjusted: statsLiftAdjusted,
     loading: statsLoading,
     error: statsError,
     refetch: refetchStats,
@@ -522,6 +525,9 @@ export default function DashboardScreen() {
               onRetry={refetchStats}
               timeframeLabel={TIMEFRAME_LABELS[timeframe]}
             />
+            {(statsLiftAdjusted || (recentRidesData?.rides ?? []).some(hasLiftAdjustedClimb)) && (
+              <OsmCredit style={styles.osmCredit} />
+            )}
           </>
         )}
       </ScrollView>
@@ -574,6 +580,10 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
+  },
+  osmCredit: {
+    marginTop: 8,
+    textAlign: 'center',
   },
   content: {
     paddingBottom: space.xxxl,

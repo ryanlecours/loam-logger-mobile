@@ -23,6 +23,19 @@ on:
         options:
           - ios
           - android
+      submit:
+        description: 'Auto-submit production builds (TestFlight / Google Play)'
+        required: false
+        default: true
+        type: boolean
+      android_track:
+        description: 'Google Play track for Android production submits'
+        required: false
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - production
 
 jobs:
   build:
@@ -63,15 +76,28 @@ jobs:
           # (bundleId@version+build): see Sentry.init in app/_layout.tsx.
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          # Only production builds auto-submit: iOS to TestFlight, Android to
-          # the Play internal testing track as a draft (submit.production in
-          # eas.json). Preview builds use internal distribution and have no
-          # submit profile, so submitting them would fail. Google Play rejects
-          # API uploads until one bundle has been uploaded by hand in Play
-          # Console, so the first Android release goes up manually.
+          # Only production builds auto-submit, and only when the "submit"
+          # input is left on. iOS goes to TestFlight; Android goes to the Play
+          # track chosen by the "android_track" input: "internal" uses the
+          # submit.production profile (internal testing, released to testers
+          # at once), "production" uses submit.play-production (the public
+          # production track, full rollout, sent to Google for review). Both
+          # profiles live in eas.json. Preview builds use internal
+          # distribution and have no submit profile, so they never submit.
+          #
+          # The Android upload needs the Play service account key stored in
+          # EAS credentials ("Google Service Account Key for Play Store
+          # Submissions", set with `eas credentials -p android`). Without it
+          # the submit step fails in --non-interactive mode while the build
+          # itself still succeeds. See README.md, "Releases".
           SUBMIT_FLAG=""
-          if [ "${{ inputs.profile }}" = "production" ]; then
-            SUBMIT_FLAG="--auto-submit"
+          if [ "${{ inputs.profile }}" = "production" ] && [ "${{ inputs.submit }}" = "true" ]; then
+            SUBMIT_PROFILE="production"
+            if [ "${{ inputs.platform }}" = "android" ] && [ "${{ inputs.android_track }}" = "production" ]; then
+              SUBMIT_PROFILE="play-production"
+            fi
+            SUBMIT_FLAG="--auto-submit-with-profile $SUBMIT_PROFILE"
+            echo "Submitting with profile: $SUBMIT_PROFILE"
           fi
           eas build \
             --profile ${{ inputs.profile }} \
