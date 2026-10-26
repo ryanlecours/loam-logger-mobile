@@ -43,7 +43,14 @@
       },
       "android": {
         "track": "internal",
-        "releaseStatus": "draft"
+        "releaseStatus": "completed"
+      }
+    },
+    "play-production": {
+      "extends": "production",
+      "android": {
+        "track": "production",
+        "releaseStatus": "completed"
       }
     }
   }
