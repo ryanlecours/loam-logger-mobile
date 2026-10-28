@@ -27,6 +27,7 @@ import { scrubKnownSecrets } from '../src/lib/sentry-scrub';
 import { PostHogProvider } from 'posthog-react-native';
 import { posthog, posthogAutocapture, screenNameFromSegments } from '../src/lib/posthog';
 import { usePostHogScreens, usePostHogUser } from '../src/hooks/usePostHogUser';
+import { resolveGateRedirect } from '../src/lib/routeGate';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -75,83 +76,21 @@ function RootLayoutNav() {
   // Status only, not the full snapshot. See useRecorderStatus for why.
   const recorderStatus = useRecorderStatus();
 
+  // The gate order (auth, terms, onboarding, landing) lives in
+  // src/lib/routeGate.ts as a pure function so it can be unit tested; this
+  // effect only applies its answer.
   useEffect(() => {
     if (loading) return;
 
-    const firstSegment = segments[0];
-    const secondSegment = segments[1];
-    const inAuthGroup = firstSegment === '(auth)';
-    const inOnboardingGroup = firstSegment === '(onboarding)';
-
-    // 1. AuthGate: Not authenticated -> login
-    if (!isAuthenticated) {
-      // ...unless a recording is in progress on the recording screens.
-      // Recording is local-only work (GPS sampling into SQLite); auth plays
-      // no part in it, and replacing the route here would unmount the
-      // recording UI and strand the session. Let the rider finish: the save
-      // path queues the ride to the durable outbox on UNAUTHENTICATED, and
-      // it uploads after the next sign-in. Once they leave these screens
-      // (save or discard both navigate away), this gate fires normally.
-      const recorderLive = recorderStatus !== 'idle';
-      const onRecordingScreens =
-        firstSegment === 'ride' &&
-        (secondSegment === 'record' || secondSegment === 'save-recording');
-      if (recorderLive && onRecordingScreens) return;
-
-      if (!inAuthGroup) {
-        router.replace('/(auth)/login');
-      }
-      return;
-    }
-
-    // User IS authenticated - don't let them stay in auth group, EXCEPT for
-    // /reset-password and /verify-email. A user can be logged in on their
-    // phone and still tap a reset link from email (e.g. they remembered their
-    // password mid-reset, or an admin sent them one). Bouncing them to /(tabs)
-    // would discard the token and break the reset flow. The reset screen
-    // handles its own session invalidation when the new password is saved.
-    // The verify screen signs in with the device's grant and then moves on to
-    // /(tabs) itself, so it must not be bounced mid-verify either.
-    const linkScreen = secondSegment === 'reset-password' || secondSegment === 'verify-email';
-    if (inAuthGroup && !linkScreen) {
-      // Determine where they should go based on flags
-      if (!hasAcceptedCurrentTerms) {
-        router.replace('/(onboarding)/terms');
-      } else if (!onboardingCompleted) {
-        router.replace('/(onboarding)/age');
-      } else {
-        router.replace('/(tabs)');
-      }
-      return;
-    }
-
-    // 2. TermsGate: Authenticated but no terms -> terms screen
-    if (!hasAcceptedCurrentTerms) {
-      if (!inOnboardingGroup || secondSegment !== 'terms') {
-        router.replace('/(onboarding)/terms');
-      }
-      return;
-    }
-
-    // 3. OnboardingGate: Terms accepted but onboarding incomplete -> onboarding
-    if (!onboardingCompleted) {
-      // Allow navigation within onboarding group (age, bike)
-      // but not to terms (already accepted)
-      if (!inOnboardingGroup) {
-        router.replace('/(onboarding)/age');
-      } else if (secondSegment === 'terms') {
-        router.replace('/(onboarding)/age');
-      }
-      return;
-    }
-
-    // 4. Fully gated user - redirect to tabs from onboarding OR from the
-    //    landing index route (firstSegment undefined). Without this clause,
-    //    a logged-in, fully-onboarded user landing on `/` would see the
-    //    loading spinner forever because none of gates 1–3 fire for them.
-    const onIndex = firstSegment === undefined;
-    if (inOnboardingGroup || onIndex) {
-      router.replace('/(tabs)');
+    const redirect = resolveGateRedirect({
+      segments,
+      isAuthenticated,
+      hasAcceptedCurrentTerms,
+      onboardingCompleted,
+      recorderLive: recorderStatus !== 'idle',
+    });
+    if (redirect) {
+      router.replace(redirect);
     }
   }, [loading, isAuthenticated, locked, hasAcceptedCurrentTerms, onboardingCompleted, segments, router, recorderStatus]);
 
