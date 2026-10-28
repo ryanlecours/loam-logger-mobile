@@ -97,6 +97,30 @@ describe('useOAuthCallback', () => {
     expect(mockDismissTo).toHaveBeenCalledWith('/(onboarding)/connect');
   });
 
+  it('shows the failure alert once even if auth state refreshes mid-beat', async () => {
+    mockOnboardingCompleted = false;
+    const { rerender } = await renderHook(() =>
+      useOAuthCallback('Garmin Connect', 'error', 'invalid_state')
+    );
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+
+    // A viewer refetch flips the flag while the screen is still mounted,
+    // which re-runs the effect.
+    mockOnboardingCompleted = true;
+    await act(async () => {
+      rerender(undefined);
+    });
+
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    // The restarted timer uses the fresh flag.
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/settings');
+  });
+
   it('falls back to a generic message for an unknown reason code', async () => {
     await renderHook(() => useOAuthCallback('Suunto', 'error', 'something_new'));
 

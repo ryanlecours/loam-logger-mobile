@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -60,11 +60,16 @@ export function useOAuthCallback(
 ) {
   const router = useRouter();
   const { onboardingCompleted } = useAuth();
+  // The effect re-runs if `onboardingCompleted` flips while this screen is
+  // mounted (a viewer refetch landing mid-beat). The timer restart is
+  // harmless, but the failure alert must not show twice.
+  const alertedRef = useRef(false);
 
   useEffect(() => {
     WebBrowser.dismissBrowser();
 
-    if (status && status !== 'success') {
+    if (status && status !== 'success' && !alertedRef.current) {
+      alertedRef.current = true;
       const message =
         (reason && ERROR_MESSAGES[reason]) || DEFAULT_ERROR_MESSAGE;
       Alert.alert(`${providerLabel} Connection Failed`, message);
