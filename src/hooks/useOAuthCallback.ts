@@ -21,6 +21,11 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try connecting again.';
 
+/** Where the rider goes once the callback screen has done its job. */
+export function oauthReturnHref(onboardingCompleted: boolean): Href {
+  return (onboardingCompleted ? '/(tabs)/settings' : '/(onboarding)/connect') as Href;
+}
+
 /**
  * Shared OAuth callback handler used by every `app/oauth/<provider>.tsx`
  * landing page. The backend redirects with `?status=success` or
@@ -29,10 +34,20 @@ const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try connecting again
  *   2. If status is anything other than "success", shows an Alert with a
  *      user-friendly message derived from the reason code (or a generic
  *      fallback for unknown codes).
- *   3. Redirects after a 300ms beat so the browser dismiss animation can
+ *   3. Returns after a 300ms beat so the browser dismiss animation can
  *      finish before the screen transitions. Lands on `/(onboarding)/connect`
  *      if the user is mid-onboarding (server-side `onboardingCompleted=false`),
  *      otherwise on `/(tabs)/settings`.
+ *
+ * The return is a `dismissTo`, not a `replace`. The deep link pushed this
+ * callback route on top of the screen that opened the browser, so that screen
+ * is still mounted underneath with its state: for onboarding, that state is
+ * the OnboardingProvider holding the rider's age and bike. A `replace` from
+ * here resolves at the root stack and mounts a fresh `(onboarding)` entry
+ * with an empty provider, so Continue on Connect would then fail with "Bike
+ * data missing". `dismissTo` pops back to the existing entry instead, and
+ * falls back to a replace only when there is nothing to pop to (a cold start
+ * straight into the deep link).
  *
  * Without the explicit error-status check, the previous implementation
  * silently swallowed every failure mode — users would land back on
@@ -56,7 +71,7 @@ export function useOAuthCallback(
     }
 
     const timer = setTimeout(() => {
-      router.replace((onboardingCompleted ? '/(tabs)/settings' : '/(onboarding)/connect') as Href);
+      router.dismissTo(oauthReturnHref(onboardingCompleted));
     }, 300);
 
     return () => clearTimeout(timer);
