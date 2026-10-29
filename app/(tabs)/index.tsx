@@ -1,6 +1,6 @@
 import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
-import { useRouter, Href } from 'expo-router';
-import { useState, useCallback, useEffect } from 'react';
+import { useRouter, useFocusEffect, Href } from 'expo-router';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/common/Screen';
 import { useBikeTriage } from '../../src/hooks/useBikeTriage';
@@ -10,6 +10,7 @@ import {
   ComponentPrediction,
   useCalibrationStateQuery,
   useMeQuery,
+  useRideSourceQuery,
   useRidesPageQuery,
   useUnassignedRideCountQuery,
 } from '../../src/graphql/generated';
@@ -17,7 +18,7 @@ import {
   DashboardSkeleton,
   EmptyBikeState,
   HealthyBikeList,
-  FirstRideSetupCard,
+  RideSourceCard,
   BikeTriageGroup,
   ComponentActionSheet,
   RecentRidesList,
@@ -41,6 +42,8 @@ import { colors, radius, space, type } from '../../src/constants/theme';
 import { describeError } from '../../src/utils/errorCopy';
 import { dashboardHeadline } from '../../src/utils/dashboardHeadline';
 import { isFirstRun, showStatsBlock } from '../../src/utils/dashboardFirstRun';
+import { isRideSourceSettling, resolveRideSourceState } from '../../src/utils/rideSource';
+import { useManualRideSourceChoice } from '../../src/hooks/useManualRideSourceChoice';
 import { selectionTick } from '../../src/lib/haptics';
 import { OsmCredit } from '../../src/components/common/OsmCredit';
 import { hasLiftAdjustedClimb } from '../../src/utils/rideLift';
@@ -197,6 +200,43 @@ export default function DashboardScreen() {
   // Rides logged offline, waiting in the outbox to upload.
   const { pendingRides } = usePendingRides();
 
+  // Where this rider's hours come from: which providers are connected, the
+  // import queued when one was connected, and whether any ride has landed.
+  // Decides which face the ride source card shows on an account with no
+  // rides. Polls while an import runs so the card settles without a reload.
+  const {
+    data: rideSourceData,
+    refetch: refetchRideSource,
+    startPolling: startRideSourcePolling,
+    stopPolling: stopRideSourcePolling,
+  } = useRideSourceQuery({ fetchPolicy: 'cache-and-network' });
+  const {
+    manualOnly,
+    ready: manualChoiceReady,
+    setManualOnly,
+  } = useManualRideSourceChoice(meData?.me?.id);
+  const rideSource = rideSourceData?.me?.rideSource ?? null;
+  // Null until both the server's answer and the rider's stored choice are in,
+  // so the card never renders a face it would have to take back.
+  const rideSourceState =
+    rideSource && manualChoiceReady ? resolveRideSourceState({ ...rideSource, manualOnly }) : null;
+  const rideSourceSettling = isRideSourceSettling(rideSourceState);
+  useEffect(() => {
+    if (rideSourceSettling) startRideSourcePolling(30_000);
+    else stopRideSourcePolling();
+    return () => stopRideSourcePolling();
+  }, [rideSourceSettling, startRideSourcePolling, stopRideSourcePolling]);
+
+  // A connect started from the card ends in Settings (the OAuth callback's
+  // return for onboarded riders), so by the time the rider taps back to Home
+  // the field is stale. cache-and-network only runs on mount; this re-asks on
+  // every focus, and the query is three small reads.
+  useFocusEffect(
+    useCallback(() => {
+      refetchRideSource();
+    }, [refetchRideSource]),
+  );
+
   // Status only. A rider can back out of the record screen mid-ride, so the
   // dashboard has to know a session is running or its record action would
   // invite starting a second one.
@@ -229,6 +269,22 @@ export default function DashboardScreen() {
     refetch: refetchStats,
   } = useRideStats(timeframe);
 
+  // The ride source poll is what notices the first imported ride landing, but
+  // the bikes, recent rides, stats and unassigned count are separate queries.
+  // Without this the importing card would vanish (the state turns has-rides)
+  // while isFirstRun, read from the recent-rides query, still said the account
+  // was empty: no card, no rides, no stats, until a pull to refresh. Keyed on
+  // the 0 -> >0 transition so it fires once, not on every poll.
+  const rideCount = rideSource?.rideCount;
+  const lastRideCountRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const previous = lastRideCountRef.current;
+    lastRideCountRef.current = rideCount;
+    if (previous === 0 && rideCount !== undefined && rideCount > 0) {
+      void Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides(), refetchUnassigned()]);
+    }
+  }, [rideCount, refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     // A failing refetch must not strand the spinner. Each read owns its own
@@ -238,9 +294,10 @@ export default function DashboardScreen() {
       refetchStats(),
       refetchRecentRides(),
       refetchUnassigned(),
+      refetchRideSource(),
     ]);
     setRefreshing(false);
-  }, [refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned]);
+  }, [refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned, refetchRideSource]);
 
   const onRetry = useCallback(async () => {
     setRetrying(true);
@@ -249,9 +306,10 @@ export default function DashboardScreen() {
       refetchStats(),
       refetchRecentRides(),
       refetchUnassigned(),
+      refetchRideSource(),
     ]);
     setRetrying(false);
-  }, [refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned]);
+  }, [refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned, refetchRideSource]);
 
   if (bikesLoading && totalBikes === 0) {
     return (
@@ -303,6 +361,8 @@ export default function DashboardScreen() {
     healthyCount: healthy.length,
     untrackedCount: untracked.length,
     totalBikes,
+    // Zero rides means zero hours on every clock: no data, not an all-clear.
+    firstRun: showFirstRun,
   });
 
   return (
@@ -446,11 +506,17 @@ export default function DashboardScreen() {
             them that number. */}
         {!isPro && !showFirstRun && <ProUpsell />}
 
-        {showFirstRun && (
-          <FirstRideSetupCard
-            onConnectPress={() => router.push('/(tabs)/settings' as Href)}
+        {/* Until the ride source query answers there is nothing honest to say
+            about what the rider is waiting on, so the slot stays empty rather
+            than guessing "connect something" at a rider mid-import. */}
+        {showFirstRun && rideSourceState && rideSourceState.kind !== 'has-rides' && (
+          <RideSourceCard
+            state={rideSourceState}
             onRecordPress={() => router.push('/ride/record' as Href)}
             onAddRidePress={() => router.push('/ride/add' as Href)}
+            onOpenSettings={() => router.push('/(tabs)/settings' as Href)}
+            onDeclineTracker={() => setManualOnly(true)}
+            onReconsiderTracker={() => setManualOnly(false)}
             recorderLive={recorderLive}
           />
         )}
