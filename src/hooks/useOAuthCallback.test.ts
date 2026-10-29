@@ -22,6 +22,7 @@ jest.mock('./useAuth', () => ({
 import { Alert } from 'react-native';
 import { renderHook, act } from '@testing-library/react-native';
 import { useOAuthCallback, oauthReturnHref } from './useOAuthCallback';
+import { setOAuthReturnTarget, takeOAuthReturnTarget } from '../lib/oauthReturn';
 
 /**
  * NOTE: in @testing-library/react-native v14 `renderHook` is ASYNC.
@@ -34,6 +35,7 @@ beforeEach(() => {
   mockDismissBrowser.mockReset();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   mockOnboardingCompleted = true;
+  setOAuthReturnTarget(null);
 });
 
 afterEach(() => {
@@ -48,6 +50,14 @@ describe('oauthReturnHref', () => {
 
   it('returns to Settings once onboarding is complete', () => {
     expect(oauthReturnHref(true)).toBe('/(tabs)/settings');
+  });
+
+  it('returns to the dashboard when its ride-source card started the connect', () => {
+    expect(oauthReturnHref(true, 'dashboard')).toBe('/(tabs)');
+  });
+
+  it('keeps an onboarding rider on the Connect step whatever was recorded', () => {
+    expect(oauthReturnHref(false, 'dashboard')).toBe('/(onboarding)/connect');
   });
 });
 
@@ -145,5 +155,46 @@ describe('useOAuthCallback', () => {
     });
 
     expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+});
+
+describe('useOAuthCallback return target', () => {
+  it('pops back to the dashboard when its ride-source card opened the browser', async () => {
+    setOAuthReturnTarget('dashboard');
+    await renderHook(() => useOAuthCallback('Strava', 'success', undefined));
+
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)');
+    // Consumed by this round-trip: the next callback must not inherit it.
+    expect(takeOAuthReturnTarget()).toBeNull();
+  });
+
+  it('reads the recorded target once, even when auth state refreshes mid-beat', async () => {
+    setOAuthReturnTarget('dashboard');
+    const { rerender } = await renderHook(() => useOAuthCallback('Strava', 'success', undefined));
+
+    mockOnboardingCompleted = true;
+    await act(async () => {
+      rerender(undefined);
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)');
+  });
+
+  it('falls back to Settings on a cold start with nothing recorded', async () => {
+    await renderHook(() => useOAuthCallback('Strava', 'success', undefined));
+
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/settings');
   });
 });

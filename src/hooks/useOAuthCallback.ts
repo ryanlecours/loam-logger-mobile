@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from './useAuth';
+import { takeOAuthReturnTarget, type OAuthReturnTarget } from '../lib/oauthReturn';
 
 // Reason codes the backend can attach to a callback redirect when the
 // OAuth round-trip fails. Strava/Garmin/WHOOP/Suunto all use the same
@@ -21,9 +22,18 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try connecting again.';
 
-/** Where the rider goes once the callback screen has done its job. */
-export function oauthReturnHref(onboardingCompleted: boolean): Href {
-  return (onboardingCompleted ? '/(tabs)/settings' : '/(onboarding)/connect') as Href;
+/**
+ * Where the rider goes once the callback screen has done its job: the
+ * onboarding Connect step until onboarding is complete, otherwise the screen
+ * that started the connect (recorded in lib/oauthReturn), or Settings when
+ * nothing recorded one (a cold start straight into the deep link).
+ */
+export function oauthReturnHref(
+  onboardingCompleted: boolean,
+  returnTo: OAuthReturnTarget | null = null
+): Href {
+  if (!onboardingCompleted) return '/(onboarding)/connect' as Href;
+  return (returnTo === 'dashboard' ? '/(tabs)' : '/(tabs)/settings') as Href;
 }
 
 /**
@@ -37,7 +47,8 @@ export function oauthReturnHref(onboardingCompleted: boolean): Href {
  *   3. Returns after a 300ms beat so the browser dismiss animation can
  *      finish before the screen transitions. Lands on `/(onboarding)/connect`
  *      if the user is mid-onboarding (server-side `onboardingCompleted=false`),
- *      otherwise on `/(tabs)/settings`.
+ *      otherwise on the screen that started the connect: the dashboard when
+ *      its ride-source card did (recorded in lib/oauthReturn), else Settings.
  *
  * The return is a `dismissTo`, not a `replace`. The deep link pushed this
  * callback route on top of the screen that opened the browser, so that screen
@@ -64,9 +75,16 @@ export function useOAuthCallback(
   // mounted (a viewer refetch landing mid-beat). The timer restart is
   // harmless, but the failure alert must not show twice.
   const alertedRef = useRef(false);
+  // Taken once per callback screen, inside the effect rather than during
+  // render: taking clears the record, and a render can be thrown away
+  // (StrictMode double-invokes it in dev) while a ref survives the effect
+  // re-running, including StrictMode's simulated unmount.
+  const returnToRef = useRef<OAuthReturnTarget | null | undefined>(undefined);
 
   useEffect(() => {
     WebBrowser.dismissBrowser();
+    if (returnToRef.current === undefined) returnToRef.current = takeOAuthReturnTarget();
+    const returnTo = returnToRef.current;
 
     if (status && status !== 'success' && !alertedRef.current) {
       alertedRef.current = true;
@@ -76,7 +94,7 @@ export function useOAuthCallback(
     }
 
     const timer = setTimeout(() => {
-      router.dismissTo(oauthReturnHref(onboardingCompleted));
+      router.dismissTo(oauthReturnHref(onboardingCompleted, returnTo));
     }, 300);
 
     return () => clearTimeout(timer);

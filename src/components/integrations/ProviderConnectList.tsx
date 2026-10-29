@@ -4,6 +4,7 @@ import { useIntegrationConnect } from '../../hooks/useIntegrationConnect';
 import { colors, radius } from '../../constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../constants/garminAttribution';
 import type { IntegrationProvider } from '../../api/integrations';
+import type { OAuthReturnTarget } from '../../lib/oauthReturn';
 
 export interface ProviderConfig {
   provider: IntegrationProvider;
@@ -24,6 +25,8 @@ export const PROVIDERS: ProviderConfig[] = [
 interface ProviderConnectRowProps extends ProviderConfig {
   /** Prefix for the row's testID, so two surfaces can host the same rows. */
   testIDPrefix?: string;
+  /** Where the OAuth callback lands afterwards; see useIntegrationConnect. */
+  returnTo?: OAuthReturnTarget;
 }
 
 /**
@@ -38,8 +41,9 @@ export function ProviderConnectRow({
   label,
   brandColor,
   testIDPrefix = 'onboarding-connect',
+  returnTo,
 }: ProviderConnectRowProps) {
-  const { status, loading, connecting, connect, error } = useIntegrationConnect(provider);
+  const { status, loading, connecting, connect, error } = useIntegrationConnect(provider, { returnTo });
 
   if (loading) {
     return (
@@ -94,11 +98,17 @@ export function ProviderConnectRow({
 }
 
 /** All four providers, stacked. */
-export function ProviderConnectList({ testIDPrefix }: { testIDPrefix?: string }) {
+export function ProviderConnectList({
+  testIDPrefix,
+  returnTo,
+}: {
+  testIDPrefix?: string;
+  returnTo?: OAuthReturnTarget;
+}) {
   return (
     <View style={styles.list}>
       {PROVIDERS.map((p) => (
-        <ProviderConnectRow key={p.provider} {...p} testIDPrefix={testIDPrefix} />
+        <ProviderConnectRow key={p.provider} {...p} testIDPrefix={testIDPrefix} returnTo={returnTo} />
       ))}
     </View>
   );
