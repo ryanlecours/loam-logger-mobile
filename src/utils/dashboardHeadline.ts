@@ -7,6 +7,11 @@ export interface HeadlineCounts {
   untrackedCount: number;
   /** Every bike the rider owns, including untracked ones. */
   totalBikes: number;
+  /**
+   * The account has no rides at all (see isFirstRun). Nothing has moved a
+   * clock yet, so "nothing flagged" is absence of evidence, not an all-clear.
+   */
+  firstRun?: boolean;
 }
 
 export interface Headline {
@@ -32,6 +37,7 @@ export function dashboardHeadline({
   healthyCount,
   untrackedCount,
   totalBikes,
+  firstRun = false,
 }: HeadlineCounts): Headline {
   const single = totalBikes === 1;
 
@@ -44,20 +50,32 @@ export function dashboardHeadline({
     };
   }
 
+  // Nothing flagged because nothing is tracked. There is no finding here, and
+  // saying so is the honest answer. Checked before the first-run case because
+  // adding components is the step that unblocks this rider, not riding.
+  if (untrackedCount > 0 && healthyCount === 0) {
+    return {
+      tone: 'neutral',
+      text: single ? 'Nothing tracked on this bike yet' : 'Nothing tracked on your bikes yet',
+    };
+  }
+
+  // Parts are tracked but no ride has ever landed, so every clock reads zero.
+  // Zero hours is not health, it is no data: the ride source card below says
+  // what the rider is waiting on (a connection, an import, a first ride), and
+  // "good to go" here would contradict it.
+  if (firstRun) {
+    return {
+      tone: 'neutral',
+      text: single ? 'Nothing on the clock yet' : 'Nothing on the clock for your bikes yet',
+    };
+  }
+
   // Nothing flagged and nothing unknown. The only case that earns the all-clear.
   if (untrackedCount === 0) {
     return {
       tone: 'good',
       text: single ? 'Good to go' : `All ${totalBikes} bikes are good to go`,
-    };
-  }
-
-  // Nothing flagged because nothing is tracked. There is no finding here, and
-  // saying so is the honest answer.
-  if (healthyCount === 0) {
-    return {
-      tone: 'neutral',
-      text: single ? 'Nothing tracked on this bike yet' : 'Nothing tracked on your bikes yet',
     };
   }
 

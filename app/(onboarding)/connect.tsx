@@ -1,80 +1,11 @@
 import { useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
-import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
 import { posthog } from '../../src/lib/posthog';
-import { colors, radius } from '../../src/constants/theme';
+import { colors } from '../../src/constants/theme';
 import { Screen } from '../../src/components/common/Screen';
-import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
-import type { IntegrationProvider } from '../../src/api/integrations';
-
-interface ProviderConfig {
-  provider: IntegrationProvider;
-  label: string;
-  brandColor: string;
-}
-
-const PROVIDERS: ProviderConfig[] = [
-  { provider: 'strava', label: 'Strava', brandColor: colors.strava },
-  // Full app name, per the Garmin API Brand Guidelines' rule against
-  // abbreviating or stylizing it when displaying a connection.
-  { provider: 'garmin', label: GARMIN_CONNECT_APP_NAME, brandColor: colors.garmin },
-  { provider: 'whoop', label: 'WHOOP', brandColor: colors.whoop },
-  { provider: 'suunto', label: 'Suunto', brandColor: colors.suunto },
-];
-
-function ConnectRow({ provider, label, brandColor }: ProviderConfig) {
-  const { status, loading, connecting, connect } = useIntegrationConnect(provider);
-
-  if (loading) {
-    return (
-      <View style={styles.row}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <ActivityIndicator size="small" color={brandColor} />
-      </View>
-    );
-  }
-
-  if (status?.connected) {
-    return (
-      <View style={styles.row}>
-        <Text style={[styles.rowLabel, { color: brandColor }]}>{label}</Text>
-        <View style={styles.connectedBadge}>
-          <Ionicons name="checkmark-circle" size={20} color={brandColor} />
-          <Text style={[styles.connectedText, { color: brandColor }]}>Connected</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <TouchableOpacity
-        style={[styles.connectButton, { backgroundColor: brandColor }]}
-        onPress={connect}
-        disabled={connecting}
-        testID={`onboarding-connect-${provider}`}
-      >
-        {connecting ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.connectButtonText}>Connect</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-}
+import { ProviderConnectList } from '../../src/components/integrations/ProviderConnectList';
 
 export default function ConnectScreen() {
   const router = useRouter();
@@ -106,11 +37,8 @@ export default function ConnectScreen() {
           Auto-import rides from your devices and backfill previous activity. You can do this anytime in Settings.
         </Text>
 
-        <View style={styles.providers}>
-          {PROVIDERS.map((p) => (
-            <ConnectRow key={p.provider} {...p} />
-          ))}
-        </View>
+        {/* The same rows the dashboard shows a rider who skipped this step. */}
+        <ProviderConnectList />
       </ScrollView>
 
       <View style={styles.buttonContainer}>
@@ -153,49 +81,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 32,
     lineHeight: 22,
-  },
-  providers: {
-    gap: 12,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    minHeight: 60,
-  },
-  rowLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  connectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  connectedText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  connectButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    // Partner-branded control: the fill is the provider's color, so the shape
-    // stays conservative rather than taking our pill. The 8pt floor still applies.
-    borderRadius: radius.sm,
-    minWidth: 96,
-    alignItems: 'center',
-  },
-  connectButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   buttonContainer: {
     gap: 12,

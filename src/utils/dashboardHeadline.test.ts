@@ -99,3 +99,54 @@ describe('dashboardHeadline', () => {
     }
   });
 });
+
+describe('dashboardHeadline on an account with no rides', () => {
+  // Every clock reads zero because nothing has ever moved one. That is no
+  // data, not health, and the ride source card below explains the wait.
+  it('never says good to go before a single ride has landed', () => {
+    const headline = dashboardHeadline({
+      attentionCount: 0,
+      healthyCount: 1,
+      untrackedCount: 0,
+      totalBikes: 1,
+      firstRun: true,
+    });
+    expect(headline).toEqual({ tone: 'neutral', text: 'Nothing on the clock yet' });
+
+    expect(
+      dashboardHeadline({
+        attentionCount: 0,
+        healthyCount: 3,
+        untrackedCount: 0,
+        totalBikes: 3,
+        firstRun: true,
+      }),
+    ).toEqual({ tone: 'neutral', text: 'Nothing on the clock for your bikes yet' });
+  });
+
+  // Declared baseline hours can put a part past its interval before any ride.
+  it('still leads with the work when there is any', () => {
+    expect(
+      dashboardHeadline({
+        attentionCount: 1,
+        healthyCount: 0,
+        untrackedCount: 0,
+        totalBikes: 1,
+        firstRun: true,
+      }).text,
+    ).toBe('Needs attention before you ride');
+  });
+
+  // Adding parts is the step that unblocks this rider, not riding.
+  it('prefers the untracked answer when nothing is tracked either', () => {
+    expect(
+      dashboardHeadline({
+        attentionCount: 0,
+        healthyCount: 0,
+        untrackedCount: 1,
+        totalBikes: 1,
+        firstRun: true,
+      }).text,
+    ).toBe('Nothing tracked on this bike yet');
+  });
+});
