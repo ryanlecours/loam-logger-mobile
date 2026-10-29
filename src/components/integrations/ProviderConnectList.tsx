@@ -39,7 +39,7 @@ export function ProviderConnectRow({
   brandColor,
   testIDPrefix = 'onboarding-connect',
 }: ProviderConnectRowProps) {
-  const { status, loading, connecting, connect } = useIntegrationConnect(provider);
+  const { status, loading, connecting, connect, error } = useIntegrationConnect(provider);
 
   if (loading) {
     return (
@@ -63,22 +63,32 @@ export function ProviderConnectRow({
   }
 
   return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <TouchableOpacity
-        style={[styles.connectButton, { backgroundColor: brandColor }]}
-        onPress={connect}
-        disabled={connecting}
-        accessibilityRole="button"
-        accessibilityLabel={`Connect ${label}`}
-        testID={`${testIDPrefix}-${provider}`}
-      >
-        {connecting ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.connectButtonText}>Connect</Text>
-        )}
-      </TouchableOpacity>
+    <View>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        <TouchableOpacity
+          style={[styles.connectButton, { backgroundColor: brandColor }]}
+          onPress={connect}
+          disabled={connecting}
+          accessibilityRole="button"
+          accessibilityLabel={`Connect ${label}`}
+          testID={`${testIDPrefix}-${provider}`}
+        >
+          {connecting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.connectButtonText}>Connect</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      {/* A start that fails before the browser opens (rate limit, provider
+          not configured, no network) used to be silent: the spinner stopped
+          and nothing explained why. */}
+      {error && (
+        <Text style={styles.errorText} testID={`${testIDPrefix}-${provider}-error`}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -138,5 +148,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorText: {
+    color: colors.criticalOn,
+    fontSize: 14,
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
 });
