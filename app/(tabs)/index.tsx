@@ -1,6 +1,6 @@
 import { ScrollView, View, Text, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
-import { useRouter, Href } from 'expo-router';
-import { useState, useCallback, useEffect } from 'react';
+import { useRouter, useFocusEffect, Href } from 'expo-router';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/common/Screen';
 import { useBikeTriage } from '../../src/hooks/useBikeTriage';
@@ -210,15 +210,32 @@ export default function DashboardScreen() {
     startPolling: startRideSourcePolling,
     stopPolling: stopRideSourcePolling,
   } = useRideSourceQuery({ fetchPolicy: 'cache-and-network' });
-  const [manualOnly, setManualOnly] = useManualRideSourceChoice(meData?.me?.id);
+  const {
+    manualOnly,
+    ready: manualChoiceReady,
+    setManualOnly,
+  } = useManualRideSourceChoice(meData?.me?.id);
   const rideSource = rideSourceData?.me?.rideSource ?? null;
-  const rideSourceState = rideSource ? resolveRideSourceState({ ...rideSource, manualOnly }) : null;
+  // Null until both the server's answer and the rider's stored choice are in,
+  // so the card never renders a face it would have to take back.
+  const rideSourceState =
+    rideSource && manualChoiceReady ? resolveRideSourceState({ ...rideSource, manualOnly }) : null;
   const rideSourceSettling = isRideSourceSettling(rideSourceState);
   useEffect(() => {
     if (rideSourceSettling) startRideSourcePolling(30_000);
     else stopRideSourcePolling();
     return () => stopRideSourcePolling();
   }, [rideSourceSettling, startRideSourcePolling, stopRideSourcePolling]);
+
+  // A connect started from the card ends in Settings (the OAuth callback's
+  // return for onboarded riders), so by the time the rider taps back to Home
+  // the field is stale. cache-and-network only runs on mount; this re-asks on
+  // every focus, and the query is three small reads.
+  useFocusEffect(
+    useCallback(() => {
+      refetchRideSource();
+    }, [refetchRideSource]),
+  );
 
   // Status only. A rider can back out of the record screen mid-ride, so the
   // dashboard has to know a session is running or its record action would
@@ -251,6 +268,22 @@ export default function DashboardScreen() {
     error: statsError,
     refetch: refetchStats,
   } = useRideStats(timeframe);
+
+  // The ride source poll is what notices the first imported ride landing, but
+  // the bikes, recent rides, stats and unassigned count are separate queries.
+  // Without this the importing card would vanish (the state turns has-rides)
+  // while isFirstRun, read from the recent-rides query, still said the account
+  // was empty: no card, no rides, no stats, until a pull to refresh. Keyed on
+  // the 0 -> >0 transition so it fires once, not on every poll.
+  const rideCount = rideSource?.rideCount;
+  const lastRideCountRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const previous = lastRideCountRef.current;
+    lastRideCountRef.current = rideCount;
+    if (previous === 0 && rideCount !== undefined && rideCount > 0) {
+      void Promise.allSettled([refetchBikes(), refetchStats(), refetchRecentRides(), refetchUnassigned()]);
+    }
+  }, [rideCount, refetchBikes, refetchStats, refetchRecentRides, refetchUnassigned]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
