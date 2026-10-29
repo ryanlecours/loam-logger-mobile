@@ -149,10 +149,30 @@ export function RideSourceCard({
             {window ? `Nothing found in ${window}` : 'No rides have come in yet'}
           </Text>
           <Text style={styles.body}>
-            {label} is connected, but it had no rides to import. Record one or log one by hand and
-            the hours start counting.
+            {window
+              ? `${label} is connected, but it had no rides to import. Record one or log one by hand and the hours start counting.`
+              : `${label} is connected, but no import has run for it yet. Start one from Settings, or record or log a ride by hand.`}
           </Text>
-          <View style={styles.paths}>{manualPaths}</View>
+          <View style={styles.paths}>
+            {!window && (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={onOpenSettings}
+                accessibilityRole="button"
+                accessibilityLabel="Import rides in Settings"
+              >
+                <Ionicons
+                  name="cloud-download-outline"
+                  size={16}
+                  color={colors.primary}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.secondaryButtonText}>Import rides in Settings</Text>
+              </TouchableOpacity>
+            )}
+            {manualPaths}
+          </View>
         </View>
       );
     }

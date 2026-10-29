@@ -143,10 +143,17 @@ describe('RideSourceCard', () => {
       expect(screen.getByText('Nothing found in the last 30 days')).toBeTruthy();
     });
 
-    it('does not invent a window when no import ever ran', async () => {
+    // A connection that predates the connect import: nothing ever ran, so
+    // "it had no rides to import" would be a claim about an import that did
+    // not happen.
+    it('does not invent a window or an import when none ever ran', async () => {
       await renderCard({ kind: 'empty', provider: 'suunto', lookbackDays: null });
 
       expect(screen.getByText('No rides have come in yet')).toBeTruthy();
+      expect(screen.getByText(/no import has run for it yet/)).toBeTruthy();
+      expect(screen.queryByText(/had no rides to import/)).toBeNull();
+      await fireEvent.press(screen.getByLabelText('Import rides in Settings'));
+      expect(handlers.onOpenSettings).toHaveBeenCalledTimes(1);
     });
   });
 
