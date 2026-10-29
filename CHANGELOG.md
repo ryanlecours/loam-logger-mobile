@@ -11,6 +11,84 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.7 - 2026-10-29
+
+### App Store "What's New"
+
+Improvements
+- The dashboard now says where a bike's hours come from. Nothing connected
+  yet, an import still running, or an import that found no rides each get
+  their own card, with the connect buttons right there instead of a trip
+  to Settings
+- Connecting a ride tracker from the dashboard brings you back to the
+  dashboard when you are done, and a connection that fails to start now
+  says why
+- Rides show descent alongside climb when the source reported one
+- Rides on a chairlift or gondola are tagged, and you choose whether the
+  lift's climb counts toward the ride
+
+Fixes
+- Connecting Garmin or Strava during setup no longer sends you back to the
+  age screen to enter your bike again
+- Editing a ride's notes no longer overwrites the distance and climb your
+  tracker recorded
+
+### Internal
+
+Ride source on the dashboard (PRs #123, #124, #125; API loam-logger#412,
+#413)
+- One `RideSourceCard` replaces the first-run "Connect a data source"
+  card, decided by a pure resolver from the new `me.rideSource` field
+  (connected providers, the import queued at connect, the ride count) and
+  the rider's "I don't use a ride tracker" choice, kept in SecureStore per
+  account and overridden by any connection. Nothing connected renders the
+  onboarding Connect step's four provider rows inline via the shared
+  `ProviderConnectList`. The field is refetched on tab focus and polled
+  while an import is settling.
+- A provider connected before the connect import existed shows "no import
+  has run" and offers the Settings import, never "no rides to import".
+- The onboarding `ConnectRow` renders the start error it already read, so
+  a rate limit or a missing provider config is no longer a spinner that
+  just stops.
+- `lib/oauthReturn.ts` records which screen started a connect
+  (dashboard or Settings) before the browser opens; the OAuth callback
+  takes it once and pops back there. A cold start into the deep link
+  falls back to Settings. Onboarding riders still return to Connect.
+- `onboarding_connect_skipped` fires when a rider skips the Connect step
+  (PR #122), joining the API-side connect funnel events.
+
+OAuth callback stability (PR #121)
+- The root gate no longer replaces the callback route with the age screen
+  when a deep link lands mid-onboarding, and the connection-failed alert
+  shows once per callback mount.
+
+Rides
+- `Ride.elevationLossMeters` (nullable) is queried everywhere rides are
+  listed and shown as a descent stat when present; null renders nothing.
+  Add and edit forms take it as an optional value.
+- Lift detection (API loam-logger#394): a "Chairlift detected" (or
+  "Gondola", or "Lift") chip with laps and OSM lift names, a switch that
+  saves whether the lift's climb counts, and `countedElevationGainMeters`
+  used by ride rows and stats with a fallback to the recorded climb.
+  "© OpenStreetMap contributors" credit wherever a ride in view has its
+  lift climb left out.
+- The edit screen sends distance, climb and descent only when the rider
+  changed them, so a notes-only save no longer overwrites a provider's
+  figures.
+
+Service outage banner
+- A PostHog feature flag, `service-outage-banner` (shared with web),
+  switches on a caution strip under the status bar on every screen; the
+  flag payload can replace the copy. Flags load at launch and again on
+  foreground, so no release is needed to show or clear it.
+
+Release plumbing
+- The EAS Build workflow can auto-submit Android production builds to
+  Google Play (`internal` by default, `production` on request).
+- Builds before 1.3.7 do not know `me.rideSource` or
+  `elevationLossMeters`; both fields were live in the production API
+  before this build was cut.
+
 ## 1.3.6 - 2026-10-21
 
 ### App Store "What's New"
