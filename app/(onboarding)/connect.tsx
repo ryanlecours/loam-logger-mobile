@@ -12,6 +12,7 @@ import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboarding } from '../../src/hooks/useOnboarding';
 import { useIntegrationConnect } from '../../src/hooks/useIntegrationConnect';
+import { posthog } from '../../src/lib/posthog';
 import { colors, radius } from '../../src/constants/theme';
 import { Screen } from '../../src/components/common/Screen';
 import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
@@ -63,6 +64,7 @@ function ConnectRow({ provider, label, brandColor }: ProviderConfig) {
         style={[styles.connectButton, { backgroundColor: brandColor }]}
         onPress={connect}
         disabled={connecting}
+        testID={`onboarding-connect-${provider}`}
       >
         {connecting ? (
           <ActivityIndicator size="small" color="#fff" />
@@ -86,6 +88,16 @@ export default function ConnectScreen() {
     router.push('/(onboarding)/notifications' as Href);
   }, [onboardingData.selectedBike, router]);
 
+  // Connect is the one onboarding step a rider can pass without the product
+  // working for them afterwards, so the skip is recorded. The API fires
+  // provider_connect_started when a Connect button is pressed; this is the
+  // other branch, so the funnel can tell "never pressed Connect" from
+  // "connected and came back". Continue and Skip otherwise do the same thing.
+  const skipConnect = useCallback(() => {
+    posthog.capture('onboarding_connect_skipped', { step: 'connect' });
+    goToNotifications();
+  }, [goToNotifications]);
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -105,13 +117,15 @@ export default function ConnectScreen() {
         <TouchableOpacity
           style={styles.button}
           onPress={goToNotifications}
+          testID="onboarding-connect-continue"
         >
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={goToNotifications}
+          onPress={skipConnect}
+          testID="onboarding-connect-skip"
         >
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
