@@ -8,6 +8,7 @@ import {
   type IntegrationProvider,
   type IntegrationStatus,
 } from '../api/integrations';
+import { setOAuthReturnTarget, type OAuthReturnTarget } from '../lib/oauthReturn';
 
 const PROVIDER_LABELS: Record<IntegrationProvider, string> = {
   garmin: 'Garmin',
@@ -16,7 +17,19 @@ const PROVIDER_LABELS: Record<IntegrationProvider, string> = {
   suunto: 'Suunto',
 };
 
-export function useIntegrationConnect(provider: IntegrationProvider) {
+export interface UseIntegrationConnectOptions {
+  /**
+   * Where the OAuth callback should land the rider afterwards. Omit for the
+   * callback's default (the onboarding Connect step while onboarding is
+   * incomplete, Settings once it is done).
+   */
+  returnTo?: OAuthReturnTarget;
+}
+
+export function useIntegrationConnect(
+  provider: IntegrationProvider,
+  { returnTo }: UseIntegrationConnectOptions = {}
+) {
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -46,6 +59,9 @@ export function useIntegrationConnect(provider: IntegrationProvider) {
       setError(null);
 
       const { authorizeUrl } = await startOAuth(provider);
+      // Recorded just before the browser opens so the callback, which
+      // arrives on a deep link with no memory of this screen, can return here.
+      setOAuthReturnTarget(returnTo ?? null);
       await WebBrowser.openBrowserAsync(authorizeUrl);
 
       // Browser was dismissed (user returned) — refresh status
@@ -57,7 +73,7 @@ export function useIntegrationConnect(provider: IntegrationProvider) {
     } finally {
       setConnecting(false);
     }
-  }, [provider, providerLabel, refresh]);
+  }, [provider, providerLabel, refresh, returnTo]);
 
   const disconnect = useCallback(async () => {
     Alert.alert(

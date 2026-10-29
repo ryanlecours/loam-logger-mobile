@@ -105,7 +105,7 @@ export function RideSourceCard({
             Your parts are tracked, but nothing is feeding them hours. Connect the app or watch that
             records your rides and the past year imports on its own.
           </Text>
-          <ProviderConnectList testIDPrefix="dashboard-connect" />
+          <ProviderConnectList testIDPrefix="dashboard-connect" returnTo="dashboard" />
           <View style={styles.paths}>{manualPaths}</View>
           <TouchableOpacity
             style={styles.declineButton}
