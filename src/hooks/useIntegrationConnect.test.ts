@@ -13,7 +13,7 @@ jest.mock('expo-web-browser', () => ({
 
 import { renderHook, act } from '@testing-library/react-native';
 import { useIntegrationConnect } from './useIntegrationConnect';
-import { takeOAuthReturnTarget, setOAuthReturnTarget, type OAuthReturnTarget } from '../lib/oauthReturn';
+import { takeOAuthReturnTarget, setOAuthReturnTarget, peekOAuthReturnTarget, type OAuthReturnTarget } from '../lib/oauthReturn';
 
 /**
  * NOTE: in @testing-library/react-native v14 `renderHook` is ASYNC.
@@ -30,9 +30,8 @@ describe('useIntegrationConnect', () => {
   it('records the return target before the provider page opens', async () => {
     let targetWhenBrowserOpened: OAuthReturnTarget | null | undefined;
     mockOpenBrowserAsync.mockImplementation(async () => {
-      // Peek without clearing: the callback is what takes it.
-      targetWhenBrowserOpened = takeOAuthReturnTarget();
-      setOAuthReturnTarget(targetWhenBrowserOpened);
+      // Peek, not take: the callback is what consumes the record.
+      targetWhenBrowserOpened = peekOAuthReturnTarget();
       return { type: 'dismiss' };
     });
 

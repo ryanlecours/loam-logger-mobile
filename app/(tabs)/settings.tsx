@@ -37,7 +37,7 @@ function IntegrationRow({
   onImportPress?: () => void;
   onConnectionChange?: (provider: IntegrationProvider, connected: boolean) => void;
 }) {
-  const { status, loading, connecting, connect, disconnect } = useIntegrationConnect(provider);
+  const { status, loading, connecting, connect, disconnect } = useIntegrationConnect(provider, { returnTo: 'settings' });
 
   // Notify parent when connection status changes
   useEffect(() => {

@@ -75,14 +75,16 @@ export function useOAuthCallback(
   // mounted (a viewer refetch landing mid-beat). The timer restart is
   // harmless, but the failure alert must not show twice.
   const alertedRef = useRef(false);
-  // Taken once per callback screen: the effect can re-run, and a second read
-  // would find the record already cleared.
+  // Taken once per callback screen, inside the effect rather than during
+  // render: taking clears the record, and a render can be thrown away
+  // (StrictMode double-invokes it in dev) while a ref survives the effect
+  // re-running, including StrictMode's simulated unmount.
   const returnToRef = useRef<OAuthReturnTarget | null | undefined>(undefined);
-  if (returnToRef.current === undefined) returnToRef.current = takeOAuthReturnTarget();
-  const returnTo = returnToRef.current;
 
   useEffect(() => {
     WebBrowser.dismissBrowser();
+    if (returnToRef.current === undefined) returnToRef.current = takeOAuthReturnTarget();
+    const returnTo = returnToRef.current;
 
     if (status && status !== 'success' && !alertedRef.current) {
       alertedRef.current = true;
@@ -96,5 +98,5 @@ export function useOAuthCallback(
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [providerLabel, status, reason, router, onboardingCompleted, returnTo]);
+  }, [providerLabel, status, reason, router, onboardingCompleted]);
 }

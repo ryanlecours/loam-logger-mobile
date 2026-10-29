@@ -26,6 +26,11 @@ export function setOAuthReturnTarget(target: OAuthReturnTarget | null): void {
   pending = target;
 }
 
+/** The recorded origin without clearing it. For tests and diagnostics. */
+export function peekOAuthReturnTarget(): OAuthReturnTarget | null {
+  return pending;
+}
+
 /** Read and clear the recorded origin. Null when nothing recorded it. */
 export function takeOAuthReturnTarget(): OAuthReturnTarget | null {
   const target = pending;
