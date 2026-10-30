@@ -20,15 +20,35 @@ import {
 import { colors, radius } from '../../constants/theme';
 import { BottomSheet } from '../common/BottomSheet';
 import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
+import { useCurrency } from '../../hooks/useCurrency';
+import { majorToMinor, minorToInput } from '../../lib/money';
+import {
+  PartsAndCostSection,
+  newPartDraft,
+  partsAndCostInvalid,
+  partsToInput,
+  type PartDraft,
+} from './PartsAndCostSection';
+import { CurrencyPickerSheet } from '../settings/CurrencyPickerSheet';
 
 /** Unique per surface: sibling screens stay mounted and would collide on a shared id. */
 const DONE_ACCESSORY = 'edit-service-done';
+
+export interface EditableServicePart {
+  brand: string;
+  model: string;
+  priceMinor?: number | null;
+  vendor?: string | null;
+}
 
 export interface EditableServiceLog {
   id: string;
   performedAt: string;
   notes?: string | null;
   hoursAtService: number;
+  costMinor?: number | null;
+  currency?: string | null;
+  parts?: EditableServicePart[] | null;
 }
 
 interface EditServiceSheetProps {
@@ -59,12 +79,21 @@ export function EditServiceSheet({
   // guard, tapping Delete a second time before responding stacks a second
   // Alert on top of the first.
   const [confirming, setConfirming] = useState(false);
+  // Parts and cost. The log's own currency wins over the rider's Settings
+  // currency, so correcting an amount never relabels it.
+  const { currency: preferredCurrency, setCurrency } = useCurrency();
+  const currency = log?.currency ?? preferredCurrency;
+  const [cost, setCost] = useState('');
+  const [parts, setParts] = useState<PartDraft[]>([]);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const moneyInvalid = partsAndCostInvalid(cost, parts, currency);
+  const hadMoney = (log?.costMinor != null) || ((log?.parts?.length ?? 0) > 0);
 
   const [updateServiceLog, { loading: updating }] = useUpdateServiceLogMutation({
-    refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
+    refetchQueries: ['BikeHistory', 'Gear', 'GearLight', 'ComponentHistory'],
   });
   const [deleteServiceLog, { loading: deleting }] = useDeleteServiceLogMutation({
-    refetchQueries: ['BikeHistory', 'Gear', 'GearLight'],
+    refetchQueries: ['BikeHistory', 'Gear', 'GearLight', 'ComponentHistory'],
   });
   const busy = updating || deleting || confirming;
 
@@ -77,9 +106,23 @@ export function EditServiceSheet({
       // placeholder) when zero/null so tap-and-type doesn't require
       // manually clearing the field first.
       setHours(log.hoursAtService ? String(log.hoursAtService) : '');
+      const code = log.currency ?? preferredCurrency;
+      setCost(minorToInput(log.costMinor, code));
+      setParts(
+        (log.parts ?? []).map((p) => ({
+          ...newPartDraft(),
+          brand: p.brand,
+          model: p.model,
+          price: minorToInput(p.priceMinor, code),
+          vendor: p.vendor ?? '',
+        }))
+      );
       setShowDatePicker(false);
       setConfirming(false);
     }
+    // preferredCurrency only seeds the inputs for a log with no currency of
+    // its own; re-seeding on every preference change would discard edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [log]);
 
   const onDateChange = useCallback((_event: DateTimePickerEvent, date?: Date) => {
@@ -94,9 +137,18 @@ export function EditServiceSheet({
       Alert.alert('Invalid hours', 'Hours must be a non-negative number.');
       return;
     }
+    if (moneyInvalid) {
+      Alert.alert('Check the amount', 'Enter plain amounts, like 85 or 85.50.');
+      return;
+    }
     // Noon to prevent timezone shifts moving the date to the previous day.
     const noon = new Date(serviceDate);
     noon.setHours(12, 0, 0, 0);
+    // Parts are replace-all. costMinor null clears a cost the rider blanked
+    // out; the currency goes with any amount so the entry keeps its own.
+    const costMinor = cost.trim() === '' ? null : majorToMinor(cost, currency);
+    const partInput = partsToInput(parts, currency);
+    const hasAmount = costMinor != null || partInput.some((p) => p.priceMinor != null);
     try {
       await updateServiceLog({
         variables: {
@@ -105,6 +157,9 @@ export function EditServiceSheet({
             performedAt: noon.toISOString(),
             notes: notes.trim() || null,
             hoursAtService: hoursNum,
+            costMinor,
+            ...(hasAmount ? { currency } : {}),
+            parts: partInput,
           },
         },
       });
@@ -214,7 +269,30 @@ export function EditServiceSheet({
             placeholderTextColor={colors.textMuted}
           />
         </View>
+
+        {/* Keyed on the log so a sheet reused for another entry re-reads
+            whether to start open. */}
+        <PartsAndCostSection
+          key={log?.id ?? 'none'}
+          currency={currency}
+          cost={cost}
+          onCostChange={setCost}
+          parts={parts}
+          onPartsChange={setParts}
+          initiallyExpanded={hadMoney}
+          inputAccessoryViewID={DONE_ACCESSORY}
+          onChangeCurrency={log?.currency ? undefined : () => setShowCurrencyPicker(true)}
+        />
       </ScrollView>
+
+      <CurrencyPickerSheet
+        visible={showCurrencyPicker}
+        selected={preferredCurrency}
+        onSelect={(code) => {
+          setCurrency(code).catch((err) => Alert.alert('Error', (err as Error).message));
+        }}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={busy}>
@@ -222,9 +300,10 @@ export function EditServiceSheet({
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.saveButton, busy && styles.saveButtonDisabled]}
+          style={[styles.saveButton, (busy || moneyInvalid) && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={busy}
+          disabled={busy || moneyInvalid}
+          accessibilityState={{ disabled: busy || moneyInvalid, busy }}
         >
           {busy ? (
             <ActivityIndicator color={colors.onPrimary} />
@@ -246,7 +325,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: colors.textSecondary, paddingHorizontal: 20, paddingBottom: 12 },
   // flexShrink lets the field list give up height to the footer when the
   // keyboard shrinks the sheet, so Save and Delete stay reachable.
-  body: { flexShrink: 1, maxHeight: 400 },
+  body: { flexShrink: 1, maxHeight: 520 },
   bodyContent: { paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateLabel: { fontSize: 14, color: colors.textSecondary },

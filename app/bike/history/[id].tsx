@@ -12,7 +12,7 @@ import {
 } from '../../../src/graphql/generated';
 import { useDistanceUnit } from '../../../src/hooks/useDistanceUnit';
 import { useUserTier } from '../../../src/hooks/useUserTier';
-import { UpsellCard } from '../../../src/components/common/UpgradePrompt';
+import { UpsellCard, ProChip } from '../../../src/components/common/UpgradePrompt';
 import { colors, radius } from '../../../src/constants/theme';
 import {
   bikeName,
@@ -20,6 +20,7 @@ import {
   computeTimeframeRange,
   getBaseInstallId,
   mergeAndGroupByYear,
+  summarizeParts,
   TIMEFRAME_LABEL,
   TIMEFRAME_SHORT_LABEL,
   type HistoryInstallEvent,
@@ -29,6 +30,8 @@ import {
   type TimelineItem,
 } from '../../../src/lib/bikeHistory';
 import { exportBikeHistoryPdf } from '../../../src/lib/bikeHistoryPdf';
+import { formatMoney, formatPerHour } from '../../../src/lib/money';
+import { posthog } from '../../../src/lib/posthog';
 import { formatDistance, formatDuration, formatElevation } from '../../../src/utils/greetingMessages';
 import { EditServiceSheet, type EditableServiceLog } from '../../../src/components/gear/EditServiceSheet';
 import { EditInstallSheet, type EditableInstallEvent } from '../../../src/components/gear/EditInstallSheet';
@@ -128,13 +131,8 @@ export default function BikeHistoryScreen() {
     [yearGroups]
   );
 
-  const handleExport = async () => {
+  const runExport = async (includeCosts: boolean) => {
     if (!payload) return;
-    // PDF export is Pro-only — free users get the upsell card instead.
-    if (!isPro) {
-      setShowPdfUpsell(true);
-      return;
-    }
     setExporting(true);
     try {
       await exportBikeHistoryPdf({
@@ -144,6 +142,13 @@ export default function BikeHistoryScreen() {
         distanceUnit,
         timeframeLabel: TIMEFRAME_LABEL[timeframe],
         truncated: payload.truncated,
+        includeCosts,
+      });
+      posthog.capture('maintenance_exported', {
+        format: 'pdf',
+        include_costs: includeCosts,
+        tier: isPro ? 'PRO' : 'FREE',
+        surface: 'bike_history',
       });
     } catch (err) {
       Alert.alert('Export failed', err instanceof Error ? err.message : 'Unknown error');
@@ -151,6 +156,40 @@ export default function BikeHistoryScreen() {
       setExporting(false);
     }
   };
+
+  const handleExport = () => {
+    if (!payload) return;
+    // PDF export is Pro-only — free users get the upsell card instead.
+    if (!isPro) {
+      setShowPdfUpsell(true);
+      return;
+    }
+    // The same document serves an insurance claim and a sale, so the rider
+    // chooses each time whether what they spent goes in. Only asked when
+    // there is money to include.
+    const hasMoney =
+      payload.totals.spendMinor != null || payload.serviceEvents.some((s) => s.costMinor != null);
+    if (!hasMoney) {
+      void runExport(false);
+      return;
+    }
+    Alert.alert('Include what you spent?', 'Costs, part prices and cost per ride hour go in the PDF.', [
+      { text: 'Include costs', onPress: () => void runExport(true) },
+      { text: 'Leave costs out', onPress: () => void runExport(false) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  // Whether the rider saw the gated number or the chip in its place, for the
+  // funnel from "saw it" to the pricing page.
+  const spendCurrency = payload?.totals.spendCurrency ?? null;
+  const costSummary = payload?.bike.costSummary ?? null;
+  useEffect(() => {
+    if (!payload) return;
+    posthog.capture('cost_insight_viewed', { surface: 'history', tier: isPro ? 'PRO' : 'FREE' });
+    // Once per bike load, not per re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload?.bike.id]);
 
   const shareLink = async () => {
     if (!id) return;
@@ -282,7 +321,31 @@ export default function BikeHistoryScreen() {
           label="Service"
           value={(payload.totals.serviceEventCount + payload.totals.installEventCount).toLocaleString()}
         />
+        {/* Spend is the plain sum of what the rider typed, every tier. The
+            per-hour line under it is Pro: only Loam has the hours. Money is
+            cream text like the other totals, never on the health ramp. */}
+        <TotalCell
+          label="Spent"
+          value={
+            payload.totals.spendMinor != null && spendCurrency
+              ? formatMoney(payload.totals.spendMinor, spendCurrency)
+              : '–'
+          }
+          sub={
+            isPro
+              ? costSummary
+                ? formatPerHour(costSummary.perHourMinor, costSummary.currency) ?? undefined
+                : undefined
+              : 'pro'
+          }
+        />
       </View>
+      {payload.totals.spendOtherCurrencyCount ? (
+        <Text style={styles.truncatedNote}>
+          {payload.totals.spendOtherCurrencyCount} service
+          {payload.totals.spendOtherCurrencyCount === 1 ? '' : 's'} in another currency not included in Spent.
+        </Text>
+      ) : null}
 
       <View style={styles.controlsRow}>
         {(Object.keys(TIMEFRAME_LABEL) as Timeframe[]).map((tf) => (
@@ -538,11 +601,18 @@ function BulkDateSheet({
   );
 }
 
-function TotalCell({ label, value }: { label: string; value: string }) {
+function TotalCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <View style={styles.totalCell}>
       <Text style={styles.totalLabel}>{label}</Text>
       <Text style={styles.totalValue}>{value}</Text>
+      {sub === 'pro' ? (
+        <View style={styles.totalChip}>
+          <ProChip />
+        </View>
+      ) : sub ? (
+        <Text style={styles.totalSub}>{sub}</Text>
+      ) : null}
     </View>
   );
 }
@@ -588,6 +658,9 @@ function TimelineRow({
   if (item.kind === 'service') {
     const s = item.service;
     const label = componentDisplay(s.component);
+    const isInspection = s.kind === 'INSPECTION';
+    const parts = summarizeParts(s.parts);
+    const cost = s.costMinor != null ? formatMoney(s.costMinor, s.currency ?? 'USD') : '';
     return (
       <TouchableOpacity
         style={styles.row}
@@ -598,18 +671,35 @@ function TimelineRow({
               performedAt: s.performedAt,
               notes: s.notes,
               hoursAtService: s.hoursAtService,
+              costMinor: s.costMinor,
+              currency: s.currency,
+              parts: s.parts ?? [],
             },
             label
           )
         }
         activeOpacity={0.6}
       >
-        <Ionicons name="construct-outline" size={18} color={colors.primary} style={styles.rowIcon} />
+        <Ionicons
+          name={isInspection ? 'eye-outline' : 'construct-outline'}
+          size={18}
+          color={colors.primary}
+          style={styles.rowIcon}
+        />
         <View style={styles.rowContent}>
-          <Text style={styles.rowTitle} numberOfLines={1}>Service · {label}</Text>
-          <Text style={styles.rowMeta} numberOfLines={1}>
-            {formatShortDate(s.performedAt)} · {s.hoursAtService.toFixed(0)} hrs{s.notes ? ` · ${s.notes}` : ''}
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            {isInspection ? 'Inspected' : 'Service'} · {label}
           </Text>
+          <Text style={styles.rowMeta} numberOfLines={1}>
+            {formatShortDate(s.performedAt)} · {s.hoursAtService.toFixed(0)} hrs
+            {cost ? ` · ${cost}` : ''}
+            {s.notes ? ` · ${s.notes}` : ''}
+          </Text>
+          {parts ? (
+            <Text style={styles.rowMeta} numberOfLines={1}>
+              {parts}
+            </Text>
+          ) : null}
         </View>
         <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={styles.rowChevron} />
       </TouchableOpacity>
@@ -653,10 +743,12 @@ const styles = StyleSheet.create({
   errorText: { color: colors.criticalOn, textAlign: 'center' },
   headerButton: { paddingHorizontal: 8, paddingVertical: 4 },
   pdfUpsell: { paddingHorizontal: 16, paddingTop: 12 },
-  totalsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
-  totalCell: { flex: 1, backgroundColor: colors.card, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.cardBorder },
+  totalsRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 8 },
+  totalCell: { flexGrow: 1, flexBasis: '30%', backgroundColor: colors.card, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: colors.cardBorder },
   totalLabel: { color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   totalValue: { color: colors.textPrimary, fontSize: 14, fontWeight: '700', marginTop: 2 },
+  totalSub: { color: colors.textMuted, fontSize: 10, marginTop: 2 },
+  totalChip: { marginTop: 4, alignSelf: 'flex-start' },
   controlsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 8, gap: 6 },
   tfChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.cardBorder },
   tfChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryMuted },

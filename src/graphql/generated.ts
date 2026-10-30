@@ -87,6 +87,9 @@ export type AddComponentInput = {
   location?: InputMaybe<ComponentLocation>;
   model?: InputMaybe<Scalars['String']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
+  purchaseCurrency?: InputMaybe<Scalars['String']['input']>;
+  purchasePriceMinor?: InputMaybe<Scalars['Int']['input']>;
+  purchasedFrom?: InputMaybe<Scalars['String']['input']>;
   serviceDueAtHours?: InputMaybe<Scalars['Float']['input']>;
   type: ComponentType;
 };
@@ -173,6 +176,7 @@ export type Bike = {
    * Garmin data is absent. Do not infer this from a single ride's source.
    */
   contributingSources: Array<Scalars['String']['output']>;
+  costSummary?: Maybe<BikeCostSummary>;
   createdAt: Scalars['String']['output'];
   family?: Maybe<Scalars['String']['output']>;
   fork?: Maybe<Component>;
@@ -193,6 +197,8 @@ export type Bike = {
   notificationPreference?: Maybe<BikeNotificationPreference>;
   pivotBearings?: Maybe<Component>;
   predictions?: Maybe<BikePredictionSummary>;
+  purchaseCurrency?: Maybe<Scalars['String']['output']>;
+  purchasePriceMinor?: Maybe<Scalars['Int']['output']>;
   retiredAt?: Maybe<Scalars['String']['output']>;
   seatpost?: Maybe<Component>;
   servicePreferences: Array<BikeServicePreference>;
@@ -236,6 +242,26 @@ export type BikeComponentInstall = {
   slotKey: Scalars['String']['output'];
 };
 
+export type BikeCostSummary = {
+  __typename?: 'BikeCostSummary';
+  bikeMinor?: Maybe<Scalars['Int']['output']>;
+  byYear: Array<BikeCostYear>;
+  currency: Scalars['String']['output'];
+  otherCurrencyCount: Scalars['Int']['output'];
+  partsMinor: Scalars['Int']['output'];
+  perHourMinor?: Maybe<Scalars['Float']['output']>;
+  rideHours: Scalars['Float']['output'];
+  serviceMinor: Scalars['Int']['output'];
+  totalMinor: Scalars['Int']['output'];
+};
+
+export type BikeCostYear = {
+  __typename?: 'BikeCostYear';
+  partsMinor: Scalars['Int']['output'];
+  serviceMinor: Scalars['Int']['output'];
+  year: Scalars['Int']['output'];
+};
+
 export type BikeHistoryPayload = {
   __typename?: 'BikeHistoryPayload';
   bike: Bike;
@@ -251,6 +277,9 @@ export type BikeHistoryTotals = {
   installEventCount: Scalars['Int']['output'];
   rideCount: Scalars['Int']['output'];
   serviceEventCount: Scalars['Int']['output'];
+  spendCurrency?: Maybe<Scalars['String']['output']>;
+  spendMinor?: Maybe<Scalars['Int']['output']>;
+  spendOtherCurrencyCount: Scalars['Int']['output'];
   totalDistanceMeters: Scalars['Float']['output'];
   totalDurationSeconds: Scalars['Int']['output'];
   totalElevationGainMeters: Scalars['Float']['output'];
@@ -406,6 +435,7 @@ export type Component = {
   baselineWearPercent?: Maybe<Scalars['Int']['output']>;
   bikeId?: Maybe<Scalars['ID']['output']>;
   brand: Scalars['String']['output'];
+  costSummary?: Maybe<ComponentCostSummary>;
   createdAt: Scalars['String']['output'];
   hoursSinceInspection: Scalars['Float']['output'];
   hoursSinceService: Scalars['Float']['output'];
@@ -426,6 +456,9 @@ export type Component = {
   pairGroupId?: Maybe<Scalars['String']['output']>;
   pairedComponent?: Maybe<Component>;
   priorHours: Scalars['Float']['output'];
+  purchaseCurrency?: Maybe<Scalars['String']['output']>;
+  purchasePriceMinor?: Maybe<Scalars['Int']['output']>;
+  purchasedFrom?: Maybe<Scalars['String']['output']>;
   replacedById?: Maybe<Scalars['ID']['output']>;
   retiredAt?: Maybe<Scalars['String']['output']>;
   serviceDueAtHours?: Maybe<Scalars['Float']['output']>;
@@ -449,6 +482,17 @@ export type ComponentConditionBucket = {
   condition: WeatherCondition;
   durationSeconds: Scalars['Int']['output'];
   rideCount: Scalars['Int']['output'];
+};
+
+export type ComponentCostSummary = {
+  __typename?: 'ComponentCostSummary';
+  currency: Scalars['String']['output'];
+  lifetimeHours: Scalars['Float']['output'];
+  otherCurrencyCount: Scalars['Int']['output'];
+  perHourMinor?: Maybe<Scalars['Float']['output']>;
+  purchaseMinor?: Maybe<Scalars['Int']['output']>;
+  serviceMinor: Scalars['Int']['output'];
+  totalMinor: Scalars['Int']['output'];
 };
 
 export type ComponentCumulativePoint = {
@@ -738,8 +782,11 @@ export type InstallComponentResult = {
 
 export type LogServiceInput = {
   componentId: Scalars['ID']['input'];
+  costMinor?: InputMaybe<Scalars['Int']['input']>;
+  currency?: InputMaybe<Scalars['String']['input']>;
   kind?: InputMaybe<ServiceLogKind>;
   notes?: InputMaybe<Scalars['String']['input']>;
+  parts?: InputMaybe<Array<ServicePartInput>>;
   performedAt?: InputMaybe<Scalars['String']['input']>;
   serviceExtensionHours?: InputMaybe<Scalars['Float']['input']>;
 };
@@ -1110,6 +1157,9 @@ export type NewComponentInput = {
   brand: Scalars['String']['input'];
   isStock?: InputMaybe<Scalars['Boolean']['input']>;
   model: Scalars['String']['input'];
+  purchaseCurrency?: InputMaybe<Scalars['String']['input']>;
+  purchasePriceMinor?: InputMaybe<Scalars['Int']['input']>;
+  purchasedFrom?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type PairedComponentConfigInput = {
@@ -1284,6 +1334,9 @@ export type ReplaceComponentInput = {
   newModel: Scalars['String']['input'];
   pairBrand?: InputMaybe<Scalars['String']['input']>;
   pairModel?: InputMaybe<Scalars['String']['input']>;
+  purchaseCurrency?: InputMaybe<Scalars['String']['input']>;
+  purchasePriceMinor?: InputMaybe<Scalars['Int']['input']>;
+  purchasedFrom?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ReplaceComponentResult = {
@@ -1500,20 +1553,27 @@ export type RidesFilterInput = {
 export type ServiceEvent = {
   __typename?: 'ServiceEvent';
   component: Component;
+  costMinor?: Maybe<Scalars['Int']['output']>;
+  currency?: Maybe<Scalars['String']['output']>;
   hoursAtService: Scalars['Float']['output'];
   id: Scalars['ID']['output'];
+  kind: ServiceLogKind;
   notes?: Maybe<Scalars['String']['output']>;
+  parts: Array<ServicePart>;
   performedAt: Scalars['String']['output'];
 };
 
 export type ServiceLog = {
   __typename?: 'ServiceLog';
   componentId: Scalars['ID']['output'];
+  costMinor?: Maybe<Scalars['Int']['output']>;
   createdAt: Scalars['String']['output'];
+  currency?: Maybe<Scalars['String']['output']>;
   hoursAtService: Scalars['Float']['output'];
   id: Scalars['ID']['output'];
   kind: ServiceLogKind;
   notes?: Maybe<Scalars['String']['output']>;
+  parts: Array<ServicePart>;
   performedAt: Scalars['String']['output'];
   serviceExtensionHours?: Maybe<Scalars['Float']['output']>;
 };
@@ -1528,6 +1588,22 @@ export enum ServiceNotificationMode {
   HoursBefore = 'HOURS_BEFORE',
   RidesBefore = 'RIDES_BEFORE'
 }
+
+export type ServicePart = {
+  __typename?: 'ServicePart';
+  brand: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  model: Scalars['String']['output'];
+  priceMinor?: Maybe<Scalars['Int']['output']>;
+  vendor?: Maybe<Scalars['String']['output']>;
+};
+
+export type ServicePartInput = {
+  brand?: InputMaybe<Scalars['String']['input']>;
+  model: Scalars['String']['input'];
+  priceMinor?: InputMaybe<Scalars['Int']['input']>;
+  vendor?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type ServicePreferenceDefault = {
   __typename?: 'ServicePreferenceDefault';
@@ -1668,7 +1744,15 @@ export type SharedInstallEvent = {
 export type SharedServiceEvent = {
   __typename?: 'SharedServiceEvent';
   component: SharedComponent;
+  kind: ServiceLogKind;
+  parts: Array<SharedServicePart>;
   performedAt: Scalars['String']['output'];
+};
+
+export type SharedServicePart = {
+  __typename?: 'SharedServicePart';
+  brand: Scalars['String']['output'];
+  model: Scalars['String']['output'];
 };
 
 export type SlotSnapshot = {
@@ -1931,6 +2015,9 @@ export type UpdateComponentInput = {
   model?: InputMaybe<Scalars['String']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
   priorHours?: InputMaybe<Scalars['Float']['input']>;
+  purchaseCurrency?: InputMaybe<Scalars['String']['input']>;
+  purchasePriceMinor?: InputMaybe<Scalars['Int']['input']>;
+  purchasedFrom?: InputMaybe<Scalars['String']['input']>;
   serviceDueAtHours?: InputMaybe<Scalars['Float']['input']>;
 };
 
@@ -1950,8 +2037,11 @@ export type UpdateRideInput = {
 };
 
 export type UpdateServiceLogInput = {
+  costMinor?: InputMaybe<Scalars['Int']['input']>;
+  currency?: InputMaybe<Scalars['String']['input']>;
   hoursAtService?: InputMaybe<Scalars['Float']['input']>;
   notes?: InputMaybe<Scalars['String']['input']>;
+  parts?: InputMaybe<Array<ServicePartInput>>;
   performedAt?: InputMaybe<Scalars['String']['input']>;
   serviceExtensionHours?: InputMaybe<Scalars['Float']['input']>;
 };
@@ -1962,6 +2052,7 @@ export type UpdateServicePreferencesInput = {
 
 export type UpdateUserPreferencesInput = {
   aiFeaturesEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  currency?: InputMaybe<Scalars['String']['input']>;
   distanceUnit?: InputMaybe<Scalars['String']['input']>;
   expoPushToken?: InputMaybe<Scalars['String']['input']>;
   hoursDisplayPreference?: InputMaybe<Scalars['String']['input']>;
@@ -1981,6 +2072,7 @@ export type User = {
   analyticsOptOut: Scalars['Boolean']['output'];
   avatarUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['String']['output'];
+  currency?: Maybe<Scalars['String']['output']>;
   distanceUnit?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
   garminRidesMissingCoords: Scalars['Int']['output'];
@@ -2150,6 +2242,13 @@ export type BulkUpdateBikeComponentInstallsMutationVariables = Exact<{
 
 export type BulkUpdateBikeComponentInstallsMutation = { __typename?: 'Mutation', bulkUpdateBikeComponentInstalls: { __typename?: 'BulkUpdateBikeComponentInstallsResult', updatedCount: number, serviceLogsMoved: number } };
 
+export type BikeCostQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type BikeCostQuery = { __typename?: 'Query', bike?: { __typename?: 'Bike', id: string, purchasePriceMinor?: number | null, purchaseCurrency?: string | null, costSummary?: { __typename?: 'BikeCostSummary', currency: string, bikeMinor?: number | null, partsMinor: number, serviceMinor: number, totalMinor: number, rideHours: number, perHourMinor?: number | null, otherCurrencyCount: number, byYear: Array<{ __typename?: 'BikeCostYear', year: number, partsMinor: number, serviceMinor: number }> } | null } | null };
+
 export type BikeHistoryQueryVariables = Exact<{
   bikeId: Scalars['ID']['input'];
   startDate?: InputMaybe<Scalars['String']['input']>;
@@ -2157,7 +2256,9 @@ export type BikeHistoryQueryVariables = Exact<{
 }>;
 
 
-export type BikeHistoryQuery = { __typename?: 'Query', bikeHistory: { __typename?: 'BikeHistoryPayload', truncated: boolean, bike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, shareSlug?: string | null, contributingSources: Array<string> }, rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, trailSystem?: string | null, location?: string | null }>, serviceEvents: Array<{ __typename?: 'ServiceEvent', id: string, performedAt: string, notes?: string | null, hoursAtService: number, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, installs: Array<{ __typename?: 'ComponentInstallEvent', id: string, eventType: ComponentInstallEventType, occurredAt: string, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, totals: { __typename?: 'BikeHistoryTotals', rideCount: number, totalDistanceMeters: number, totalDurationSeconds: number, totalElevationGainMeters: number, serviceEventCount: number, installEventCount: number } } };
+export type BikeHistoryQuery = { __typename?: 'Query', bikeHistory: { __typename?: 'BikeHistoryPayload', truncated: boolean, bike: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, shareSlug?: string | null, contributingSources: Array<string>, costSummary?: { __typename?: 'BikeCostSummary', currency: string, bikeMinor?: number | null, partsMinor: number, serviceMinor: number, totalMinor: number, rideHours: number, perHourMinor?: number | null, otherCurrencyCount: number, byYear: Array<{ __typename?: 'BikeCostYear', year: number, partsMinor: number, serviceMinor: number }> } | null }, rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, averageHr?: number | null, rideType: string, trailSystem?: string | null, location?: string | null }>, serviceEvents: Array<{ __typename?: 'ServiceEvent', id: string, performedAt: string, notes?: string | null, hoursAtService: number, kind: ServiceLogKind, costMinor?: number | null, currency?: string | null, parts: Array<{ __typename?: 'ServicePart', id: string, brand: string, model: string, priceMinor?: number | null, vendor?: string | null }>, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, installs: Array<{ __typename?: 'ComponentInstallEvent', id: string, eventType: ComponentInstallEventType, occurredAt: string, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string } }>, totals: { __typename?: 'BikeHistoryTotals', rideCount: number, totalDistanceMeters: number, totalDurationSeconds: number, totalElevationGainMeters: number, serviceEventCount: number, installEventCount: number, spendMinor?: number | null, spendCurrency?: string | null, spendOtherCurrencyCount: number } } };
+
+export type BikeCostSummaryFieldsFragment = { __typename?: 'BikeCostSummary', currency: string, bikeMinor?: number | null, partsMinor: number, serviceMinor: number, totalMinor: number, rideHours: number, perHourMinor?: number | null, otherCurrencyCount: number, byYear: Array<{ __typename?: 'BikeCostYear', year: number, partsMinor: number, serviceMinor: number }> };
 
 export type EnableBikeShareMutationVariables = Exact<{
   bikeId: Scalars['ID']['input'];
@@ -2215,7 +2316,7 @@ export type ComponentHistoryQueryVariables = Exact<{
 }>;
 
 
-export type ComponentHistoryQuery = { __typename?: 'Query', componentHistory: { __typename?: 'ComponentHistoryPayload', anchor?: string | null, coverage: ComponentHistoryCoverage, historyIncomplete: boolean, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, status: ComponentStatus, hoursUsed: number, serviceDueAtHours?: number | null, priorHours: number, lifetimeHours: number, hoursSinceService: number, lastInspectedAt?: string | null, installedAt?: string | null, lastServicedAt?: string | null, retiredAt?: string | null, replacedById?: string | null }, lifetime: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, firstRideAt?: string | null, lastRideAt?: string | null }, sinceService: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number }, tenures: Array<{ __typename?: 'ComponentTenure', id: string, slotKey: string, installedAt: string, removedAt?: string | null, synthetic: boolean, bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, thumbnailUrl?: string | null } | null, totals: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number } }>, serviceEvents: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number, serviceExtensionHours?: number | null }>, conditions: Array<{ __typename?: 'ComponentConditionBucket', condition: WeatherCondition, rideCount: number, durationSeconds: number }> } };
+export type ComponentHistoryQuery = { __typename?: 'Query', componentHistory: { __typename?: 'ComponentHistoryPayload', anchor?: string | null, coverage: ComponentHistoryCoverage, historyIncomplete: boolean, component: { __typename?: 'Component', id: string, type: ComponentType, location: ComponentLocation, brand: string, model: string, notes?: string | null, isStock: boolean, bikeId?: string | null, status: ComponentStatus, hoursUsed: number, serviceDueAtHours?: number | null, priorHours: number, lifetimeHours: number, hoursSinceService: number, lastInspectedAt?: string | null, installedAt?: string | null, lastServicedAt?: string | null, retiredAt?: string | null, replacedById?: string | null, purchasePriceMinor?: number | null, purchaseCurrency?: string | null, purchasedFrom?: string | null, costSummary?: { __typename?: 'ComponentCostSummary', currency: string, purchaseMinor?: number | null, serviceMinor: number, totalMinor: number, lifetimeHours: number, perHourMinor?: number | null, otherCurrencyCount: number } | null }, lifetime: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, firstRideAt?: string | null, lastRideAt?: string | null }, sinceService: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number }, tenures: Array<{ __typename?: 'ComponentTenure', id: string, slotKey: string, installedAt: string, removedAt?: string | null, synthetic: boolean, bike?: { __typename?: 'Bike', id: string, nickname?: string | null, manufacturer: string, model: string, year?: number | null, thumbnailUrl?: string | null } | null, totals: { __typename?: 'ComponentUsageTotals', rideCount: number, durationSeconds: number, distanceMeters: number, elevationGainMeters: number } }>, serviceEvents: Array<{ __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number, serviceExtensionHours?: number | null, costMinor?: number | null, currency?: string | null, parts: Array<{ __typename?: 'ServicePart', id: string, brand: string, model: string, priceMinor?: number | null, vendor?: string | null }> }>, conditions: Array<{ __typename?: 'ComponentConditionBucket', condition: WeatherCondition, rideCount: number, durationSeconds: number }> } };
 
 export type UpdateBikeComponentInstallMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2400,7 +2501,7 @@ export type BikeAdvisorSummaryQuery = { __typename?: 'Query', bike?: { __typenam
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean, analyticsOptOut: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, email: string, name?: string | null, avatarUrl?: string | null, onboardingCompleted: boolean, hasAcceptedCurrentTerms: boolean, location?: string | null, age?: number | null, role: UserRole, mustChangePassword: boolean, isFoundingRider: boolean, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, currency?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean, analyticsOptOut: boolean, pairedComponentMigrationSeenAt?: string | null, createdAt: string, activeDataSource?: string | null, subscriptionTier: SubscriptionTier, subscriptionProvider?: SubscriptionProvider | null, needsDowngradeSelection: boolean, tierLimits: { __typename?: 'TierLimits', maxBikes?: number | null, allowedComponentTypes: Array<ComponentType>, currentBikeCount: number, canAddBike: boolean }, accounts: Array<{ __typename?: 'ConnectedAccount', provider: string, connectedAt: string }> } | null };
 
 export type RideQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2439,13 +2540,22 @@ export type RidesPageQueryVariables = Exact<{
 
 export type RidesPageQuery = { __typename?: 'Query', rides: Array<{ __typename?: 'Ride', id: string, startTime: string, durationSeconds: number, distanceMeters: number, elevationGainMeters: number, elevationLossMeters?: number | null, countedElevationGainMeters: number, averageHr?: number | null, rideType: string, bikeId?: string | null, unownedBike: boolean, location?: string | null, notes?: string | null, garminActivityId?: string | null, garminDeviceName?: string | null, stravaActivityId?: string | null, stravaDeviceName?: string | null, whoopWorkoutId?: string | null, suuntoWorkoutId?: string | null, weather?: { __typename?: 'RideWeather', id: string, tempC: number, feelsLikeC?: number | null, precipitationMm: number, windSpeedKph: number, humidity?: number | null, wmoCode: number, condition: WeatherCondition } | null }> };
 
+export type ServicePartFieldsFragment = { __typename?: 'ServicePart', id: string, brand: string, model: string, priceMinor?: number | null, vendor?: string | null };
+
+export type LogServiceMutationVariables = Exact<{
+  input: LogServiceInput;
+}>;
+
+
+export type LogServiceMutation = { __typename?: 'Mutation', logService: { __typename?: 'ServiceLog', id: string, componentId: string, performedAt: string, notes?: string | null, kind: ServiceLogKind, hoursAtService: number, costMinor?: number | null, currency?: string | null, parts: Array<{ __typename?: 'ServicePart', id: string, brand: string, model: string, priceMinor?: number | null, vendor?: string | null }> } };
+
 export type UpdateServiceLogMutationVariables = Exact<{
   id: Scalars['ID']['input'];
   input: UpdateServiceLogInput;
 }>;
 
 
-export type UpdateServiceLogMutation = { __typename?: 'Mutation', updateServiceLog: { __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number } };
+export type UpdateServiceLogMutation = { __typename?: 'Mutation', updateServiceLog: { __typename?: 'ServiceLog', id: string, performedAt: string, notes?: string | null, hoursAtService: number, costMinor?: number | null, currency?: string | null, parts: Array<{ __typename?: 'ServicePart', id: string, brand: string, model: string, priceMinor?: number | null, vendor?: string | null }> } };
 
 export type DeleteServiceLogMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -2511,7 +2621,7 @@ export type UpdateUserPreferencesMutationVariables = Exact<{
 }>;
 
 
-export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean } };
+export type UpdateUserPreferencesMutation = { __typename?: 'Mutation', updateUserPreferences: { __typename?: 'User', id: string, hoursDisplayPreference?: string | null, predictionMode?: string | null, distanceUnit?: string | null, currency?: string | null, rideSyncNotificationMode: RideSyncNotificationMode, weeklyDigestEnabled: boolean, aiFeaturesEnabled: boolean } };
 
 export type WeatherBreakdownQueryVariables = Exact<{
   filter?: InputMaybe<RidesFilterInput>;
@@ -2520,6 +2630,23 @@ export type WeatherBreakdownQueryVariables = Exact<{
 
 export type WeatherBreakdownQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: string, weatherBreakdown: { __typename?: 'WeatherBreakdown', sunny: number, cloudy: number, rainy: number, snowy: number, windy: number, foggy: number, unknown: number, pending: number, totalRides: number } } | null };
 
+export const BikeCostSummaryFieldsFragmentDoc = gql`
+    fragment BikeCostSummaryFields on BikeCostSummary {
+  currency
+  bikeMinor
+  partsMinor
+  serviceMinor
+  totalMinor
+  rideHours
+  perHourMinor
+  otherCurrencyCount
+  byYear {
+    year
+    partsMinor
+    serviceMinor
+  }
+}
+    `;
 export const ComponentShareFieldsFragmentDoc = gql`
     fragment ComponentShareFields on ComponentShare {
   id
@@ -2705,6 +2832,15 @@ export const RideLiftFieldsFragmentDoc = gql`
     liftName
     kind
   }
+}
+    `;
+export const ServicePartFieldsFragmentDoc = gql`
+    fragment ServicePartFields on ServicePart {
+  id
+  brand
+  model
+  priceMinor
+  vendor
 }
     `;
 export const AcceptTermsDocument = gql`
@@ -3173,6 +3309,54 @@ export function useBulkUpdateBikeComponentInstallsMutation(baseOptions?: Apollo.
 export type BulkUpdateBikeComponentInstallsMutationHookResult = ReturnType<typeof useBulkUpdateBikeComponentInstallsMutation>;
 export type BulkUpdateBikeComponentInstallsMutationResult = Apollo.MutationResult<BulkUpdateBikeComponentInstallsMutation>;
 export type BulkUpdateBikeComponentInstallsMutationOptions = Apollo.BaseMutationOptions<BulkUpdateBikeComponentInstallsMutation, BulkUpdateBikeComponentInstallsMutationVariables>;
+export const BikeCostDocument = gql`
+    query BikeCost($id: ID!) {
+  bike(id: $id) {
+    id
+    purchasePriceMinor
+    purchaseCurrency
+    costSummary {
+      ...BikeCostSummaryFields
+    }
+  }
+}
+    ${BikeCostSummaryFieldsFragmentDoc}`;
+
+/**
+ * __useBikeCostQuery__
+ *
+ * To run a query within a React component, call `useBikeCostQuery` and pass it any options that fit your needs.
+ * When your component renders, `useBikeCostQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useBikeCostQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useBikeCostQuery(baseOptions: Apollo.QueryHookOptions<BikeCostQuery, BikeCostQueryVariables> & ({ variables: BikeCostQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<BikeCostQuery, BikeCostQueryVariables>(BikeCostDocument, options);
+      }
+export function useBikeCostLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<BikeCostQuery, BikeCostQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<BikeCostQuery, BikeCostQueryVariables>(BikeCostDocument, options);
+        }
+// @ts-ignore
+export function useBikeCostSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<BikeCostQuery, BikeCostQueryVariables>): Apollo.UseSuspenseQueryResult<BikeCostQuery, BikeCostQueryVariables>;
+export function useBikeCostSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<BikeCostQuery, BikeCostQueryVariables>): Apollo.UseSuspenseQueryResult<BikeCostQuery | undefined, BikeCostQueryVariables>;
+export function useBikeCostSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<BikeCostQuery, BikeCostQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<BikeCostQuery, BikeCostQueryVariables>(BikeCostDocument, options);
+        }
+export type BikeCostQueryHookResult = ReturnType<typeof useBikeCostQuery>;
+export type BikeCostLazyQueryHookResult = ReturnType<typeof useBikeCostLazyQuery>;
+export type BikeCostSuspenseQueryHookResult = ReturnType<typeof useBikeCostSuspenseQuery>;
+export type BikeCostQueryResult = Apollo.QueryResult<BikeCostQuery, BikeCostQueryVariables>;
 export const BikeHistoryDocument = gql`
     query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
   bikeHistory(bikeId: $bikeId, startDate: $startDate, endDate: $endDate) {
@@ -3184,6 +3368,9 @@ export const BikeHistoryDocument = gql`
       year
       shareSlug
       contributingSources
+      costSummary {
+        ...BikeCostSummaryFields
+      }
     }
     rides {
       id
@@ -3202,6 +3389,12 @@ export const BikeHistoryDocument = gql`
       performedAt
       notes
       hoursAtService
+      kind
+      costMinor
+      currency
+      parts {
+        ...ServicePartFields
+      }
       component {
         id
         type
@@ -3229,11 +3422,15 @@ export const BikeHistoryDocument = gql`
       totalElevationGainMeters
       serviceEventCount
       installEventCount
+      spendMinor
+      spendCurrency
+      spendOtherCurrencyCount
     }
     truncated
   }
 }
-    `;
+    ${BikeCostSummaryFieldsFragmentDoc}
+${ServicePartFieldsFragmentDoc}`;
 
 /**
  * __useBikeHistoryQuery__
@@ -3593,6 +3790,18 @@ export const ComponentHistoryDocument = gql`
       lastServicedAt
       retiredAt
       replacedById
+      purchasePriceMinor
+      purchaseCurrency
+      purchasedFrom
+      costSummary {
+        currency
+        purchaseMinor
+        serviceMinor
+        totalMinor
+        lifetimeHours
+        perHourMinor
+        otherCurrencyCount
+      }
     }
     lifetime {
       rideCount
@@ -3636,6 +3845,11 @@ export const ComponentHistoryDocument = gql`
       kind
       hoursAtService
       serviceExtensionHours
+      costMinor
+      currency
+      parts {
+        ...ServicePartFields
+      }
     }
     conditions {
       condition
@@ -3644,7 +3858,7 @@ export const ComponentHistoryDocument = gql`
     }
   }
 }
-    `;
+    ${ServicePartFieldsFragmentDoc}`;
 
 /**
  * __useComponentHistoryQuery__
@@ -4612,6 +4826,7 @@ export const MeDocument = gql`
     hoursDisplayPreference
     predictionMode
     distanceUnit
+    currency
     rideSyncNotificationMode
     weeklyDigestEnabled
     aiFeaturesEnabled
@@ -4976,6 +5191,49 @@ export type RidesPageQueryHookResult = ReturnType<typeof useRidesPageQuery>;
 export type RidesPageLazyQueryHookResult = ReturnType<typeof useRidesPageLazyQuery>;
 export type RidesPageSuspenseQueryHookResult = ReturnType<typeof useRidesPageSuspenseQuery>;
 export type RidesPageQueryResult = Apollo.QueryResult<RidesPageQuery, RidesPageQueryVariables>;
+export const LogServiceDocument = gql`
+    mutation LogService($input: LogServiceInput!) {
+  logService(input: $input) {
+    id
+    componentId
+    performedAt
+    notes
+    kind
+    hoursAtService
+    costMinor
+    currency
+    parts {
+      ...ServicePartFields
+    }
+  }
+}
+    ${ServicePartFieldsFragmentDoc}`;
+export type LogServiceMutationFn = Apollo.MutationFunction<LogServiceMutation, LogServiceMutationVariables>;
+
+/**
+ * __useLogServiceMutation__
+ *
+ * To run a mutation, you first call `useLogServiceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useLogServiceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [logServiceMutation, { data, loading, error }] = useLogServiceMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useLogServiceMutation(baseOptions?: Apollo.MutationHookOptions<LogServiceMutation, LogServiceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<LogServiceMutation, LogServiceMutationVariables>(LogServiceDocument, options);
+      }
+export type LogServiceMutationHookResult = ReturnType<typeof useLogServiceMutation>;
+export type LogServiceMutationResult = Apollo.MutationResult<LogServiceMutation>;
+export type LogServiceMutationOptions = Apollo.BaseMutationOptions<LogServiceMutation, LogServiceMutationVariables>;
 export const UpdateServiceLogDocument = gql`
     mutation UpdateServiceLog($id: ID!, $input: UpdateServiceLogInput!) {
   updateServiceLog(id: $id, input: $input) {
@@ -4983,9 +5241,14 @@ export const UpdateServiceLogDocument = gql`
     performedAt
     notes
     hoursAtService
+    costMinor
+    currency
+    parts {
+      ...ServicePartFields
+    }
   }
 }
-    `;
+    ${ServicePartFieldsFragmentDoc}`;
 export type UpdateServiceLogMutationFn = Apollo.MutationFunction<UpdateServiceLogMutation, UpdateServiceLogMutationVariables>;
 
 /**
@@ -5373,6 +5636,7 @@ export const UpdateUserPreferencesDocument = gql`
     hoursDisplayPreference
     predictionMode
     distanceUnit
+    currency
     rideSyncNotificationMode
     weeklyDigestEnabled
     aiFeaturesEnabled

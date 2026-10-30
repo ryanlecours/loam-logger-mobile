@@ -18,12 +18,38 @@ export type HistoryRide = {
   location?: string | null;
 };
 
+export type HistoryServicePart = {
+  id?: string;
+  brand: string;
+  model: string;
+  priceMinor?: number | null;
+  vendor?: string | null;
+};
+
 export type HistoryServiceEvent = {
   id: string;
   performedAt: string;
   notes?: string | null;
   hoursAtService: number;
+  /** SERVICE (work performed) or INSPECTION (checked and found good). */
+  kind?: 'SERVICE' | 'INSPECTION' | string | null;
+  /** What was spent, in minor units of `currency`; null when not recorded. */
+  costMinor?: number | null;
+  currency?: string | null;
+  parts?: HistoryServicePart[] | null;
   component: ComponentLite;
+};
+
+export type BikeCostSummaryLite = {
+  currency: string;
+  bikeMinor?: number | null;
+  partsMinor: number;
+  serviceMinor: number;
+  totalMinor: number;
+  rideHours: number;
+  perHourMinor?: number | null;
+  otherCurrencyCount: number;
+  byYear?: Array<{ year: number; partsMinor: number; serviceMinor: number }> | null;
 };
 
 export type HistoryInstallEvent = {
@@ -41,6 +67,8 @@ export type HistoryBike = {
   year?: number | null;
   /** Providers whose rides contributed to this history; drives export attribution. */
   contributingSources?: string[] | null;
+  /** Pro only; null for Free. */
+  costSummary?: BikeCostSummaryLite | null;
 };
 
 export type HistoryTotals = {
@@ -50,7 +78,20 @@ export type HistoryTotals = {
   totalElevationGainMeters: number;
   serviceEventCount: number;
   installEventCount: number;
+  /** Plain sum of the listed services' costs; null when none recorded one. */
+  spendMinor?: number | null;
+  spendCurrency?: string | null;
+  spendOtherCurrencyCount?: number;
 };
+
+/** "Fox Seal kit, 20wt oil" with "+n" past the first few. */
+export function summarizeParts(parts: HistoryServicePart[] | null | undefined, max = 2): string {
+  if (!parts || parts.length === 0) return '';
+  const names = parts.map((p) => [p.brand, p.model].filter(Boolean).join(' ').trim()).filter(Boolean);
+  const shown = names.slice(0, max).join(', ');
+  const rest = names.length - max;
+  return rest > 0 ? `${shown} +${rest}` : shown;
+}
 
 export type TimelineItem =
   | { kind: 'ride'; date: Date; ride: HistoryRide }

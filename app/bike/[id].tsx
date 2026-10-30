@@ -13,7 +13,9 @@ import { ComponentDetailSheet } from '../../src/components/gear/ComponentDetailS
 import { EditServiceSheet, type EditableServiceLog } from '../../src/components/gear/EditServiceSheet';
 import { UpdateAcquisitionSheet } from '../../src/components/gear/UpdateAcquisitionSheet';
 import { ReplaceComponentSheet } from '../../src/components/gear/ReplaceComponentSheet';
-import { UpsellCard } from '../../src/components/common/UpgradePrompt';
+import { UpsellCard, ProChip } from '../../src/components/common/UpgradePrompt';
+import { useBikeCostQuery } from '../../src/graphql/generated';
+import { formatMoney, formatPerHour } from '../../src/lib/money';
 import { MaintenanceSummary } from '../../src/components/bike/MaintenanceSummary';
 import { useUserTier } from '../../src/hooks/useUserTier';
 import { colors, radius } from '../../src/constants/theme';
@@ -49,6 +51,13 @@ export default function BikeDetailScreen() {
   // and its skeleton.
   const { data: meData } = useMeQuery({ fetchPolicy: 'cache-first' });
   const aiFeaturesEnabled = meData?.me?.aiFeaturesEnabled ?? false;
+  // Cost of ownership, kept off the bike list query: Pro only, null for Free.
+  const { data: costData } = useBikeCostQuery({
+    variables: { id: id as string },
+    skip: !id || isFree,
+    fetchPolicy: 'cache-and-network',
+  });
+  const costSummary = costData?.bike?.costSummary ?? null;
   const [showLogService, setShowLogService] = useState(false);
   const [servicePreSelectedId, setServicePreSelectedId] = useState<string | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ComponentFieldsFragment | null>(null);
@@ -399,6 +408,28 @@ export default function BikeDetailScreen() {
       {!isFree && aiFeaturesEnabled && (predictions?.components?.length ?? 0) > 0 && (
         <MaintenanceSummary bikeId={bike.id} />
       )}
+
+      {/* What the bike has cost to own and ride. History, not status: cream
+          text, never on the health ramp. Pro only; Free gets the quiet chip
+          (the predictions card below is this screen's one upsell card). */}
+      {isFree ? (
+        <View style={styles.costRow}>
+          <Text style={styles.costText}>Cost per ride hour</Text>
+          <ProChip />
+        </View>
+      ) : costSummary && costSummary.totalMinor > 0 ? (
+        <View style={styles.costRow}>
+          <Text style={styles.costText}>
+            Spent {formatMoney(costSummary.totalMinor, costSummary.currency)}
+            {formatPerHour(costSummary.perHourMinor, costSummary.currency)
+              ? ` · ${formatPerHour(costSummary.perHourMinor, costSummary.currency)}`
+              : ''}
+            {costSummary.byYear && costSummary.byYear.length > 0
+              ? ` · since ${Math.min(...costSummary.byYear.map((y) => y.year))}`
+              : ''}
+          </Text>
+        </View>
+      ) : null}
 
       {/* Specs Section */}
       <View style={styles.section}>
@@ -825,6 +856,26 @@ const styles = StyleSheet.create({
   upsellContainer: {
     marginTop: 16,
     marginHorizontal: 16,
+  },
+  costRow: {
+    marginTop: 16,
+    marginHorizontal: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  costText: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   groupHeader: {
     flexDirection: 'row',

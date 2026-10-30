@@ -1,8 +1,10 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
-  // Use local schema file from the API package (avoids need for running server with introspection)
-  schema: "../loam-logger/apps/api/src/graphql/schema.ts",
+  // Use the local schema file from the API package (avoids a running server
+  // with introspection). GRAPHQL_SCHEMA_PATH overrides the sibling-checkout
+  // default, for worktrees that do not sit beside the API repo.
+  schema: process.env.GRAPHQL_SCHEMA_PATH || "../loam-logger/apps/api/src/graphql/schema.ts",
   documents: ["src/graphql/**/*.graphql"],
   generates: {
     "src/graphql/generated.ts": {

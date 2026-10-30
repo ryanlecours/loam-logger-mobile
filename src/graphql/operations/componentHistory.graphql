@@ -36,6 +36,20 @@ query ComponentHistory($componentId: ID!) {
       lastServicedAt
       retiredAt
       replacedById
+      # What the rider paid for the part. Null on stock parts and when not recorded.
+      purchasePriceMinor
+      purchaseCurrency
+      purchasedFrom
+      # Pro only: null for Free, so the screen shows the Pro chip instead.
+      costSummary {
+        currency
+        purchaseMinor
+        serviceMinor
+        totalMinor
+        lifetimeHours
+        perHourMinor
+        otherCurrencyCount
+      }
     }
     lifetime {
       rideCount
@@ -82,6 +96,11 @@ query ComponentHistory($componentId: ID!) {
       hoursAtService
       # INSPECTION only: hours of riding it granted before the next service.
       serviceExtensionHours
+      costMinor
+      currency
+      parts {
+        ...ServicePartFields
+      }
     }
     conditions {
       condition

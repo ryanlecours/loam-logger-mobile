@@ -14,10 +14,19 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { ComponentFieldsFragment, useLogComponentServiceMutation } from '../../graphql/generated';
+import { ComponentFieldsFragment, useLogServiceMutation } from '../../graphql/generated';
 import { StatusDot } from './StatusDot';
 import { colors, radius } from '../../constants/theme';
 import { formatComponentType } from '../../utils/formatComponentType';
+import { useCurrency } from '../../hooks/useCurrency';
+import { majorToMinor } from '../../lib/money';
+import {
+  PartsAndCostSection,
+  partsAndCostInvalid,
+  partsToInput,
+  type PartDraft,
+} from './PartsAndCostSection';
+import { CurrencyPickerSheet } from '../settings/CurrencyPickerSheet';
 
 interface LogServiceSheetProps {
   visible: boolean;
@@ -25,6 +34,8 @@ interface LogServiceSheetProps {
   components: ComponentFieldsFragment[];
   onServiceLogged?: () => void;
   preSelectedId?: string | null;
+  /** Offered when a listed part looks like a whole-part replacement. */
+  onReplaceInstead?: (componentId: string) => void;
 }
 
 export function LogServiceSheet({
@@ -33,6 +44,7 @@ export function LogServiceSheet({
   components,
   onServiceLogged,
   preSelectedId,
+  onReplaceInstead,
 }: LogServiceSheetProps) {
   const insets = useSafeAreaInsets();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
@@ -40,7 +52,22 @@ export function LogServiceSheet({
   );
   const [serviceDate, setServiceDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [logService, { loading }] = useLogComponentServiceMutation();
+  // Parts and cost belong to one service on one part, so they are only
+  // offered when exactly one component is selected.
+  const [cost, setCost] = useState('');
+  const [parts, setParts] = useState<PartDraft[]>([]);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const { currency, setCurrency } = useCurrency();
+  // logService returns the log, not the component, so the lists that used to
+  // read the component straight off logComponentService's result refetch.
+  const [logService, { loading }] = useLogServiceMutation({
+    refetchQueries: ['Gear', 'GearLight', 'Bikes', 'BikeHistory'],
+  });
+  const singleSelectedId = selectedIds.size === 1 ? Array.from(selectedIds)[0] : null;
+  const singleSelected = singleSelectedId
+    ? components.find((c) => c.id === singleSelectedId) ?? null
+    : null;
+  const moneyInvalid = partsAndCostInvalid(cost, parts, currency);
 
   const isToday = serviceDate.toDateString() === new Date().toDateString();
 
@@ -77,15 +104,33 @@ export function LogServiceSheet({
     noon.setHours(12, 0, 0, 0);
     const performedAt = noon.toISOString();
     const ids = Array.from(selectedIds);
+    if (moneyInvalid) return;
+
+    // Parts and cost ride along only on a single-part service; with several
+    // parts selected one total could not be attributed honestly. The
+    // currency is always sent with an amount, so an edited Settings currency
+    // never relabels what this entry recorded.
+    const details =
+      ids.length === 1
+        ? (() => {
+            const costMinor = cost.trim() === '' ? null : majorToMinor(cost, currency);
+            const partInput = partsToInput(parts, currency);
+            const hasAmount = costMinor != null || partInput.some((p) => p.priceMinor != null);
+            return {
+              ...(costMinor != null ? { costMinor } : {}),
+              ...(hasAmount ? { currency } : {}),
+              ...(partInput.length > 0 ? { parts: partInput } : {}),
+            };
+          })()
+        : {};
 
     try {
       // Log service for all selected components
       await Promise.all(
-        ids.map((id) =>
+        ids.map((componentId) =>
           logService({
             variables: {
-              id,
-              performedAt,
+              input: { componentId, performedAt, ...details },
             },
           })
         )
@@ -101,6 +146,8 @@ export function LogServiceSheet({
           text: 'OK',
           onPress: () => {
             setSelectedIds(new Set());
+            setCost('');
+            setParts([]);
             onClose();
             onServiceLogged?.();
           },
@@ -109,12 +156,14 @@ export function LogServiceSheet({
     } catch (error) {
       Alert.alert('Error', (error as Error).message);
     }
-  }, [selectedIds, serviceDate, logService, onClose, onServiceLogged]);
+  }, [selectedIds, serviceDate, logService, onClose, onServiceLogged, cost, parts, currency, moneyInvalid]);
 
   const handleClose = useCallback(() => {
     setSelectedIds(new Set());
     setServiceDate(new Date());
     setShowDatePicker(false);
+    setCost('');
+    setParts([]);
     onClose();
   }, [onClose]);
 
@@ -190,7 +239,32 @@ export function LogServiceSheet({
                 />
               )}
 
-              <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.list} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {components.length > 0 && (
+                  <View style={styles.partsSection}>
+                    <PartsAndCostSection
+                      currency={currency}
+                      cost={cost}
+                      onCostChange={setCost}
+                      parts={parts}
+                      onPartsChange={setParts}
+                      enabled={singleSelected !== null}
+                      disabledHint="Select one part to record parts and cost, or add them later from the logbook."
+                      componentBrandModel={
+                        singleSelected ? [singleSelected.brand, singleSelected.model].filter(Boolean).join(' ') : null
+                      }
+                      onReplaceInstead={
+                        onReplaceInstead && singleSelectedId
+                          ? () => {
+                              handleClose();
+                              onReplaceInstead(singleSelectedId);
+                            }
+                          : undefined
+                      }
+                      onChangeCurrency={() => setShowCurrencyPicker(true)}
+                    />
+                  </View>
+                )}
                 {components.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="construct-outline" size={48} color={colors.textMuted} />
@@ -250,17 +324,19 @@ export function LogServiceSheet({
                 <TouchableOpacity
                   style={[
                     styles.logButton,
-                    (selectedIds.size === 0 || loading) && styles.logButtonDisabled,
+                    (selectedIds.size === 0 || loading || moneyInvalid) && styles.logButtonDisabled,
                   ]}
                   onPress={handleLogService}
-                  disabled={selectedIds.size === 0 || loading}
+                  disabled={selectedIds.size === 0 || loading || moneyInvalid}
                   accessibilityRole="button"
                   accessibilityLabel={
                     selectedIds.size === 0
                       ? 'Log service. Select at least one component first.'
+                      : moneyInvalid
+                      ? 'Log service. Fix the amount first.'
                       : `Log service for ${selectedIds.size} component${selectedIds.size === 1 ? '' : 's'}`
                   }
-                  accessibilityState={{ disabled: selectedIds.size === 0 || loading, busy: loading }}
+                  accessibilityState={{ disabled: selectedIds.size === 0 || loading || moneyInvalid, busy: loading }}
                 >
                   {loading ? (
                     <ActivityIndicator color={colors.onPrimary} />
@@ -283,11 +359,23 @@ export function LogServiceSheet({
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
+      <CurrencyPickerSheet
+        visible={showCurrencyPicker}
+        selected={currency}
+        onSelect={(code) => {
+          setCurrency(code).catch((error) => Alert.alert('Error', (error as Error).message));
+        }}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  partsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -297,7 +385,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '70%',
+    maxHeight: '88%',
   },
   handle: {
     width: 36,
@@ -375,7 +463,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   list: {
-    maxHeight: 300,
+    maxHeight: 440,
   },
   emptyState: {
     padding: 40,

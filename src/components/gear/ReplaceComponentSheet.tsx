@@ -22,6 +22,9 @@ import { BottomSheet } from '../common/BottomSheet';
 import { KeyboardDoneAccessory } from '../common/KeyboardDoneAccessory';
 import { isTierError, getTierErrorMessage } from '../../utils/tierErrors';
 import { formatComponentType } from '../../utils/formatComponentType';
+import { useCurrency } from '../../hooks/useCurrency';
+import { majorToMinor } from '../../lib/money';
+import { MoneyInput, isMoneyTextInvalid } from '../common/MoneyInput';
 import type { ApolloError } from '@apollo/client';
 
 /** Unique per surface: sibling sheets stay mounted and would collide on a shared id. */
@@ -51,9 +54,15 @@ export function ReplaceComponentSheet({
   const [selectedSpareId, setSelectedSpareId] = useState<string | null>(null);
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
+  // What the rider paid for the new part and where, both optional. Money
+  // is sent as minor units with the currency beside it.
+  const [price, setPrice] = useState('');
+  const [vendor, setVendor] = useState('');
   const [note, setNote] = useState('');
   const [installedAt, setInstalledAt] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const { currency } = useCurrency();
+  const priceInvalid = isMoneyTextInvalid(price, currency);
 
   const [installComponent, { loading }] = useInstallComponentMutation();
 
@@ -67,6 +76,8 @@ export function ReplaceComponentSheet({
     setSelectedSpareId(null);
     setBrand('');
     setModel('');
+    setPrice('');
+    setVendor('');
     setNote('');
     setInstalledAt(new Date());
     setShowDatePicker(false);
@@ -110,6 +121,11 @@ export function ReplaceComponentSheet({
           refetchQueries: ['Gear', 'BikeHistory'],
         });
       } else if (activeTab === 'new' && brand.trim() && model.trim()) {
+        if (priceInvalid) {
+          Alert.alert('Check the price', 'Enter a plain amount, like 850 or 850.00.');
+          return;
+        }
+        const purchasePriceMinor = price.trim() === '' ? null : majorToMinor(price, currency);
         await installComponent({
           variables: {
             input: {
@@ -118,6 +134,10 @@ export function ReplaceComponentSheet({
               newComponent: {
                 brand: brand.trim(),
                 model: model.trim(),
+                ...(purchasePriceMinor != null
+                  ? { purchasePriceMinor, purchaseCurrency: currency }
+                  : {}),
+                ...(vendor.trim() ? { purchasedFrom: vendor.trim() } : {}),
               },
               noteText: note || undefined,
               installedAt: installedAtIso,
@@ -166,6 +186,10 @@ export function ReplaceComponentSheet({
     selectedSpareId,
     brand,
     model,
+    price,
+    vendor,
+    currency,
+    priceInvalid,
     note,
     installedAt,
     bikeId,
@@ -178,7 +202,7 @@ export function ReplaceComponentSheet({
 
   const canSubmit =
     (activeTab === 'spare' && selectedSpareId) ||
-    (activeTab === 'new' && brand.trim() && model.trim());
+    (activeTab === 'new' && brand.trim() && model.trim() && !priceInvalid);
 
   if (!component) return null;
 
@@ -295,6 +319,28 @@ export function ReplaceComponentSheet({
                 inputAccessoryViewID={DONE_ACCESSORY}
                 returnKeyType="done"
                 placeholder="e.g., 36 Factory"
+                placeholderTextColor={colors.textMuted}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Price paid (optional)</Text>
+              <MoneyInput
+                currency={currency}
+                value={price}
+                onChangeText={setPrice}
+                inputAccessoryViewID={DONE_ACCESSORY}
+                accessibilityLabel="Price paid for the new part"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Where bought (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={vendor}
+                onChangeText={setVendor}
+                inputAccessoryViewID={DONE_ACCESSORY}
+                returnKeyType="done"
+                placeholder="e.g., local shop, Jenson"
                 placeholderTextColor={colors.textMuted}
               />
             </View>
