@@ -149,7 +149,15 @@
         "@sentry/react-native/expo",
         {
           "organization": "loam-labs-llc",
-          "project": "react-native"
+          "project": "react-native",
+          "experimental_android": {
+            "enableAndroidGradlePlugin": true,
+            "includeProguardMapping": true,
+            "autoUploadProguardMapping": true,
+            "uploadNativeSymbols": false,
+            "autoUploadNativeSymbols": false,
+            "includeNativeSources": false
+          }
         }
       ],
       [
@@ -166,6 +174,11 @@
                 "modular_headers": true
               }
             ]
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "# expo-task-manager and expo-notifications ship these rules but never apply them as consumer rules.\n# Task manager persists task consumer class names (background ride recording) and loads them with Class.forName.\n-keep class expo.modules.taskManager.** { *; }\n# Task manager runs that task with the app closed through the headless app loader, which expo-modules-core names only in manifest meta-data.\n-keep class * implements expo.modules.apploader.HeadlessAppLoader { <init>(android.content.Context); }\n# Notifications persists scheduled notification requests with Java serialization.\n-keep class expo.modules.notifications.** { *; }\n"
           }
         }
       ],
