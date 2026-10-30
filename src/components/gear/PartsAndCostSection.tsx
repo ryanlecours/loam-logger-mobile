@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radius } from '../../constants/theme';
 import { MoneyInput, isMoneyTextInvalid } from '../common/MoneyInput';
-import { majorToMinor } from '../../lib/money';
+import { majorToMinor, minorToInput } from '../../lib/money';
 
 export const MAX_SERVICE_PARTS = 20;
 
@@ -97,25 +97,30 @@ export function PartsAndCostSection({
   onChangeCurrency,
 }: PartsAndCostSectionProps) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
-  const [costTouched, setCostTouched] = useState(cost.trim() !== '');
+  // The last total this section filled in itself. The total is only
+  // rewritten while it is empty or still equal to that fill, so a cost the
+  // rider typed, or one an existing log was seeded with after mount, is never
+  // replaced by the sum of the parts (which would drop labour).
+  const [autoFill, setAutoFill] = useState<string | null>(null);
+
+  const refillTotal = (next: PartDraft[]) => {
+    if (cost.trim() !== '' && cost !== autoFill) return;
+    const sum = sumPartPrices(next, currency);
+    const text = sum == null ? '' : minorToInput(sum, currency);
+    setAutoFill(text);
+    onCostChange(text);
+  };
 
   const updatePart = (key: string, patch: Partial<PartDraft>) => {
     const next = parts.map((p) => (p.key === key ? { ...p, ...patch } : p));
     onPartsChange(next);
-    // Pre-fill the total from the priced parts until the rider types one.
-    if (!costTouched && patch.price !== undefined) {
-      const sum = sumPartPrices(next, currency);
-      onCostChange(sum == null ? '' : String(sum / 10 ** (currency === 'JPY' ? 0 : 2)));
-    }
+    if (patch.price !== undefined) refillTotal(next);
   };
 
   const removePart = (key: string) => {
     const next = parts.filter((p) => p.key !== key);
     onPartsChange(next);
-    if (!costTouched) {
-      const sum = sumPartPrices(next, currency);
-      onCostChange(sum == null ? '' : String(sum / 10 ** (currency === 'JPY' ? 0 : 2)));
-    }
+    refillTotal(next);
   };
 
   const normalizedComponent = (componentBrandModel ?? '').trim().toLowerCase();
@@ -179,7 +184,7 @@ export function PartsAndCostSection({
               currency={currency}
               value={cost}
               onChangeText={(t) => {
-                setCostTouched(t.trim() !== '');
+                setAutoFill(null);
                 onCostChange(t);
               }}
               inputAccessoryViewID={inputAccessoryViewID}

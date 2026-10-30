@@ -1,7 +1,7 @@
 import { View, Text, TextInput, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, radius } from '../../constants/theme';
-import { majorToMinor } from '../../lib/money';
+import { MAX_AMOUNT_MINOR, majorToMinor, minorToMajor } from '../../lib/money';
 
 interface MoneyInputProps {
   /** ISO 4217 code shown as the prefix and used to read the amount. */
@@ -35,7 +35,7 @@ export function MoneyInput({
   onParsed,
 }: MoneyInputProps) {
   const trimmed = value.trim();
-  const invalid = trimmed !== '' && majorToMinor(trimmed, currency) === null;
+  const invalid = isMoneyTextInvalid(value, currency);
 
   return (
     <View style={style}>
@@ -44,7 +44,7 @@ export function MoneyInput({
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          onBlur={() => onParsed?.(trimmed === '' ? null : majorToMinor(trimmed, currency))}
+          onBlur={() => onParsed?.(invalid || trimmed === '' ? null : majorToMinor(trimmed, currency))}
           keyboardType="decimal-pad"
           inputAccessoryViewID={inputAccessoryViewID}
           style={styles.input}
@@ -56,17 +56,23 @@ export function MoneyInput({
       </View>
       {invalid && (
         <Text style={styles.error} accessibilityRole="alert">
-          Enter a plain amount, like 85 or 85.50.
+          Enter a plain amount under {minorToMajor(MAX_AMOUNT_MINOR, currency).toLocaleString()}, like 85 or 85.50.
         </Text>
       )}
     </View>
   );
 }
 
-/** True when the text is non-empty and not a plain amount in the currency. */
+/**
+ * True when the text is non-empty and not a plain amount in the currency, or
+ * is over the cap the API enforces, so the rider hears it here rather than
+ * from a server error after typing everything else.
+ */
 export function isMoneyTextInvalid(value: string, currency: string): boolean {
   const trimmed = value.trim();
-  return trimmed !== '' && majorToMinor(trimmed, currency) === null;
+  if (trimmed === '') return false;
+  const minor = majorToMinor(trimmed, currency);
+  return minor === null || minor > MAX_AMOUNT_MINOR;
 }
 
 const styles = StyleSheet.create({

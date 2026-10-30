@@ -35,7 +35,13 @@ export async function exportMaintenanceCsv(): Promise<MaintenanceExportResult> {
 
   const disposition = response.headers.get('content-disposition') ?? '';
   const match = /filename="([^"]+)"/.exec(disposition);
-  const filename = match?.[1] ?? `loam-logger-maintenance-${new Date().toISOString().slice(0, 10)}.csv`;
+  // The header is ours, but a filename is still untrusted input for a path:
+  // keep only a plain basename.
+  const suggested = match?.[1]?.split(/[\\/]/).pop()?.replace(/[^A-Za-z0-9._-]/g, '_');
+  const filename =
+    suggested && suggested.endsWith('.csv')
+      ? suggested
+      : `loam-logger-maintenance-${new Date().toISOString().slice(0, 10)}.csv`;
   const csv = await response.text();
 
   const dir = FileSystem.cacheDirectory;
@@ -44,11 +50,17 @@ export async function exportMaintenanceCsv(): Promise<MaintenanceExportResult> {
   await FileSystem.writeAsStringAsync(uri, csv, { encoding: FileSystem.EncodingType.UTF8 });
 
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, {
-      mimeType: 'text/csv',
-      dialogTitle: 'Maintenance history',
-      UTI: 'public.comma-separated-values-text',
-    });
+    try {
+      await Sharing.shareAsync(uri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Maintenance history',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } finally {
+      // The file is the rider's whole maintenance and cost record; once the
+      // share sheet has handed it on, it has no business staying in the cache.
+      await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+    }
     return { uri, filename, shared: true };
   }
   return { uri, filename, shared: false };

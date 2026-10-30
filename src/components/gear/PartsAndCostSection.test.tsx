@@ -74,7 +74,31 @@ describe('PartsAndCostSection', () => {
     );
     await fireEvent.changeText(screen.getByLabelText('Part 1 price'), '38');
     expect(onPartsChange).toHaveBeenCalledWith([expect.objectContaining({ price: '38' })]);
-    expect(onCostChange).toHaveBeenCalledWith('38');
+    expect(onCostChange).toHaveBeenCalledWith('38.00');
+  });
+
+  it('leaves a cost the rider already has alone when a part price changes', async () => {
+    // An edited log is seeded after mount, and a typed total must never be
+    // replaced by the sum of the parts: that would drop labour.
+    const onCostChange = jest.fn();
+    const parts = [part({ model: 'Seal kit' })];
+    await render(
+      <PartsAndCostSection
+        currency="USD"
+        cost="120.00"
+        onCostChange={onCostChange}
+        parts={parts}
+        onPartsChange={jest.fn()}
+        initiallyExpanded
+      />
+    );
+    await fireEvent.changeText(screen.getByLabelText('Part 1 price'), '38');
+    expect(onCostChange).not.toHaveBeenCalled();
+  });
+
+  it('refuses an amount over the cap the API enforces', () => {
+    expect(partsAndCostInvalid('5000000', [], 'USD')).toBe(true);
+    expect(partsAndCostInvalid('999999', [], 'USD')).toBe(false);
   });
 
   it('shows an error for an ambiguous amount instead of coercing it', async () => {
@@ -88,6 +112,6 @@ describe('PartsAndCostSection', () => {
         initiallyExpanded
       />
     );
-    expect(screen.getByText('Enter a plain amount, like 85 or 85.50.')).toBeTruthy();
+    expect(screen.getByText(/Enter a plain amount under/)).toBeTruthy();
   });
 });
