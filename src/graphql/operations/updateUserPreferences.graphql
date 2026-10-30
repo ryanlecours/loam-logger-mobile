@@ -4,6 +4,7 @@ mutation UpdateUserPreferences($input: UpdateUserPreferencesInput!) {
     hoursDisplayPreference
     predictionMode
     distanceUnit
+    currency
     rideSyncNotificationMode
     weeklyDigestEnabled
     aiFeaturesEnabled

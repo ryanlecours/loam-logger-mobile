@@ -20,3 +20,16 @@ mutation BulkUpdateBikeComponentInstalls(
     serviceLogsMoved
   }
 }
+
+# Kept apart from BikeFields so list queries never pay for the aggregate.
+# costSummary is Pro only and null for Free.
+query BikeCost($id: ID!) {
+  bike(id: $id) {
+    id
+    purchasePriceMinor
+    purchaseCurrency
+    costSummary {
+      ...BikeCostSummaryFields
+    }
+  }
+}

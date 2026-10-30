@@ -5,10 +5,12 @@ import { formatDistance, formatDuration, formatElevation } from '../utils/greeti
 import {
   bikeName,
   componentDisplay,
+  summarizeParts,
   type HistoryBike,
   type HistoryTotals,
   type TimelineItem,
 } from './bikeHistory';
+import { formatMoney, formatPerHour } from './money';
 import {
   GARMIN_INSIGHT_ATTRIBUTION,
   GARMIN_TRADEMARK_NOTICE,
@@ -56,16 +58,25 @@ function buildGarminAttribution(bike: HistoryBike): string {
 </footer>`;
 }
 
-export function buildBikeHistoryHtml(params: {
+export interface BikeHistoryPdfParams {
   bike: HistoryBike;
   totals: HistoryTotals;
   yearGroups: Array<{ year: number; items: TimelineItem[] }>;
   distanceUnit: 'mi' | 'km';
   timeframeLabel: string;
   truncated: boolean;
-}): string {
-  const { bike, totals, yearGroups, distanceUnit, timeframeLabel, truncated } = params;
+  /**
+   * Whether costs, part prices and the cost summary appear. The same document
+   * serves an insurance claim (costs wanted) and a sale (the seller may not
+   * want the buyer to see what they paid), so the rider chooses each time.
+   */
+  includeCosts?: boolean;
+}
+
+export function buildBikeHistoryHtml(params: BikeHistoryPdfParams): string {
+  const { bike, totals, yearGroups, distanceUnit, timeframeLabel, truncated, includeCosts = true } = params;
   const generated = new Date().toLocaleDateString();
+  const summary = includeCosts ? bike.costSummary ?? null : null;
 
   const renderRow = (item: TimelineItem): string => {
     if (item.kind === 'ride') {
@@ -83,12 +94,20 @@ export function buildBikeHistoryHtml(params: {
     if (item.kind === 'service') {
       const s = item.service;
       const notes = s.notes ? ` &middot; ${escapeHtml(s.notes)}` : '';
+      const isInspection = s.kind === 'INSPECTION';
+      const parts = summarizeParts(s.parts, 6);
+      const partsHtml = parts ? `<div class="meta">Parts: ${escapeHtml(parts)}</div>` : '';
+      const cost =
+        includeCosts && s.costMinor != null
+          ? ` &middot; ${escapeHtml(formatMoney(s.costMinor, s.currency ?? summary?.currency ?? 'USD'))}`
+          : '';
       return `
         <div class="row">
-          <div class="tag">SERVICE</div>
+          <div class="tag">${isInspection ? 'INSPECTED' : 'SERVICE'}</div>
           <div class="content">
             <div class="title">${escapeHtml(componentDisplay(s.component))}</div>
-            <div class="meta">${escapeHtml(formatDate(s.performedAt))} &middot; ${s.hoursAtService.toFixed(0)} hrs${notes}</div>
+            <div class="meta">${escapeHtml(formatDate(s.performedAt))} &middot; ${s.hoursAtService.toFixed(0)} hrs${cost}${notes}</div>
+            ${partsHtml}
           </div>
         </div>`;
     }
@@ -120,6 +139,27 @@ export function buildBikeHistoryHtml(params: {
     ? `<p class="truncated">History was capped to the most recent entries — some older events may not appear.</p>`
     : '';
 
+  // Spend over the timeframe is a plain sum the owner recorded. The cost
+  // summary (Pro) is cost of ownership per ride hour over the bike's life.
+  const spendCell =
+    includeCosts && totals.spendMinor != null && totals.spendCurrency
+      ? `<div class="total"><div class="label">Spent</div><div class="value">${escapeHtml(formatMoney(totals.spendMinor, totals.spendCurrency))}</div></div>`
+      : '';
+  const perHour = summary ? formatPerHour(summary.perHourMinor, summary.currency) : null;
+  const summaryHtml = summary
+    ? `<section class="cost">
+  <h2>Cost of ownership</h2>
+  <div class="totals">
+    ${summary.bikeMinor != null ? `<div class="total"><div class="label">Bike</div><div class="value">${escapeHtml(formatMoney(summary.bikeMinor, summary.currency))}</div></div>` : ''}
+    <div class="total"><div class="label">Parts</div><div class="value">${escapeHtml(formatMoney(summary.partsMinor, summary.currency))}</div></div>
+    <div class="total"><div class="label">Service</div><div class="value">${escapeHtml(formatMoney(summary.serviceMinor, summary.currency))}</div></div>
+    <div class="total"><div class="label">Total</div><div class="value">${escapeHtml(formatMoney(summary.totalMinor, summary.currency))}</div></div>
+    <div class="total"><div class="label">Per ride hour</div><div class="value">${perHour ? escapeHtml(perHour) : 'Under 1 h ridden'}</div></div>
+  </div>
+  ${summary.otherCurrencyCount > 0 ? `<p class="truncated">${summary.otherCurrencyCount} entr${summary.otherCurrencyCount === 1 ? 'y' : 'ies'} in another currency not included.</p>` : ''}
+</section>`
+    : '';
+
   return `<!doctype html>
 <html>
 <head>
@@ -137,6 +177,9 @@ export function buildBikeHistoryHtml(params: {
   .total .label { font-size: 7pt; color: ${MUTED}; text-transform: uppercase; letter-spacing: 1px; }
   .total .value { font-size: 12pt; font-weight: 700; margin-top: 2px; }
   .truncated { font-style: italic; color: ${MUTED}; font-size: 8pt; margin-bottom: 8px; }
+  section.cost { margin: 0 0 16px; }
+  section.cost h2 { font-size: 11pt; color: ${SAGE}; margin: 0 0 4px; }
+  section.cost .totals { margin: 0; }
   section.year { page-break-inside: auto; margin-bottom: 12px; }
   section.year h2 { font-size: 11pt; color: ${SAGE}; border-bottom: 1px solid ${BORDER}; padding-bottom: 3px; margin: 10px 0 4px; }
   .row { display: flex; padding: 4px 0; border-bottom: 0.5px solid ${BORDER}; page-break-inside: avoid; }
@@ -173,7 +216,10 @@ export function buildBikeHistoryHtml(params: {
   <div class="total"><div class="label">Distance</div><div class="value">${escapeHtml(formatDistance(totals.totalDistanceMeters, distanceUnit))}</div></div>
   <div class="total"><div class="label">Elevation</div><div class="value">${escapeHtml(formatElevation(totals.totalElevationGainMeters, distanceUnit))}</div></div>
   <div class="total"><div class="label">Service &amp; installs</div><div class="value">${(totals.serviceEventCount + totals.installEventCount).toLocaleString()}</div></div>
+  ${spendCell}
 </div>
+
+${summaryHtml}
 
 ${truncatedNote}
 
@@ -187,14 +233,7 @@ ${garminAttributionHtml}
 </html>`;
 }
 
-export async function exportBikeHistoryPdf(params: {
-  bike: HistoryBike;
-  totals: HistoryTotals;
-  yearGroups: Array<{ year: number; items: TimelineItem[] }>;
-  distanceUnit: 'mi' | 'km';
-  timeframeLabel: string;
-  truncated: boolean;
-}): Promise<void> {
+export async function exportBikeHistoryPdf(params: BikeHistoryPdfParams): Promise<void> {
   const html = buildBikeHistoryHtml(params);
   const { uri } = await Print.printToFileAsync({ html });
   const canShare = await Sharing.isAvailableAsync();

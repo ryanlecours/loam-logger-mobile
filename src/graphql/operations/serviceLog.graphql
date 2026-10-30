@@ -1,9 +1,40 @@
+fragment ServicePartFields on ServicePart {
+  id
+  brand
+  model
+  priceMinor
+  vendor
+}
+
+# Logs a service or inspection with what was spent and the parts fitted.
+# Replaces logComponentService in the sheets; one call per component.
+mutation LogService($input: LogServiceInput!) {
+  logService(input: $input) {
+    id
+    componentId
+    performedAt
+    notes
+    kind
+    hoursAtService
+    costMinor
+    currency
+    parts {
+      ...ServicePartFields
+    }
+  }
+}
+
 mutation UpdateServiceLog($id: ID!, $input: UpdateServiceLogInput!) {
   updateServiceLog(id: $id, input: $input) {
     id
     performedAt
     notes
     hoursAtService
+    costMinor
+    currency
+    parts {
+      ...ServicePartFields
+    }
   }
 }
 

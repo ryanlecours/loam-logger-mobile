@@ -35,6 +35,11 @@ export const UPSELL_COPY = {
     body: 'The correct number of bikes is always one more. Track the whole quiver with Pro.',
     dismissKey: 'upsell-dismissed-bike-limit',
   },
+  costPerHour: {
+    title: 'What does this bike cost to ride?',
+    body: 'Pro turns your parts and service spend into cost per ride hour, per part and per bike.',
+    dismissKey: 'upsell-dismissed-cost-per-hour',
+  },
   importDepth: {
     title: 'Bring your whole history.',
     body: 'Pro imports every season you’ve ever logged. More history means smarter service estimates.',

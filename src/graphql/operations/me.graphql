@@ -14,6 +14,8 @@ query Me {
     hoursDisplayPreference
     predictionMode
     distanceUnit
+    # ISO 4217 code new costs are entered in; null until the rider picks one.
+    currency
     rideSyncNotificationMode
     weeklyDigestEnabled
     aiFeaturesEnabled

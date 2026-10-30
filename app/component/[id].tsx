@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,9 @@ import { GarminDerivedNote } from '../../src/components/attribution/GarminAttrib
 import { conditionIcon, conditionLabel, type WeatherCondition } from '../../src/lib/weather';
 import { ComponentShareSheet } from '../../src/components/gear/ComponentShareSheet';
 import { earliestShareDay } from '../../src/utils/componentShare';
+import { formatMoney, formatPerHour } from '../../src/lib/money';
+import { summarizeParts } from '../../src/lib/bikeHistory';
+import { posthog } from '../../src/lib/posthog';
 
 /**
  * Conditions bar tints, per the Data Visualization section of DESIGN.md.
@@ -70,6 +73,14 @@ export default function ComponentHistoryScreen() {
   });
 
   const payload = data?.componentHistory;
+
+  // Whether the rider saw the cost per hour or the Pro chip in its place.
+  useEffect(() => {
+    if (!payload) return;
+    posthog.capture('cost_insight_viewed', { surface: 'component', tier: isPro ? 'PRO' : 'FREE' });
+    // Once per component load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload?.component.id]);
 
   // Every logbook entry is real work or a real inspection now. The old model
   // wrote a zero-hour ServiceLog on every install purely to position the
@@ -271,6 +282,79 @@ export default function ComponentHistoryScreen() {
               </View>
             )}
 
+            {/* Cost. Money is history, not status: cream figures in the same
+                Stat treatment as hours, never tinted by the ramp. Cost per
+                ride hour is Pro, and null for Free, so the chip stands where
+                the numbers would. The purchase price alone is the rider's
+                own entry and shows for every tier. */}
+            <Text style={styles.sectionTitle}>COST</Text>
+            {payload.component.costSummary ? (
+              <>
+                <View style={styles.statGrid}>
+                  <Stat
+                    label="Paid"
+                    value={
+                      payload.component.costSummary.purchaseMinor != null
+                        ? formatMoney(payload.component.costSummary.purchaseMinor, payload.component.costSummary.currency)
+                        : payload.component.isStock
+                        ? 'With bike'
+                        : '–'
+                    }
+                  />
+                  <Stat
+                    label="Services"
+                    value={formatMoney(payload.component.costSummary.serviceMinor, payload.component.costSummary.currency)}
+                  />
+                  <Stat
+                    label="Total"
+                    value={formatMoney(payload.component.costSummary.totalMinor, payload.component.costSummary.currency)}
+                  />
+                  <Stat
+                    label="Per ride hour"
+                    value={
+                      formatPerHour(payload.component.costSummary.perHourMinor, payload.component.costSummary.currency) ??
+                      'Under 1 h'
+                    }
+                  />
+                </View>
+                {payload.component.costSummary.otherCurrencyCount > 0 && (
+                  <Text style={styles.caption}>
+                    {payload.component.costSummary.otherCurrencyCount} entr
+                    {payload.component.costSummary.otherCurrencyCount === 1 ? 'y' : 'ies'} in another currency not included.
+                  </Text>
+                )}
+                {payload.component.purchasedFrom && (
+                  <Text style={styles.caption}>Bought from {payload.component.purchasedFrom}.</Text>
+                )}
+              </>
+            ) : (
+              <>
+                {payload.component.purchasePriceMinor != null && (
+                  <View style={styles.statGrid}>
+                    <Stat
+                      label="Paid"
+                      value={formatMoney(payload.component.purchasePriceMinor, payload.component.purchaseCurrency ?? 'USD')}
+                    />
+                  </View>
+                )}
+                {!isPro && (
+                  <TouchableOpacity
+                    style={styles.proRow}
+                    onPress={() => router.push('/settings-detail/pricing' as Href)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Cost per ride hour is included with Pro, see plans"
+                  >
+                    <Text style={styles.proText}>
+                      See what this part costs per ride hour with Pro.
+                    </Text>
+                    <View style={styles.proChip}>
+                      <Text style={styles.proChipText}>PRO</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
             {/* Bikes it has lived on */}
             <Text style={styles.sectionTitle}>BIKES IT HAS LIVED ON</Text>
             {payload.tenures.map((t) => (
@@ -393,6 +477,16 @@ export default function ComponentHistoryScreen() {
                       `, good for ${Math.round(s.serviceExtensionHours)}h more`}
                   </Text>
                 </Text>
+                {(s.costMinor != null || (s.parts?.length ?? 0) > 0) && (
+                  <Text style={styles.serviceNotes}>
+                    {[
+                      s.costMinor != null ? formatMoney(s.costMinor, s.currency ?? 'USD') : null,
+                      summarizeParts(s.parts) || null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                )}
                 {!!s.notes && <Text style={styles.serviceNotes}>{s.notes}</Text>}
               </View>
               {/* A lifetime reading, as a mechanic would write it. */}

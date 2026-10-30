@@ -9,6 +9,10 @@ query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
       shareSlug
       # Drives attribution in the exported PDF, which is downstream data.
       contributingSources
+      # Pro only: null for Free, so the screen shows the Pro chip instead.
+      costSummary {
+        ...BikeCostSummaryFields
+      }
     }
     rides {
       id
@@ -27,6 +31,12 @@ query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
       performedAt
       notes
       hoursAtService
+      kind
+      costMinor
+      currency
+      parts {
+        ...ServicePartFields
+      }
       component {
         id
         type
@@ -54,7 +64,27 @@ query BikeHistory($bikeId: ID!, $startDate: String, $endDate: String) {
       totalElevationGainMeters
       serviceEventCount
       installEventCount
+      # Plain sum of the listed services' costs, every tier.
+      spendMinor
+      spendCurrency
+      spendOtherCurrencyCount
     }
     truncated
+  }
+}
+
+fragment BikeCostSummaryFields on BikeCostSummary {
+  currency
+  bikeMinor
+  partsMinor
+  serviceMinor
+  totalMinor
+  rideHours
+  perHourMinor
+  otherCurrencyCount
+  byYear {
+    year
+    partsMinor
+    serviceMinor
   }
 }

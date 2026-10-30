@@ -23,6 +23,10 @@ import type { IntegrationProvider } from '../../src/api/integrations';
 import { colors, radius } from '../../src/constants/theme';
 import { GARMIN_CONNECT_APP_NAME } from '../../src/constants/garminAttribution';
 import { describeSaveError } from '../../src/utils/errorCopy';
+import { useCurrency } from '../../src/hooks/useCurrency';
+import { CurrencyPickerSheet } from '../../src/components/settings/CurrencyPickerSheet';
+import { exportMaintenanceCsv } from '../../src/api/export';
+import { posthog } from '../../src/lib/posthog';
 
 function IntegrationRow({
   provider,
@@ -111,9 +115,31 @@ export default function SettingsScreen() {
   const { isPro } = useUserTier();
   const { data: meData, refetch: refetchMe } = useMeQuery();
   const { distanceUnit, setDistanceUnit } = useDistanceUnit();
+  const { currency, isSet: currencyIsSet, setCurrency } = useCurrency();
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [updatePreferences] = useUpdateUserPreferencesMutation();
 
   const predictionMode = meData?.me?.predictionMode ?? 'simple';
+
+  const handleExportCsv = useCallback(async () => {
+    setExporting(true);
+    try {
+      const result = await exportMaintenanceCsv();
+      posthog.capture('maintenance_exported', {
+        format: 'csv',
+        tier: isPro ? 'PRO' : 'FREE',
+        surface: 'settings',
+      });
+      if (!result.shared) {
+        Alert.alert('Saved', `Your maintenance history was saved as ${result.filename}.`);
+      }
+    } catch (error) {
+      Alert.alert('Export failed', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setExporting(false);
+    }
+  }, [isPro]);
 
   /**
    * Shared failure path for the preference writes on this screen. See
@@ -382,6 +408,29 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* The currency new costs are entered in. Amounts already recorded
+            keep their own code; this only sets what new entries default to
+            and which currency totals are summed in. */}
+        <TouchableOpacity
+          style={styles.prefRow}
+          onPress={() => setShowCurrencyPicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Currency: ${currency}. Change currency.`}
+        >
+          <View style={styles.prefRowContent}>
+            <Text style={styles.prefLabel}>Currency</Text>
+            <Text style={styles.prefDescription}>
+              {currencyIsSet
+                ? 'Used for new service costs and part prices.'
+                : 'Used for new service costs and part prices. Assuming US dollars until you pick one.'}
+            </Text>
+          </View>
+          <View style={styles.valueRow}>
+            <Text style={styles.valueText}>{currency}</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </View>
+        </TouchableOpacity>
+
         <View style={styles.prefRow}>
           <View style={styles.prefLabelRow}>
             <Text style={styles.prefLabel}>Wear Predictions</Text>
@@ -459,6 +508,44 @@ export default function SettingsScreen() {
       <BiometricUnlockSection />
 
       <AnalyticsPrivacySection />
+
+      {/* The rider's own record, free for every tier: services, inspections,
+          installs and removals across every bike, with parts, costs and
+          notes. The two Garmin attribution rows sit in the first column
+          after the events when any ride came from Garmin. */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Your data</Text>
+        <TouchableOpacity
+          style={[styles.legalRow, styles.legalRowLast]}
+          onPress={handleExportCsv}
+          disabled={exporting}
+          accessibilityRole="button"
+          accessibilityLabel="Export maintenance history as a CSV file"
+          accessibilityState={{ busy: exporting, disabled: exporting }}
+        >
+          <Ionicons name="download-outline" size={18} color={colors.primary} style={styles.rowLeadingIcon} />
+          <View style={styles.prefRowContent}>
+            <Text style={styles.legalRowText}>Export maintenance history</Text>
+            <Text style={styles.prefDescription}>
+              A CSV of every service, part and cost across your bikes.
+            </Text>
+          </View>
+          {exporting ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <CurrencyPickerSheet
+        visible={showCurrencyPicker}
+        selected={currency}
+        onSelect={(code) => {
+          setCurrency(code).catch((error) => void reportSaveFailure(error, 'currency'));
+        }}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Legal</Text>
@@ -702,6 +789,19 @@ const styles = StyleSheet.create({
   legalRowText: {
     fontSize: 16,
     color: colors.textPrimary,
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  valueText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  rowLeadingIcon: {
+    marginRight: 12,
   },
   dangerSection: {
     backgroundColor: colors.card,
