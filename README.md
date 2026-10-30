@@ -239,6 +239,36 @@ from RevenueCat's.
 Service Account Key for Play Store Submissions". The workflow needs no GitHub
 secret for this: `eas build --auto-submit-with-profile` reads the key from EAS.
 
+### Android R8 mapping (deobfuscation file)
+
+Android release builds run R8 (code shrinking and obfuscation) and resource
+shrinking, set by `expo-build-properties` in `app.json`. Each build writes a new
+`mapping.txt`, and crash stacks from that build can only be read with its own
+mapping. Both destinations get it without a manual step:
+
+- **Google Play**: the Android Gradle Plugin puts the mapping inside the AAB, at
+  `BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`, and Play
+  reads it from there when `eas submit` uploads the bundle. The bundle's
+  **Downloads** tab in Play Console (App bundle explorer) should list a
+  deobfuscation file. The metadata is not delivered to devices, so the AAB on
+  disk looks bigger than what users download.
+- **Sentry**: the Sentry Android Gradle Plugin (`experimental_android` in the
+  `@sentry/react-native/expo` plugin options) stamps a ProGuard UUID into the
+  app and uploads the mapping during the EAS build, using the same
+  `SENTRY_AUTH_TOKEN` as the JS source maps. Native (NDK) symbol upload is left
+  off.
+
+If a build ever lacks the mapping in Play (for example a build made outside EAS),
+upload it by hand: Play Console → **Test and release** → **App bundle explorer** →
+pick the version → **Downloads** → **Deobfuscation file** → upload
+`android/app/build/outputs/mapping/release/mapping.txt` from that same build.
+
+A new crash from a class R8 renamed or removed shows up as
+`ClassNotFoundException`, `NoSuchMethodError` or `NoSuchFieldError` in a release
+build only. The fix is a keep rule in `extraProguardRules` (same plugin entry in
+`app.json`); most libraries ship their own rules, so add one only for the
+library that broke.
+
 ### Local / ad-hoc builds
 
 You can also build from your machine with the EAS CLI:
@@ -254,6 +284,11 @@ eas build --profile preview
 eas build --profile production
 ```
 
+A local Android release build (`npx expo run:android --variant release`, or
+`./gradlew bundleRelease` in `android/`) has no Sentry token, so set
+`SENTRY_DISABLE_AUTO_UPLOAD=true` first; the source map and mapping uploads are
+then skipped instead of failing the build.
+
 ## Error Tracking
 
 [Sentry](https://sentry.io) is integrated for crash reporting and error tracking. It is disabled in development (`__DEV__`).
@@ -262,13 +297,16 @@ eas build --profile production
 - **Initialization**: `app/_layout.tsx` (module-level `Sentry.init()` + `Sentry.wrap()`)
 - **User context**: Set automatically after authentication
 - **Source maps**: Uploaded during EAS builds via `SENTRY_AUTH_TOKEN`
+- **Android R8 mapping**: Uploaded during EAS builds by the Sentry Android Gradle
+  Plugin, so Java and Kotlin frames in Android crashes read with real names (see
+  "Android R8 mapping" under Releases)
 
 ### Required secrets for builds
 
 | Secret | Where | Purpose |
 |--------|-------|---------|
 | `EXPO_TOKEN` | GitHub Actions + EAS | EAS CLI authentication |
-| `SENTRY_AUTH_TOKEN` | GitHub Actions + EAS | Source map uploads to Sentry |
+| `SENTRY_AUTH_TOKEN` | GitHub Actions + EAS | Source map and Android R8 mapping uploads to Sentry |
 
 ## Notes
 

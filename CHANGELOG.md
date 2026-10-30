@@ -11,6 +11,28 @@ dev-facing changes that don't belong in store copy.
 > copy used at the time. Dates are the version-bump commit dates. From 1.0.7
 > onward, the "What's New" section is the copy actually submitted.
 
+## 1.3.8 - 2026-10-30
+
+### Internal
+
+Android R8
+- Release builds now run R8 code shrinking and obfuscation plus resource
+  shrinking (`expo-build-properties`). In a local build the shipped AAB
+  content dropped from 64.6 MB to 52.2 MB across all ABIs, mostly dex
+  (57.2 MB to 21.1 MB uncompressed).
+- Keep rules for `expo-task-manager` (background ride recording loads its
+  task consumer by class name) and `expo-notifications` (scheduled
+  notifications are Java-serialized). Both packages ship these rules but
+  never apply them; every other native library brings its own.
+- A keep rule for Expo's headless app loader, which task manager needs to
+  run the recording task with the app closed. It is named only in manifest
+  meta-data, so the first R8 build stripped it (a `ClassNotFoundException`
+  in logcat at launch).
+- The R8 mapping travels inside the AAB, so Play picks it up from the
+  `eas submit` upload, and the Sentry Android Gradle Plugin uploads it to
+  Sentry during the EAS build. This clears Play's "no deobfuscation file"
+  warning.
+
 ## 1.3.7 - 2026-10-29
 
 ### App Store "What's New"
